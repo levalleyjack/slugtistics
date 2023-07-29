@@ -13,17 +13,10 @@
 <!-- PROJECT LOGO -->
 <br />
 <div align="center">
-  <a href="https://github.com/levalleyjack/slugtistics">
-    <img src="images/logo.png" alt="Logo" width="80" height="80">
-  </a>
 
-  <h3 align="center">Best-README-Template</h3>
+  <h3 align="center">Slugtistics</h3>
 
   <p align="center">
-    An awesome README template to jumpstart your projects!
-    <br />
-    <a href="https://github.com/levalleyjack/slugtistics"><strong>Explore the docs »</strong></a>
-    <br />
     <br />
     <a href="https://github.com/levalleyjack/slugtistics">View Demo</a>
     ·
