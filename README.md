@@ -82,6 +82,7 @@ University of California, Santa Cruz. Slugtistics is a project created by a UCSC
 - [ ] Add a button to change values to percentages
 - [ ] fix the UI (it looks terrible right now)
 - [ ] write a python script to merge all of the quarter spreadsheets together
+- [ ] get the term button to work
 
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
