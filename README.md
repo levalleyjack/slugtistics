@@ -78,6 +78,9 @@ University of California, Santa Cruz. Slugtistics is a project created by a UCSC
 
 - [x] Add search capabilities
 - [ ] Add CORS
+- [ ] Deploy it on AWS
+- [ ] Add a button to change values to percentages
+- [ ] fix the UI (it looks terrible right now)
 
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
