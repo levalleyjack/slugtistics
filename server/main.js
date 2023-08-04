@@ -3,6 +3,7 @@ import express from "express";
 import sqlite3 from "sqlite3";
 import { fileURLToPath } from "url";
 import { dirname, join } from "path";
+import cors from "cors";
 
 const app = express();
 const currentFileUrl = import.meta.url;
@@ -11,6 +12,7 @@ const frontendPath = join(dirname(currentFilePath), "client/build");
 const dbPath = join(dirname(currentFilePath), "slugtistics.db");
 
 app.use(express.static(frontendPath));
+app.use(cors());
 
 //===================================================================================================
 //dropdown menus
