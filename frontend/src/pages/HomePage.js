@@ -168,7 +168,7 @@ const HomePage = () => {
           onChange={handleTermSelect}
           className={classes.select}
         >
-          <MenuItem value="All">All Terms</MenuItem>
+          <MenuItem value="All">Spring 2022</MenuItem>
           {/* tbd */}
         </Select>
 
