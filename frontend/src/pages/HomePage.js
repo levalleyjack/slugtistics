@@ -34,6 +34,8 @@ const HomePage = () => {
   const [instructor, setInstructor] = useState("All");
   const [term, setTerm] = useState("All");
   const [classInfo, setClassInfo] = useState([]);
+  const [showPercentage, setShowPercentage] = useState(false);
+  // i dont think is being used
   const [searchQuery, setSearchQuery] = useState("");
 
   //==========================================================================================================//
@@ -103,29 +105,44 @@ const HomePage = () => {
   //==========================================================================================================//
   //chart.js magic
 
+  // Calculate the total number of students
+  const totalStudents = Object.values(classInfo).reduce(
+    (acc, val) => acc + val,
+    0
+  );
+
+  // Calculate the percentage values for each grade
+  const percentageData = Object.values(classInfo).map((value) =>
+    ((value / totalStudents) * 100).toFixed(2)
+  );
+
+  const getValues = () => {
+    return showPercentage ? percentageData : Object.values(classInfo);
+  };
+
   const chartData = {
-    labels: [
-      "A+",
-      "A",
-      "A-",
-      "B+",
-      "B",
-      "B-",
-      "C+",
-      "C",
-      "C-",
-      "D+",
-      "D",
-      "D-",
-      "F",
-    ],
+    labels: ["A", "B", "C", "D", "F"],
     datasets: [
       {
         label: "Grade Distribution",
-        data: Object.values(classInfo),
+        data: getValues(),
         backgroundColor: "rgba(85, 192, 192, 1)",
       },
     ],
+  };
+
+  const chartContainerStyle = {
+    width: "100%",
+    height: "40vh",
+    margin: "auto",
+  };
+
+  const getInformationButtonStyle = {
+    margin: "0.5rem",
+  };
+
+  const showPercentageButtonStyle = {
+    margin: "0.5rem",
   };
 
   //==========================================================================================================//
@@ -144,6 +161,7 @@ const HomePage = () => {
               {...params}
               label="Search Classes"
               variant="outlined"
+              // what does this line do?
               onChange={(e) => setSearchQuery(e.target.value)}
             />
           )}
@@ -155,8 +173,8 @@ const HomePage = () => {
           className={classes.select}
         >
           <MenuItem value="All">All Instructors</MenuItem>
-          {instructorsList.map((instructor, index) => (
-            <MenuItem key={index} value={instructor}>
+          {instructorsList.map((instructor) => (
+            <MenuItem key={instructor} value={instructor}>
               {instructor}
             </MenuItem>
           ))}
@@ -175,14 +193,28 @@ const HomePage = () => {
         <Button
           variant="contained"
           color="primary"
+          style={getInformationButtonStyle}
           onClick={handleGetInfo}
           className={classes.button}
         >
           Get Information
         </Button>
+        <Button
+          variant="contained"
+          color="primary"
+          style={showPercentageButtonStyle}
+          onClick={() => setShowPercentage((prev) => !prev)}
+          className={classes.button}
+        >
+          {showPercentage ? "Show Raw Data" : "Show Percentage"}
+        </Button>
       </div>
       <Paper elevation={3} className={classes.chart}>
-        <Bar data={chartData} options={{ maintainAspectRatio: false }} />
+        <Bar
+          style={chartContainerStyle}
+          data={chartData}
+          options={{ maintainAspectRatio: false }}
+        />
       </Paper>
     </div>
   );
