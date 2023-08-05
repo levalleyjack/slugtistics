@@ -59,13 +59,12 @@ app.get("/grade-distribution/:subjectCatalogNbr", (req, res) => {
   const { term, instructor } = req.query;
 
   let sqlQuery = `SELECT 
-  COALESCE(SUM("A+"), 0) + COALESCE(SUM("A"), 0) + COALESCE(SUM("A-"), 0) as "A",
-  COALESCE(SUM("B+"), 0) + COALESCE(SUM("B"), 0) + COALESCE(SUM("B-"), 0) as "B",
-  COALESCE(SUM("C+"), 0) + COALESCE(SUM("C"), 0) + COALESCE(SUM("C-"), 0) as "C",
-  COALESCE(SUM("D+"), 0) + COALESCE(SUM("D"), 0) + COALESCE(SUM("D-"), 0) as "D",
-  COALESCE(SUM("F"), 0) as "F"
-FROM spring2022
-WHERE "SubjectCatalogNbr" = ?`;
+    SUM("A+") as "A+", SUM("A") as "A", SUM("A-") as "A-", 
+    SUM("B+") as "B+", SUM("B") as "B", SUM("B-") as "B-", 
+    SUM("C+") as "C+", SUM("C") as "C", SUM("C-") as "C-", 
+    SUM("D+") as "D+", SUM("D") as "D", SUM("D-") as "D-", 
+    SUM("F") as "F"
+    FROM spring2022 WHERE "SubjectCatalogNbr" = ?`;
 
   const params = [subjectCatalogNbr];
 
