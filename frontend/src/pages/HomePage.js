@@ -35,7 +35,7 @@ const HomePage = () => {
   const [term, setTerm] = useState("All");
   const [classInfo, setClassInfo] = useState([]);
   const [showPercentage, setShowPercentage] = useState(false);
-  // i dont think is being used
+  // i dont think this is being used
   const [searchQuery, setSearchQuery] = useState("");
 
   //==========================================================================================================//
@@ -121,7 +121,21 @@ const HomePage = () => {
   };
 
   const chartData = {
-    labels: ["A", "B", "C", "D", "F"],
+    labels: [
+      "A+",
+      "A",
+      "A-",
+      "B+",
+      "B",
+      "B-",
+      "C+",
+      "C",
+      "C-",
+      "D+",
+      "D",
+      "D-",
+      "F",
+    ],
     datasets: [
       {
         label: "Grade Distribution",
