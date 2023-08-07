@@ -35,8 +35,6 @@ const HomePage = () => {
   const [term, setTerm] = useState("All");
   const [classInfo, setClassInfo] = useState([]);
   const [showPercentage, setShowPercentage] = useState(false);
-  // i dont think this is being used
-  const [searchQuery, setSearchQuery] = useState("");
 
   //==========================================================================================================//
   //handlers
@@ -171,13 +169,7 @@ const HomePage = () => {
           onChange={handleClassSelect}
           freeSolo
           renderInput={(params) => (
-            <TextField
-              {...params}
-              label="Search Classes"
-              variant="outlined"
-              // what does this line do?
-              onChange={(e) => setSearchQuery(e.target.value)}
-            />
+            <TextField {...params} label="Search Classes" variant="outlined" />
           )}
         />
         <h2>Instructor:</h2>
