@@ -31,6 +31,9 @@ jobs:
           api_location: "" # Api source code path - optional
           output_location: "build" # Built app content directory - optional
           ###### End of Repository/Build Configurations ######
+        ### I added this bottom line
+        env:
+          NPM_CONFIG_LEGACY_PEER_DEPS: true
 
   close_pull_request_job:
     if: github.event_name == 'pull_request' && github.event.action == 'closed'
@@ -43,3 +46,4 @@ jobs:
         with:
           azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN_THANKFUL_HILL_0678BC51E }}
           action: "close"
+  
