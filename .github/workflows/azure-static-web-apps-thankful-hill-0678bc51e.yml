@@ -34,7 +34,7 @@ jobs:
         ### I added this bottom line
         env:
           NPM_CONFIG_LEGACY_PEER_DEPS: true
-          process.env.CI : false
+          CI: false
 
   close_pull_request_job:
     if: github.event_name == 'pull_request' && github.event.action == 'closed'
