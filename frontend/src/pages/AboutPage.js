@@ -24,9 +24,7 @@ const AboutPage = () => {
         <h2>How far does the data go back?</h2>
         <p>Slugtistic's data goes back to Fall 2014.</p>
         <h2>Any other questions?</h2>
-        <p>
-          Send me an email at: <b>jlevalle@ucsc.edu</b>
-        </p>
+        <p>Contact Us:</p>
         <p>
           Or message me on discord at: <b>eggw</b>
         </p>
