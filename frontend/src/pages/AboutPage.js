@@ -12,7 +12,7 @@ const AboutPage = () => {
           organize their courseloads and maximize their success. Slugtistics is
           a free and open source project that is not affiliated with the
           University of California, Santa Cruz. Slugtistics is a project created
-          by a UCSC student for UCSC students.
+          by UCSC students for UCSC students.
         </p>
         <h2>How did you get the data?</h2>
         <p>
