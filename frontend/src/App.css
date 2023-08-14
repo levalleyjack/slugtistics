@@ -10,39 +10,52 @@ h4 {
 }
 
 nav {
-  justify-content: center;
-  text-align: center;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
   position: fixed;
   top: 0;
   width: 100%;
   background: #111827;
+  font-size: 24px;
   box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.5);
 }
 
-nav ul {
+.navbar-left {
+  display: flex;
+  padding: 8px 20px;
+}
+
+.navbar-logo {
+  height: 30px;
+  margin: 10px;
+}
+
+.navbar-title {
+  margin: 0;
+  font-size: 28px;
+}
+
+.navbar-right {
   list-style-type: none;
   margin: 0;
   padding: 0;
+  display: flex;
 }
 
-nav li {
-  font-size: 26px;
-  display: inline-block;
-  padding-top: 8px;
-  padding-bottom: 8px;
+.navbar-right li {
+  margin: 0 15px;
 }
 
 nav a {
   text-decoration: none;
-  background: #111827;
   color: white;
   font-weight: bold;
-  padding: 8px 50px;
+  padding: 8px 10px;
 }
 
 nav a:hover {
-  background: black;
-  color: white;
+  color: rgb(207, 207, 207);
 }
 
 #page-body {
