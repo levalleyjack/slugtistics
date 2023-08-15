@@ -42,7 +42,7 @@ const HomePage = () => {
   //handlers
 
   useEffect(() => {
-    fetch("/SubjectCatalogNbr")
+    fetch("api.slugtistics.com/api/SubjectCatalogNbr")
       .then((response) => response.json())
       .then((data) => {
         setClassTitles(data);
@@ -55,7 +55,7 @@ const HomePage = () => {
   useEffect(() => {
     //when a class is selected fetch the instructors for that class
     if (selectedClass) {
-      fetch(`/instructors/${selectedClass}`)
+      fetch(`api.slugtistics.com/api/instructors/${selectedClass}`)
         .then((response) => response.json())
         .then((data) => {
           setInstructorsList(data);
@@ -70,7 +70,7 @@ const HomePage = () => {
     setSelectedClass(newValue);
     //fetch instructors for the selected class
     if (newValue) {
-      fetch(`/instructors/${newValue}`)
+      fetch(`api.slugtistics.com/api/instructors/${newValue}`)
         .then((response) => response.json())
         .then((data) => {
           setInstructorsList(data);
@@ -91,7 +91,7 @@ const HomePage = () => {
 
   const handleGetInfo = () => {
     fetch(
-      `/grade-distribution/${selectedClass}?instructor=${instructor}&term=${term}`
+      `api.slugtistics.com/api/grade-distribution/${selectedClass}?instructor=${instructor}&term=${term}`
     )
       .then((response) => response.json())
       .then((data) => {
@@ -144,11 +144,35 @@ const HomePage = () => {
       },
     ],
   };
+  const chartOptions = {
+    responsive: false,
+    maintainAspectRatio: false,
+    scales: {
+      y: {
+        beginAtZero: true,
+        ticks: {
+          callback: function (value) {
+            return showPercentage ? value + "%" : value;
+          },
+        },
+      },
+    },
+    plugins: {
+      legend: {
+        display: false,
+      },
+      title: {
+        display: true,
+        text: "Grade Distribution",
+      },
+    },
+  };
 
   const chartContainerStyle = {
-    width: "100%",
-    height: "40vh",
-    margin: "auto",
+    position: "relative",
+    cursor: "default",
+    width: "1500px",
+    height: "400px",
   };
 
   const getInformationButtonStyle = {
@@ -221,7 +245,7 @@ const HomePage = () => {
         <Bar
           style={chartContainerStyle}
           data={chartData}
-          options={{ maintainAspectRatio: false }}
+          options={chartOptions}
         />
       </Paper>
     </div>

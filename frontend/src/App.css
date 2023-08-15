@@ -1,5 +1,5 @@
 body {
-  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+  font-family: "Inter", sans-serif;
   font-size: 16px;
   margin: 0;
 }
@@ -50,7 +50,6 @@ nav {
 nav a {
   text-decoration: none;
   color: white;
-  font-weight: bold;
   padding: 8px 10px;
 }
 
@@ -59,7 +58,7 @@ nav a:hover {
 }
 
 #page-body {
-  max-width: 70vw;
+  max-width: 80vw;
   margin: auto;
   padding-top: 64px;
 }
