@@ -27,6 +27,7 @@ const useStyles = makeStyles((theme) => ({
 }));
 //==========================================================================================================//
 //homepage function and state declarations
+//this is the main page of the website
 
 const HomePage = () => {
   const classes = useStyles();
