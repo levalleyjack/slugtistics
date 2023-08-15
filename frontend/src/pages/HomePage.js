@@ -43,7 +43,7 @@ const HomePage = () => {
   //handlers
 
   useEffect(() => {
-    fetch("api.slugtistics.com/api/SubjectCatalogNbr")
+    fetch("https://api.slugtistics.com/api/SubjectCatalogNbr")
       .then((response) => response.json())
       .then((data) => {
         setClassTitles(data);
@@ -56,7 +56,7 @@ const HomePage = () => {
   useEffect(() => {
     //when a class is selected fetch the instructors for that class
     if (selectedClass) {
-      fetch(`api.slugtistics.com/api/instructors/${selectedClass}`)
+      fetch(`https://api.slugtistics.com/api/instructors/${selectedClass}`)
         .then((response) => response.json())
         .then((data) => {
           setInstructorsList(data);
@@ -71,7 +71,7 @@ const HomePage = () => {
     setSelectedClass(newValue);
     //fetch instructors for the selected class
     if (newValue) {
-      fetch(`api.slugtistics.com/api/instructors/${newValue}`)
+      fetch(`https://api.slugtistics.com/api/instructors/${newValue}`)
         .then((response) => response.json())
         .then((data) => {
           setInstructorsList(data);
@@ -92,7 +92,7 @@ const HomePage = () => {
 
   const handleGetInfo = () => {
     fetch(
-      `api.slugtistics.com/api/grade-distribution/${selectedClass}?instructor=${instructor}&term=${term}`
+      `https://api.slugtistics.com/api/grade-distribution/${selectedClass}?instructor=${instructor}&term=${term}`
     )
       .then((response) => response.json())
       .then((data) => {
