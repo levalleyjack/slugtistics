@@ -56,11 +56,14 @@ const HomePage = () => {
   useEffect(() => {
     //when a class is selected fetch the instructors for that class
     if (selectedClass) {
+      // set instructor back to "All Instructor" when a new class is selected
+      setInstructor("All");
       fetch(`https://api.slugtistics.com/api/instructors/${selectedClass}`)
         .then((response) => response.json())
         .then((data) => {
           setInstructorsList(data);
         })
+        
         .catch((error) => {
           console.error("Error:", error);
         });
@@ -146,7 +149,7 @@ const HomePage = () => {
     ],
   };
   const chartOptions = {
-    responsive: false,
+    responsive: true,
     maintainAspectRatio: false,
     scales: {
       y: {
@@ -168,12 +171,11 @@ const HomePage = () => {
       },
     },
   };
-
   const chartContainerStyle = {
     position: "relative",
     cursor: "default",
     width: "1500px",
-    height: "400px",
+    height: "350px",
   };
 
   const getInformationButtonStyle = {
