@@ -3,6 +3,11 @@ body {
   font-size: 16px;
   margin: 0;
 }
+/*define color #1118278*/
+:root {
+  --primary-color: #111827;
+  --secondary-color: #1f2937;
+}
 
 h3,
 h4 {

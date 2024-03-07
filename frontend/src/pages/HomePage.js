@@ -43,6 +43,13 @@ const HomePage = () => {
   //handlers
 
   useEffect(() => {
+    //set the initial chart data to be the grade distribution of the sum of all classes "Sum:"
+    fetch(`https://api.slugtistics.com/api/grade-distribution/Sum:?instructor=All&term=All`)
+      .then((response) => response.json())
+      .then((data) => {
+        setClassInfo(data);
+      })
+    //continue with getting the subjectcatalognbr
     fetch("https://api.slugtistics.com/api/SubjectCatalogNbr")
       .then((response) => response.json())
       .then((data) => {
@@ -179,10 +186,12 @@ const HomePage = () => {
   };
 
   const getInformationButtonStyle = {
+    backgroundColor: "#111827",
     margin: "0.5rem",
   };
 
   const showPercentageButtonStyle = {
+    backgroundColor: "#111827",
     margin: "0.5rem",
   };
 
