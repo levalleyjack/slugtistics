@@ -39,17 +39,15 @@ const HomePage = () => {
   const [classInfo, setClassInfo] = useState([]);
   const [showPercentage, setShowPercentage] = useState(false);
 
-  //==========================================================================================================//
-  //handlers
-
   useEffect(() => {
-    //set the initial chart data to be the grade distribution of the sum of all classes "Sum:"
+    // Fetch initial chart data
     fetch(`https://api.slugtistics.com/api/grade-distribution/Sum:?instructor=All&term=All`)
       .then((response) => response.json())
       .then((data) => {
         setClassInfo(data);
-      })
-    //continue with getting the subjectcatalognbr
+      });
+
+    // Fetch subject catalog numbers
     fetch("https://api.slugtistics.com/api/SubjectCatalogNbr")
       .then((response) => response.json())
       .then((data) => {
@@ -61,30 +59,50 @@ const HomePage = () => {
   }, []);
 
   useEffect(() => {
-    //when a class is selected fetch the instructors for that class
+    // Fetch instructors when a class is selected
     if (selectedClass) {
-      // set instructor back to "All Instructor" when a new class is selected
-      setInstructor("All");
+      
       fetch(`https://api.slugtistics.com/api/instructors/${selectedClass}`)
         .then((response) => response.json())
         .then((data) => {
           setInstructorsList(data);
         })
-        
+        .catch((error) => {
+          console.error("Error:", error);
+        });
+
+      // Fetch grade distribution for the selected class
+      fetch(`https://api.slugtistics.com/api/grade-distribution/${selectedClass}?instructor=${instructor}&term=${term}`)
+        .then((response) => response.json())
+        .then((data) => {
+          setClassInfo(data);
+        })
         .catch((error) => {
           console.error("Error:", error);
         });
     }
-  }, [selectedClass]);
+  }, [selectedClass, instructor, term]);
 
   const handleClassSelect = (event, newValue) => {
+    setInstructor("All");
     setSelectedClass(newValue);
-    //fetch instructors for the selected class
+
+    // Fetch instructors for the selected class
     if (newValue) {
       fetch(`https://api.slugtistics.com/api/instructors/${newValue}`)
         .then((response) => response.json())
         .then((data) => {
           setInstructorsList(data);
+        })
+        .catch((error) => {
+          console.error("Error:", error);
+        });
+
+      // Fetch grade distribution for the selected class
+      fetch(`https://api.slugtistics.com/api/grade-distribution/${newValue}?instructor=${instructor}&term=${term}`)
+        .then((response) => response.json())
+        .then((data) => {
+          setClassInfo(data);
         })
         .catch((error) => {
           console.error("Error:", error);
@@ -112,6 +130,57 @@ const HomePage = () => {
         console.error("Error:", error);
       });
   };
+  //get the average GPA
+  const calculateAverageGPA = () => {
+    let totalGPA = 0;
+    let totalStudents = 0;
+
+    Object.entries(classInfo).forEach(([grade, count]) => {
+      const gpa = calculateGPA(grade);
+      totalGPA += gpa * count;
+      totalStudents += count;
+    });
+
+    const averageGPA = totalGPA / totalStudents;
+    return averageGPA.toFixed(2);
+  };
+
+  const calculateGPA = (grade) => {
+    switch (grade) {
+      case "A+":
+        return 4.0;
+      case "A":
+        return 4.0;
+      case "A-":
+        return 3.7;
+      case "B+":
+        return 3.3;
+      case "B":
+        return 3.0;
+      case "B-":
+        return 2.7;
+      case "C+":
+        return 2.3;
+      case "C":
+        return 2.0;
+      case "C-":
+        return 1.7;
+      case "D+":
+        return 1.3;
+      case "D":
+        return 1.0;
+      case "D-":
+        return 0.7;
+      case "F":
+        return 0.0;
+      default:
+        return 0.0;
+    }
+  };
+
+  const averageGPA = calculateAverageGPA();
+  console.log("Average GPA:", averageGPA);
+
 
   //==========================================================================================================//
   //chart.js magic
@@ -149,7 +218,8 @@ const HomePage = () => {
     ],
     datasets: [
       {
-        label: "Grade Distribution",
+        
+        label: "Students",
         data: getValues(),
         backgroundColor: "rgba(85, 192, 192, 1)",
       },
@@ -182,13 +252,9 @@ const HomePage = () => {
     position: "relative",
     cursor: "default",
     width: "1500px",
-    height: "350px",
+    height: "550px",
   };
 
-  const getInformationButtonStyle = {
-    backgroundColor: "#111827",
-    margin: "0.5rem",
-  };
 
   const showPercentageButtonStyle = {
     backgroundColor: "#111827",
@@ -210,8 +276,11 @@ const HomePage = () => {
             <TextField {...params} label="Search Classes" variant="outlined" />
           )}
         />
+        <div class="container">
         <h2>Instructor:</h2>
+        </div>
         <Select
+          style={{ margin: " 0px 15px", width: "200px"}}
           value={instructor}
           onChange={handleInstructorSelect}
           className={classes.select}
@@ -223,9 +292,11 @@ const HomePage = () => {
             </MenuItem>
           ))}
         </Select>
-
+        <div class="container">
         <h2>Term:</h2>
+        </div>
         <Select
+          style={{ margin: " 0px 15px", width: "200px"}}
           value={term}
           onChange={handleTermSelect}
           className={classes.select}
@@ -234,15 +305,6 @@ const HomePage = () => {
           {/* tbd */}
         </Select>
 
-        <Button
-          variant="contained"
-          color="primary"
-          style={getInformationButtonStyle}
-          onClick={handleGetInfo}
-          className={classes.button}
-        >
-          Get Information
-        </Button>
         <Button
           variant="contained"
           color="primary"
