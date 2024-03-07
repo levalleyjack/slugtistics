@@ -70,12 +70,12 @@ University of California, Santa Cruz. Slugtistics is a project created by a UCSC
 ## Roadmap
 
 - [x] Add search capabilities
-- [ ] Add CORS
-- [ ] Deploy it on AWS
-- [ ] Add a button to change values to percentages
+- [x] Deploy it on AWS
+- [x] Add a button to change values to percentages
 - [ ] fix the UI (it looks terrible right now)
-- [ ] write a python script to merge all of the quarter spreadsheets together
-- [ ] get the term button to work
+- [x] write a python script to merge all of the quarter spreadsheets together
+- [x] get the term button to work
+- [ ] Stop the flickering when having selected an instructor and changing the class
 
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>

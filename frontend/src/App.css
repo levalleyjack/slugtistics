@@ -9,6 +9,14 @@ body {
   --secondary-color: #1f2937;
 }
 
+.container {
+  display: inline-block;
+}
+.containerdropdown {
+  padding: 10px;
+
+}
+
 h3,
 h4 {
   margin-bottom: 0;
