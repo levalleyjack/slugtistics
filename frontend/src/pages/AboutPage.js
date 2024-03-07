@@ -22,7 +22,7 @@ const AboutPage = () => {
           database to be used by this application.
         </p>
         <h2>How far does the data go back?</h2>
-        <p>Slugtistic's data goes back to Fall 2014.</p>
+        <p>Slugtistic's data is only Spring 2022, I am currently working with the respective offices to obtain data all the way back to Fall 2014</p>
         <h2>Any other questions?</h2>
         <p>Contact Us:</p>
         <p>

@@ -12,10 +12,7 @@ const NavBar = () => {
       </div>
       <ul className="navbar-right">
         <li>
-          <Link to="/about">About</Link>
-        </li>
-        <li>
-          <Link to="/contact">Contact Us</Link>
+          <Link to="/about"><h3 className="navbar-right">About</h3></Link>
         </li>
       </ul>
     </nav>
