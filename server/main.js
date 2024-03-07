@@ -12,7 +12,10 @@ const frontendPath = join(dirname(currentFilePath), "client/build");
 const dbPath = join(dirname(currentFilePath), "slugtistics.db");
 
 app.use(express.static(frontendPath));
+//Access-Control-Allow-Origin : *
 app.use(cors());
+
+
 
 //===================================================================================================
 //dropdown menus
