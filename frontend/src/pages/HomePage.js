@@ -244,7 +244,8 @@ const HomePage = () => {
       },
       title: {
         display: true,
-        text: "Grade Distribution",
+        //increase size
+        text: `Average GPA: ${averageGPA}`
       },
     },
   };
