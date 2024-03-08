@@ -3,6 +3,7 @@ const AboutPage = () => {
     <>
       <div id="page-body">
         <h1>About Slugtistics</h1>
+        <hr></hr>
         <h2>What is Slugtistics?</h2>
         <p>
           Slugtistics is an application designed to provide students and
