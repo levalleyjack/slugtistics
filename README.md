@@ -6,6 +6,9 @@
 <!-- PROJECT LOGO -->
 <br />
 <div align="center">
+<figure>
+  <img src="https://raw.githubusercontent.com/levalleyjack/slugtistics/c00ede71281f100920f344c2655e8298110f26fb/frontend/public/logoBackground.svg" alt="Overview" width="300px"/>
+</figure>
 
   <h3 align="center">Slugtistics</h3>
 
