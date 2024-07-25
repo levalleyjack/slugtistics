@@ -27,7 +27,10 @@ const AboutPage = () => {
         <h2>Any other questions?</h2>
         <p>Contact Us:</p>
         <p>
-          Or message me on discord at: <b>eggw</b>
+          Message me on discord at: <b>eggw</b>
+        </p>
+        <p>
+          <a href="https://docs.google.com/forms/d/e/1FAIpQLSf1UKTZqwYLbhSL1T5LI117XQlVpJi93RPHGjNtDrOstTgs6A/viewform?usp=sf_link">Feedback Form</a>
         </p>
       </div>
     </>
