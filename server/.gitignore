@@ -1,3 +1,7 @@
+*.db
+*.sqbpro
+*.sqlite
+
 # Logs
 logs
 *.log
