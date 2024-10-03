@@ -1,7 +1,7 @@
 *.db
 *.sqbpro
 *.sqlite
-
+**/slugtistics.db
 # Logs
 logs
 *.log
