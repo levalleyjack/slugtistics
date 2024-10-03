@@ -64,7 +64,7 @@ const HomePage = () => {
     "2019 Fall Quarter",
   ]);
 
-  const route = "http://localhost:8080/";
+  const route = "https://api.slugtistics.com/api/";
 
   useEffect(() => {
 
