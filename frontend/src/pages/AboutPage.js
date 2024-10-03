@@ -23,14 +23,14 @@ const AboutPage = () => {
           database to be used by this application.
         </p>
         <h2>How far does the data go back?</h2>
-        <p>Slugtistic's data is only Spring 2022, I am currently working with the respective offices to obtain data all the way back to Fall 2014</p>
+        <p>The data goes back to Fall 2019. Getting this data costs money, but if the desire is large enough I will get earlier data</p>
         <h2>Any other questions?</h2>
         <p>Contact Us:</p>
         <p>
-          Message me on discord at: <b>eggw</b>
+          My name is <b>Jack LeValley</b>, message me on discord at: <b>eggw</b>
         </p>
         <p>
-          <a href="https://docs.google.com/forms/d/e/1FAIpQLSf1UKTZqwYLbhSL1T5LI117XQlVpJi93RPHGjNtDrOstTgs6A/viewform?usp=sf_link">Feedback Form</a>
+          <a href="https://forms.gle/UwGyaFbBKB6JtUgC8">Feedback Form</a>
         </p>
       </div>
     </>

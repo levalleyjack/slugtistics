@@ -9,7 +9,6 @@ import Button from "@material-ui/core/Button";
 import Paper from "@material-ui/core/Paper";
 import { Bar } from "react-chartjs-2";
 import Chart from "chart.js/auto";
-import Select from "@material-ui/core/Select";
 
 //==========================================================================================================//
 //styles (messing around)
@@ -24,10 +23,12 @@ const useStyles = makeStyles((theme) => ({
   chart: {
     marginTop: theme.spacing(2),
   },
+  
 }));
 //==========================================================================================================//
 //homepage function and state declarations
 //this is the main page of the website
+
 
 const HomePage = () => {
   const classes = useStyles();
@@ -38,17 +39,44 @@ const HomePage = () => {
   const [term, setTerm] = useState("All");
   const [classInfo, setClassInfo] = useState([]);
   const [showPercentage, setShowPercentage] = useState(false);
+  const [filteredQuarters, setFilteredQuarters] = useState([]);
+  const [filteredInstructors, setFilteredInstructors] = useState([]);
+
+  const [quarterList, setQuarterList] = useState([
+    "2024 Spring Quarter",
+    "2024 Winter Quarter",
+    "2023 Fall Quarter",
+    "2023 Summer Quarter",
+    "2023 Spring Quarter",
+    "2023 Winter Quarter",
+    "2022 Fall Quarter",
+    "2022 Summer Quarter",
+    "2022 Spring Quarter",
+    "2022 Winter Quarter",
+    "2021 Fall Quarter",
+    "2021 Summer Quarter",
+    "2021 Spring Quarter",
+    "2021 Winter Quarter",
+    "2020 Fall Quarter",
+    "2020 Summer Quarter",
+    "2020 Spring Quarter",
+    "2020 Winter Quarter",
+    "2019 Fall Quarter",
+  ]);
+
+  const route = "http://localhost:8080/";
 
   useEffect(() => {
-    // Fetch initial chart data
-    fetch(`https://api.slugtistics.com/api/grade-distribution/Sum:?instructor=All&term=All`)
+
+    //fetch initial chart data
+    fetch(`${route}grade-distribution/Sum:?instructor=All&term=All`)
       .then((response) => response.json())
       .then((data) => {
         setClassInfo(data);
       });
 
-    // Fetch subject catalog numbers
-    fetch("https://api.slugtistics.com/api/SubjectCatalogNbr")
+    //fetch subject catalog numbers
+    fetch(`${route}SubjectCatalogNbr`)
       .then((response) => response.json())
       .then((data) => {
         setClassTitles(data);
@@ -59,20 +87,9 @@ const HomePage = () => {
   }, []);
 
   useEffect(() => {
-    // Fetch instructors when a class is selected
     if (selectedClass) {
-      
-      fetch(`https://api.slugtistics.com/api/instructors/${selectedClass}`)
-        .then((response) => response.json())
-        .then((data) => {
-          setInstructorsList(data);
-        })
-        .catch((error) => {
-          console.error("Error:", error);
-        });
-
-      // Fetch grade distribution for the selected class
-      fetch(`https://api.slugtistics.com/api/grade-distribution/${selectedClass}?instructor=${instructor}&term=${term}`)
+      //only fetch grade distribution when class, instructor, or term changes
+      fetch(`${route}grade-distribution/${selectedClass}?instructor=${instructor}&term=${term}`)
         .then((response) => response.json())
         .then((data) => {
           setClassInfo(data);
@@ -82,27 +99,80 @@ const HomePage = () => {
         });
     }
   }, [selectedClass, instructor, term]);
-
-  const handleClassSelect = (event, newValue) => {
-    setInstructor("All");
-    setSelectedClass(newValue);
-
-    // Fetch instructors for the selected class
-    if (newValue) {
-      fetch(`https://api.slugtistics.com/api/instructors/${newValue}`)
+  
+  useEffect(() => {
+    if (selectedClass) {
+      //fetch quarters only when class changes
+      fetch(`/quarters/${selectedClass}`)
         .then((response) => response.json())
         .then((data) => {
-          setInstructorsList(data);
+          setFilteredQuarters(data);
         })
         .catch((error) => {
           console.error("Error:", error);
         });
+    }
+  }, [selectedClass]);
+  
+  
 
-      // Fetch grade distribution for the selected class
-      fetch(`https://api.slugtistics.com/api/grade-distribution/${newValue}?instructor=${instructor}&term=${term}`)
+  const handleClassSelect = (event, newValue) => {
+    setSelectedClass(newValue);
+    setFilteredQuarters(quarterList);
+    console.log("Selected Class:", newValue)
+
+    // fetch instructors for the selected class
+    if (newValue) {
+      fetch(`${route}instructors/${newValue}`)
+      .then((response) => response.json())
+      .then((data) => {
+        setInstructorsList(data);
+        setFilteredInstructors(data);
+        console.log("Instructors1:", filteredInstructors);
+      })
+      .catch((error) => {
+        console.error("Error:", error);
+      });
+      //fetch grade distribution for the selected class
+      fetch(`${route}grade-distribution/${newValue}?instructor=${instructor}&term=${term}`)
         .then((response) => response.json())
         .then((data) => {
           setClassInfo(data);
+        })
+        .catch((error) => {
+          console.error("Error:", error);
+        });
+        }
+  };
+
+
+  const handleTermSelect = (event) => {
+    const selectedTerm = event.target.value;
+    setTerm(selectedTerm);
+
+    if (selectedTerm !== "All") {
+      //fetch instructors for the selected quarter
+      fetch(`/instructors/${selectedClass}/${selectedTerm}`)
+        .then((response) => response.json())
+        .then((data) => {
+          setFilteredInstructors(data);
+          console.log("Instructors:", data);
+        })
+        .catch((error) => {
+          console.error("Error:", error);
+        });
+      //filter available quarters based on term
+      setFilteredQuarters(filteredQuarters);
+      console.log("Filtered Quarters:", filteredQuarters);
+    }
+    else {
+      // wen All Quarters" is selected, filter quarters based on all quarters for the class
+      fetch(`/quarters/All/${selectedClass}`)
+        .then((response) => response.json())
+        .then((data) => {
+          setFilteredQuarters(filteredQuarters);
+          setFilteredInstructors(instructorsList);
+          console.log("Filtered Quarters 2 side:", data);
         })
         .catch((error) => {
           console.error("Error:", error);
@@ -111,25 +181,49 @@ const HomePage = () => {
   };
 
   const handleInstructorSelect = (event) => {
-    setInstructor(event.target.value);
+    const selectedInstructor = event.target.value;
+    setInstructor(selectedInstructor);
+
+    if (selectedInstructor !== "All") {
+      //fetch quarters for the selected instructor
+      fetch(`/quarters/${selectedClass}/${selectedInstructor}`)
+        .then((response) => response.json())
+        .then((data) => {
+          setFilteredQuarters(data);
+          console.log("Filtered Quarters Inst side:", data);
+
+        })
+        .catch((error) => {
+          console.error("Error:", error);
+        });
+    } else {
+      //when "All Instructors" is selected, filter quarters based on all instructors for the class
+      fetch(`/quarters/${selectedClass}`)
+        .then((response) => response.json())
+        .then((data) => {
+          setFilteredQuarters(data);
+          setFilteredInstructors(instructorsList);
+          console.log("Filtered Quarters 1 side:", data);
+        })
+        .catch((error) => {
+          console.error("Error:", error);
+        });
+    }
   };
 
-  const handleTermSelect = (event) => {
-    setTerm(event.target.value);
-  };
+  //if All Instructors selected then query for all quarters with X instructor
+  //if All Quarters selected then query for all instructors
+  //if both selected then query for all quarters with X instructor
+  //if a quarter is selected, then query for all instructors in that quarter
+  //if an instructor is selected, then query for all quarters with that instructor
 
-  const handleGetInfo = () => {
-    fetch(
-      `https://api.slugtistics.com/api/grade-distribution/${selectedClass}?instructor=${instructor}&term=${term}`
-    )
-      .then((response) => response.json())
-      .then((data) => {
-        setClassInfo(data);
-      })
-      .catch((error) => {
-        console.error("Error:", error);
-      });
-  };
+//problems:
+//instructor and quarter selected, changing instructor should change quarter to ALL if ther is no data for that instructor in that quarter
+//if all insturctors is selected, then filtered quarter list should be all quarters 
+//if a quarter is selected, filter the instructors list to only show instructors that taught in that quarter
+
+
+
   //get the average GPA
   const calculateAverageGPA = () => {
     let totalGPA = 0;
@@ -185,13 +279,13 @@ const HomePage = () => {
   //==========================================================================================================//
   //chart.js magic
 
-  // Calculate the total number of students
+  //calculate the total number of students
   const totalStudents = Object.values(classInfo).reduce(
     (acc, val) => acc + val,
     0
   );
 
-  // Calculate the percentage values for each grade
+  //calculate the percentage values for each grade
   const percentageData = Object.values(classInfo).map((value) =>
     ((value / totalStudents) * 100).toFixed(2)
   );
@@ -266,57 +360,79 @@ const HomePage = () => {
   //return statement
   return (
     <div className={classes.container}>
-      <h1>Class Information</h1>
-      <div>
-        <Autocomplete
-          options={classTitles}
-          value={selectedClass}
-          onChange={handleClassSelect}
-          freeSolo
-          renderInput={(params) => (
-            <TextField {...params} label="Search Classes" variant="outlined" />
-          )}
+  <h1>Class Information</h1>
+  <div>
+    {/* Autocomplete for Class Selection */}
+    <Autocomplete
+      options={classTitles}
+      value={selectedClass}
+      onChange={handleClassSelect}
+      freeSolo
+      renderInput={(params) => (
+        <TextField
+          {...params}
+          label="Search Classes"
+          variant="outlined"
+          InputLabelProps={{
+            style: { color: 'gray' }, // Set label color to gray
+          }}
         />
-        <div class="container">
-        <h2>Instructor:</h2>
-        </div>
-        <Select
-          style={{ margin: " 0px 15px", width: "200px"}}
-          value={instructor}
-          onChange={handleInstructorSelect}
-          className={classes.select}
-        >
-          <MenuItem value="All">All Instructors</MenuItem>
-          {instructorsList.map((instructor) => (
-            <MenuItem key={instructor} value={instructor}>
-              {instructor}
-            </MenuItem>
-          ))}
-        </Select>
-        <div class="container">
-        <h2>Term:</h2>
-        </div>
-        <Select
-          style={{ margin: " 0px 15px", width: "200px"}}
-          value={term}
-          onChange={handleTermSelect}
-          className={classes.select}
-        >
-          <MenuItem value="All">Spring 2022</MenuItem>
-          {/* tbd */}
-        </Select>
+      )}
+    />
+
+    <div className="container"></div>
+
+    <TextField
+      select
+      label="Instructor"
+      value={instructor}
+      onChange={handleInstructorSelect}
+      variant="outlined"
+      style={{ margin: "15px 0px", width: "200px" }}
+      InputLabelProps={{
+        style: { color: 'gray' }, // Consistent label color
+      }}
+    >
+      <MenuItem value="All">All Instructors</MenuItem>
+      {filteredInstructors.map((instructor) => (
+        <MenuItem key={instructor} value={instructor}>
+          {instructor}
+        </MenuItem>
+      ))}
+    </TextField>
+
+    <div className="container"></div>
+
+    <TextField
+      select
+      label="Term"
+      value={term}
+      onChange={handleTermSelect}
+      variant="outlined"
+      style={{ margin: "15px 15px", width: "200px" }}
+      InputLabelProps={{
+        style: { color: 'gray' }, // Consistent label color
+      }}
+    >
+      <MenuItem value="All">All Quarters</MenuItem>
+      {filteredQuarters.map((quarter) => (
+        <MenuItem key={quarter} value={quarter}>
+          {quarter}
+        </MenuItem>
+      ))}
+    </TextField>
 
         <Button
           variant="contained"
           color="primary"
-          style={showPercentageButtonStyle}
+          style={{ ...showPercentageButtonStyle, margin: "15px 15px", width: "200px" }}
           onClick={() => setShowPercentage((prev) => !prev)}
           className={classes.button}
         >
           {showPercentage ? "Show Raw Data" : "Show Percentage"}
         </Button>
       </div>
-      <Paper elevation={3} className={classes.chart}>
+      <Paper className={classes.chart}>
         <Bar
           style={chartContainerStyle}
           data={chartData}
