@@ -3,23 +3,17 @@ body {
   font-size: 16px;
   margin: 0;
 }
-/*define color #1118278*/
+
 :root {
   --primary-color: #111827;
   --secondary-color: #1f2937;
 }
 
+/* Adjust container styles to be flexible */
 .container {
-  display: inline-block;
-}
-.containerdropdown {
-  padding: 10px;
-
-}
-
-h3,
-h4 {
-  margin-bottom: 0;
+  display: flex;
+  flex-direction: column;
+  padding: 20px;
 }
 
 nav {
@@ -33,43 +27,7 @@ nav {
   font-size: 24px;
   box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.5);
   z-index: 100;
-
-  
-}
-
-.navbar-left {
-  display: flex;
-  padding: 8px;
-  align-items: center;
-  list-style-type: none;
-  margin: 0;
-  padding: 0;
-  margin-left: 10vw;
-}
-
-.navbar-logo {
-  height: 30px;
-  margin: 10px;
-}
-
-.navbar-title {
-  margin: 0;
-  font-size: 28px;
-}
-
-.navbar-right {
-  list-style-type: none;
-  margin: 0;
-  padding: 0;
-  display: flex;
-  margin-right: 5vw;
-}
-
-.navbar-right li {
-  margin: 0 0px;
-  padding: 0;
-  display: flex;
-  align-items: center;
+  height: 64px;
 }
 
 nav a {
@@ -82,8 +40,96 @@ nav a:hover {
   color: rgb(207, 207, 207);
 }
 
+.navbar-left,
+.navbar-right {
+  display: flex;
+  padding: 8px;
+  list-style-type: none;
+  margin: 0;
+}
+
+.navbar-logo {
+  height: 30px;
+  margin: 10px;
+}
+
+.navbar-title {
+  margin: 0;
+  font-size: 28px;
+}
+
 #page-body {
   max-width: 80vw;
   margin: auto;
   padding-top: 64px;
+}
+
+.instructor-select-field,
+.term-select-field,
+.percentage-select-field {
+  margin: 15px 0;
+  width: 100%;
+  max-width: 300px;
+}
+
+/* Responsive chart container */
+.chart-container {
+  width: 100%;
+  height: auto;
+}
+
+@media (min-width: 0px) and (max-width: 480px) {
+  /* make the nav bar smaller */
+  .nav {
+    height: 10px;
+  }
+
+  .navbar-title {
+    font-size: 20px;
+  }
+
+  .navbar-logo {
+    height: 20px;
+  }
+
+  .navbar-left,
+  .navbar-right {
+    font-size: 16px;
+  }
+
+  #page-body {
+    max-width: 100vw;
+  }
+}
+
+@media (min-width: 480px) and (max-width: 768px) {
+  .navbar-title {
+    font-size: 24px;
+  }
+
+  #page-body {
+    max-width: 100vw;
+  }
+}
+
+@media (min-width: 768px) and (max-width: 1000px) {
+  .navbar-title {
+    font-size: 20px;
+  }
+
+  #page-body {
+    max-width: 100vw;
+  }
+}
+
+@media (min-width: 1000px) and (max-width: 1280px) {
+  .navbar-title {
+    font-size: 24px;
+  }
+
+  .instructor-select-field,
+  .term-select-field,
+  .percentage-select-field {
+    max-width: 300px;
+  }
 }
