@@ -65,6 +65,7 @@ const HomePage = () => {
   ]);
 
   const route = "https://api.slugtistics.com/api/";
+  //const route = "http://localhost:8080/";
 
   useEffect(() => {
 
@@ -103,7 +104,7 @@ const HomePage = () => {
   useEffect(() => {
     if (selectedClass) {
       //fetch quarters only when class changes
-      fetch(`/quarters/${selectedClass}`)
+      fetch(`${route}quarters/${selectedClass}`)
         .then((response) => response.json())
         .then((data) => {
           setFilteredQuarters(data);
@@ -152,7 +153,7 @@ const HomePage = () => {
 
     if (selectedTerm !== "All") {
       //fetch instructors for the selected quarter
-      fetch(`/instructors/${selectedClass}/${selectedTerm}`)
+      fetch(`${route}instructors/${selectedClass}/${selectedTerm}`)
         .then((response) => response.json())
         .then((data) => {
           setFilteredInstructors(data);
@@ -167,7 +168,7 @@ const HomePage = () => {
     }
     else {
       // wen All Quarters" is selected, filter quarters based on all quarters for the class
-      fetch(`/quarters/All/${selectedClass}`)
+      fetch(`${route}quarters/All/${selectedClass}`)
         .then((response) => response.json())
         .then((data) => {
           setFilteredQuarters(filteredQuarters);
@@ -186,7 +187,7 @@ const HomePage = () => {
 
     if (selectedInstructor !== "All") {
       //fetch quarters for the selected instructor
-      fetch(`/quarters/${selectedClass}/${selectedInstructor}`)
+      fetch(`${route}quarters/${selectedClass}/${selectedInstructor}`)
         .then((response) => response.json())
         .then((data) => {
           setFilteredQuarters(data);
@@ -198,7 +199,7 @@ const HomePage = () => {
         });
     } else {
       //when "All Instructors" is selected, filter quarters based on all instructors for the class
-      fetch(`/quarters/${selectedClass}`)
+      fetch(`${route}quarters/${selectedClass}`)
         .then((response) => response.json())
         .then((data) => {
           setFilteredQuarters(data);
