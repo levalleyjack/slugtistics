@@ -23,12 +23,10 @@ const useStyles = makeStyles((theme) => ({
   chart: {
     marginTop: theme.spacing(2),
   },
-  
 }));
 //==========================================================================================================//
 //homepage function and state declarations
 //this is the main page of the website
-
 
 const HomePage = () => {
   const classes = useStyles();
@@ -68,7 +66,6 @@ const HomePage = () => {
   //const route = "http://localhost:8080/";
 
   useEffect(() => {
-
     //fetch initial chart data
     fetch(`${route}grade-distribution/Sum:?instructor=All&term=All`)
       .then((response) => response.json())
@@ -90,7 +87,9 @@ const HomePage = () => {
   useEffect(() => {
     if (selectedClass) {
       //only fetch grade distribution when class, instructor, or term changes
-      fetch(`${route}grade-distribution/${selectedClass}?instructor=${instructor}&term=${term}`)
+      fetch(
+        `${route}grade-distribution/${selectedClass}?instructor=${instructor}&term=${term}`
+      )
         .then((response) => response.json())
         .then((data) => {
           setClassInfo(data);
@@ -100,7 +99,7 @@ const HomePage = () => {
         });
     }
   }, [selectedClass, instructor, term]);
-  
+
   useEffect(() => {
     if (selectedClass) {
       //fetch quarters only when class changes
@@ -114,28 +113,28 @@ const HomePage = () => {
         });
     }
   }, [selectedClass]);
-  
-  
 
   const handleClassSelect = (event, newValue) => {
     setSelectedClass(newValue);
     setFilteredQuarters(quarterList);
-    console.log("Selected Class:", newValue)
+    console.log("Selected Class:", newValue);
 
     // fetch instructors for the selected class
     if (newValue) {
       fetch(`${route}instructors/${newValue}`)
-      .then((response) => response.json())
-      .then((data) => {
-        setInstructorsList(data);
-        setFilteredInstructors(data);
-        console.log("Instructors1:", filteredInstructors);
-      })
-      .catch((error) => {
-        console.error("Error:", error);
-      });
+        .then((response) => response.json())
+        .then((data) => {
+          setInstructorsList(data);
+          setFilteredInstructors(data);
+          console.log("Instructors1:", filteredInstructors);
+        })
+        .catch((error) => {
+          console.error("Error:", error);
+        });
       //fetch grade distribution for the selected class
-      fetch(`${route}grade-distribution/${newValue}?instructor=${instructor}&term=${term}`)
+      fetch(
+        `${route}grade-distribution/${newValue}?instructor=${instructor}&term=${term}`
+      )
         .then((response) => response.json())
         .then((data) => {
           setClassInfo(data);
@@ -143,9 +142,8 @@ const HomePage = () => {
         .catch((error) => {
           console.error("Error:", error);
         });
-        }
+    }
   };
-
 
   const handleTermSelect = (event) => {
     const selectedTerm = event.target.value;
@@ -165,8 +163,7 @@ const HomePage = () => {
       //filter available quarters based on term
       setFilteredQuarters(filteredQuarters);
       console.log("Filtered Quarters:", filteredQuarters);
-    }
-    else {
+    } else {
       // wen All Quarters" is selected, filter quarters based on all quarters for the class
       fetch(`${route}quarters/All/${selectedClass}`)
         .then((response) => response.json())
@@ -192,7 +189,6 @@ const HomePage = () => {
         .then((data) => {
           setFilteredQuarters(data);
           console.log("Filtered Quarters Inst side:", data);
-
         })
         .catch((error) => {
           console.error("Error:", error);
@@ -218,12 +214,10 @@ const HomePage = () => {
   //if a quarter is selected, then query for all instructors in that quarter
   //if an instructor is selected, then query for all quarters with that instructor
 
-//problems:
-//instructor and quarter selected, changing instructor should change quarter to ALL if ther is no data for that instructor in that quarter
-//if all insturctors is selected, then filtered quarter list should be all quarters 
-//if a quarter is selected, filter the instructors list to only show instructors that taught in that quarter
-
-
+  //problems:
+  //instructor and quarter selected, changing instructor should change quarter to ALL if ther is no data for that instructor in that quarter
+  //if all insturctors is selected, then filtered quarter list should be all quarters
+  //if a quarter is selected, filter the instructors list to only show instructors that taught in that quarter
 
   //get the average GPA
   const calculateAverageGPA = () => {
@@ -276,7 +270,6 @@ const HomePage = () => {
   const averageGPA = calculateAverageGPA();
   console.log("Average GPA:", averageGPA);
 
-
   //==========================================================================================================//
   //chart.js magic
 
@@ -313,7 +306,6 @@ const HomePage = () => {
     ],
     datasets: [
       {
-        
         label: "Students",
         data: getValues(),
         backgroundColor: "rgba(85, 192, 192, 1)",
@@ -340,17 +332,17 @@ const HomePage = () => {
       title: {
         display: true,
         //increase size
-        text: `Average GPA: ${averageGPA}`
+        text: `Average GPA: ${averageGPA}`,
       },
     },
   };
+
   const chartContainerStyle = {
     position: "relative",
     cursor: "default",
     width: "1500px",
     height: "550px",
   };
-
 
   const showPercentageButtonStyle = {
     backgroundColor: "#111827",
@@ -361,84 +353,88 @@ const HomePage = () => {
   //return statement
   return (
     <div className={classes.container}>
-  <h1>Class Information</h1>
-  <div>
-    {/* Autocomplete for Class Selection */}
-    <Autocomplete
-      options={classTitles}
-      value={selectedClass}
-      onChange={handleClassSelect}
-      freeSolo
-      renderInput={(params) => (
-        <TextField
-          {...params}
-          label="Search Classes"
-          variant="outlined"
-          InputLabelProps={{
-            style: { color: 'gray' }, // Set label color to gray
-          }}
+      {/* <h1>Class Information</h1> */}
+      <div>
+        {/* Autocomplete for Class Selection */}
+        <Autocomplete
+          options={classTitles}
+          value={selectedClass}
+          onChange={handleClassSelect}
+          freeSolo
+          renderInput={(params) => (
+            <TextField
+              {...params}
+              label="Search Classes"
+              variant="outlined"
+              InputLabelProps={{
+                style: { color: "gray" }, // Set label color to gray
+              }}
+            />
+          )}
         />
-      )}
-    />
 
-    <div className="container"></div>
+        <div className="container"></div>
 
-    <TextField
-      select
-      label="Instructor"
-      value={instructor}
-      onChange={handleInstructorSelect}
-      variant="outlined"
-      style={{ margin: "15px 0px", width: "200px" }}
-      InputLabelProps={{
-        style: { color: 'gray' }, // Consistent label color
-      }}
-    >
-      <MenuItem value="All">All Instructors</MenuItem>
-      {filteredInstructors.map((instructor) => (
-        <MenuItem key={instructor} value={instructor}>
-          {instructor}
-        </MenuItem>
-      ))}
-    </TextField>
+        <TextField
+          select
+          label="Instructor"
+          value={instructor}
+          onChange={handleInstructorSelect}
+          variant="outlined"
+          className="instructor-select-field"
+          InputLabelProps={{
+            style: { color: "gray" }, // Consistent label color
+          }}
+        >
+          <MenuItem value="All">All Instructors</MenuItem>
+          {filteredInstructors.map((instructor) => (
+            <MenuItem key={instructor} value={instructor}>
+              {instructor}
+            </MenuItem>
+          ))}
+        </TextField>
 
-    <div className="container"></div>
+        <div className="container"></div>
 
-    <TextField
-      select
-      label="Term"
-      value={term}
-      onChange={handleTermSelect}
-      variant="outlined"
-      style={{ margin: "15px 15px", width: "200px" }}
-      InputLabelProps={{
-        style: { color: 'gray' }, // Consistent label color
-      }}
-    >
-      <MenuItem value="All">All Quarters</MenuItem>
-      {filteredQuarters.map((quarter) => (
-        <MenuItem key={quarter} value={quarter}>
-          {quarter}
-        </MenuItem>
-      ))}
-    </TextField>
+        <TextField
+          select
+          label="Term"
+          value={term}
+          onChange={handleTermSelect}
+          variant="outlined"
+          className="term-select-field"
+          InputLabelProps={{
+            style: { color: "gray" }, // Consistent label color
+          }}
+        >
+          <MenuItem value="All">All Quarters</MenuItem>
+          {filteredQuarters.map((quarter) => (
+            <MenuItem key={quarter} value={quarter}>
+              {quarter}
+            </MenuItem>
+          ))}
+        </TextField>
 
         <Button
           variant="contained"
           color="primary"
-          style={{ ...showPercentageButtonStyle, margin: "15px 15px", width: "200px" }}
+          style={{
+            ...showPercentageButtonStyle,
+          }}
           onClick={() => setShowPercentage((prev) => !prev)}
-          className={classes.button}
+          className="percentage-select-field"
         >
           {showPercentage ? "Show Raw Data" : "Show Percentage"}
         </Button>
       </div>
       <Paper className={classes.chart}>
-        <Bar
-          style={chartContainerStyle}
-          data={chartData}
-          options={chartOptions}
-        />
+        <div className="chart-container">
+          <Bar
+            style={{ width: "100%", height: "auto" }} // responsive chart
+            data={chartData}
+            options={chartOptions}
+          />
+        </div>
       </Paper>
     </div>
   );
