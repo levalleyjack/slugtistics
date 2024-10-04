@@ -30,9 +30,13 @@ const AboutPage = () => {
         <h2>Any other questions?</h2>
         <p>Contact Us:</p>
         <p>
-          <b>Jack LeValley</b>, message me on discord at: <b>eggw</b>
+          Main Developer: &nbsp;&nbsp;<b>Jack LeValley</b>, message me on
+          discord at: <b>eggw</b>
           <p></p>
-          {/* Special Thanks: <b>Qays Badri</b> */}
+          Developer:
+          &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+          <b>Qays Badri</b>
+          ,message me on discord at: <b>_lb</b>
         </p>
         {/* <p>
           <a href="https://forms.gle/UwGyaFbBKB6JtUgC8">Feedback Form</a>
