@@ -23,15 +23,23 @@ const AboutPage = () => {
           database to be used by this application.
         </p>
         <h2>How far does the data go back?</h2>
-        <p>The data goes back to Fall 2019. Getting this data costs money, but if the desire is large enough I will get earlier data</p>
+        <p>
+          The data goes back to Fall 2019. Getting this data costs money, but if
+          the desire is large enough I will get earlier data
+        </p>
         <h2>Any other questions?</h2>
         <p>Contact Us:</p>
         <p>
-          My name is <b>Jack LeValley</b>, message me on discord at: <b>eggw</b>
+          Main Developer: &nbsp;&nbsp;<b>Jack LeValley</b>, message me on
+          discord at: <b>eggw</b>
+          <p></p>
+          Developer:
+          &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+          <b>Qays Badri</b>, message me on discord at: <b>_lb</b>
         </p>
-        <p>
+        {/* <p>
           <a href="https://forms.gle/UwGyaFbBKB6JtUgC8">Feedback Form</a>
-        </p>
+        </p> */}
       </div>
     </>
   );
