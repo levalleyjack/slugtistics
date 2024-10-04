@@ -63,7 +63,7 @@ const HomePage = () => {
   ]);
 
   const route = "https://api.slugtistics.com/api/";
-  //const route = "http://localhost:8080/";
+  // const route = "http://localhost:8080/";
 
   useEffect(() => {
     //fetch initial chart data
@@ -367,74 +367,64 @@ const HomePage = () => {
               label="Search Classes"
               variant="outlined"
               InputLabelProps={{
-                style: { color: "gray" }, // Set label color to gray
+                style: { color: "gray" },
               }}
             />
           )}
         />
 
-        <div className="container"></div>
+        <div className="filters-container">
+          <TextField
+            select
+            label="Instructor"
+            value={instructor}
+            onChange={handleInstructorSelect}
+            variant="outlined"
+            className="instructor-select-field"
+            InputLabelProps={{ style: { color: "gray" } }}
+          >
+            <MenuItem value="All">All Instructors</MenuItem>
+            {filteredInstructors.map((instructor) => (
+              <MenuItem key={instructor} value={instructor}>
+                {instructor}
+              </MenuItem>
+            ))}
+          </TextField>
 
-        <TextField
-          select
-          label="Instructor"
-          value={instructor}
-          onChange={handleInstructorSelect}
-          variant="outlined"
-          className="instructor-select-field"
-          InputLabelProps={{
-            style: { color: "gray" }, // Consistent label color
-          }}
-        >
-          <MenuItem value="All">All Instructors</MenuItem>
-          {filteredInstructors.map((instructor) => (
-            <MenuItem key={instructor} value={instructor}>
-              {instructor}
-            </MenuItem>
-          ))}
-        </TextField>
+          <TextField
+            select
+            label="Term"
+            value={term}
+            onChange={handleTermSelect}
+            variant="outlined"
+            className="term-select-field"
+            InputLabelProps={{ style: { color: "gray" } }}
+          >
+            <MenuItem value="All">All Quarters</MenuItem>
+            {filteredQuarters.map((quarter) => (
+              <MenuItem key={quarter} value={quarter}>
+                {quarter}
+              </MenuItem>
+            ))}
+          </TextField>
 
-        <div className="container"></div>
-
-        <TextField
-          select
-          label="Term"
-          value={term}
-          onChange={handleTermSelect}
-          variant="outlined"
-          className="term-select-field"
-          InputLabelProps={{
-            style: { color: "gray" }, // Consistent label color
-          }}
-        >
-          <MenuItem value="All">All Quarters</MenuItem>
-          {filteredQuarters.map((quarter) => (
-            <MenuItem key={quarter} value={quarter}>
-              {quarter}
-            </MenuItem>
-          ))}
-        </TextField>
-
-        <Button
-          variant="contained"
-          color="primary"
-          style={{
-            ...showPercentageButtonStyle,
-          }}
-          onClick={() => setShowPercentage((prev) => !prev)}
-          className="percentage-select-field"
-        >
-          {showPercentage ? "Show Raw Data" : "Show Percentage"}
-        </Button>
+          <Button
+            variant="contained"
+            color="primary"
+            style={{ ...showPercentageButtonStyle }}
+            onClick={() => setShowPercentage((prev) => !prev)}
+            className="percentage-select-field"
+          >
+            {showPercentage ? "Show Raw Data" : "Show Percentage"}
+          </Button>
+        </div>
       </div>
       <Paper className={classes.chart}>
-        <div className="chart-container">
-          <Bar
-            style={{ width: "100%", height: "auto" }} // responsive chart
-            data={chartData}
-            options={chartOptions}
-          />
-        </div>
+        <Bar
+          style={chartContainerStyle}
+          data={chartData}
+          options={chartOptions}
+        />
       </Paper>
     </div>
   );
