@@ -35,8 +35,7 @@ const AboutPage = () => {
           <p></p>
           Developer:
           &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-          <b>Qays Badri</b>
-          ,message me on discord at: <b>_lb</b>
+          <b>Qays Badri</b>, message me on discord at: <b>_lb</b>
         </p>
         {/* <p>
           <a href="https://forms.gle/UwGyaFbBKB6JtUgC8">Feedback Form</a>
