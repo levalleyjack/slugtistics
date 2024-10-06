@@ -4,9 +4,7 @@ import NavBar from "./components/NavBar";
 import HomePage from "./pages/HomePage";
 import AboutPage from "./pages/AboutPage";
 import NotFoundPage from "./pages/NotFoundPage";
-import ReactGA from 'react-ga4';
 
-ReactGA.initialize('G-ZHMQHZTF71');
 
 function App() {
   return (
