@@ -27,11 +27,12 @@ const AboutPage = () => {
         <h2>Any other questions?</h2>
         <p>Contact Us:</p>
         <p>
-          My name is <b>Jack LeValley</b>, message me on discord at: <b>eggw</b>
+          My name is <b><a href="https://www.linkedin.com/in/jack-levalley/">Jack LeValley</a></b>, message me on Discord at: <b>eggw</b>
         </p>
         <p>
-          Special Thanks to <b>Qays Badri</b>
+          Special Thanks to <b><a href="https://www.linkedin.com/in/qaysbadri/">Qays Badri</a></b>
         </p>
+        <!-- Thank you Cheryl, Jim, Ashley and Conner -->
       </div>
     </>
   );
