@@ -30,7 +30,7 @@ const AboutPage = () => {
           My name is <b>Jack LeValley</b>, message me on discord at: <b>eggw</b>
         </p>
         <p>
-          <a href="https://forms.gle/UwGyaFbBKB6JtUgC8">Feedback Form</a>
+          Special Thanks to <b>Qays Badri</b>
         </p>
       </div>
     </>
