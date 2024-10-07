@@ -32,6 +32,7 @@ const AboutPage = () => {
         <p>
           Special Thanks to <b><a href="https://www.linkedin.com/in/qaysbadri/">Qays Badri</a></b>
         </p>
+        <p><b><a href="https://github.com/levalleyjack/slugtistics">Github</a></b></p>
         {/* Thank you Cheryl, Jim, Ashley and Conner */}
         
       </div>
