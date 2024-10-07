@@ -1,18 +1,19 @@
 //==========================================================================================================//
 //imports
 import React, { useEffect, useState } from "react";
-import { makeStyles } from "@mui/material/styles";
 import Autocomplete from "@mui/material/Autocomplete";
 import TextField from "@mui/material/TextField";
 import MenuItem from "@mui/material/MenuItem";
 import Button from "@mui/material/Button";
 import Paper from "@mui/material/Paper";
 import { Bar } from "react-chartjs-2";
+import styled from "@emotion/styled";
+import "chart.js/auto";
 
 //==========================================================================================================//
 //styles (messing around)
 
-const useStyles = makeStyles((theme) => ({
+const useStyles = styled((theme) => ({
   container: {
     padding: theme.spacing(2),
   },
