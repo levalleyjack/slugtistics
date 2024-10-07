@@ -52,8 +52,12 @@ University of California, Santa Cruz. Slugtistics is a project created by a UCSC
    ```sh
    git clone https://github.com/levalleyjack/slugtistics.git
    ```
+   
 2. Install NPM packages
    ```sh
+   cd frontend
+   npm i
+   cd ../server
    npm i
    ```
 
@@ -64,8 +68,24 @@ University of California, Santa Cruz. Slugtistics is a project created by a UCSC
 
 <!-- USAGE EXAMPLES -->
 ## Usage
-
-
+1. Run Frontend
+   ```sh
+   cd frontend
+   npm start
+   ```
+   You will need to change the "route" variable the localhost in Homepage.js to interact with the local backend.
+      ```sh
+   const route = "http://localhost:8080/";
+   ```
+2. Run Backend (separate terminal session)
+   ```sh
+   cd server
+   node main.js
+   ```
+3. Navigate to webpage
+   ```sh
+   http://localhost:3000/
+   ```
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
 
@@ -79,7 +99,7 @@ University of California, Santa Cruz. Slugtistics is a project created by a UCSC
 - [X] fix the UI (it looks terrible right now)
 - [x] write a python script to merge all of the quarter spreadsheets together
 - [x] get the term button to work
-- [X] Stop the flickering when having selected an instructor and changing the class
+- [ ] Stop the flickering when having selected an instructor and changing the class
 - [ ] Add "Best Bet" functionality
 
 
