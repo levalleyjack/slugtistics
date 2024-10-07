@@ -1,14 +1,13 @@
 //==========================================================================================================//
 //imports
 import React, { useEffect, useState } from "react";
-import { makeStyles } from "@material-ui/core/styles";
-import Autocomplete from "@material-ui/lab/Autocomplete";
-import TextField from "@material-ui/core/TextField";
-import MenuItem from "@material-ui/core/MenuItem";
-import Button from "@material-ui/core/Button";
-import Paper from "@material-ui/core/Paper";
+import { makeStyles } from "@mui/material/styles";
+import Autocomplete from "@mui/material/Autocomplete";
+import TextField from "@mui/material/TextField";
+import MenuItem from "@mui/material/MenuItem";
+import Button from "@mui/material/Button";
+import Paper from "@mui/material/Paper";
 import { Bar } from "react-chartjs-2";
-import Chart from "chart.js/auto";
 
 //==========================================================================================================//
 //styles (messing around)
