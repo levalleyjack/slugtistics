@@ -84,7 +84,7 @@ University of California, Santa Cruz. Slugtistics is a project created by a UCSC
    ```
 3. Navigate to webpage
    ```sh
-   http://localhost:3000/
+   http://localhost:3000
    ```
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
