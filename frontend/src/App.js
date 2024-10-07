@@ -4,12 +4,14 @@ import NavBar from "./components/NavBar";
 import HomePage from "./pages/HomePage";
 import AboutPage from "./pages/AboutPage";
 import NotFoundPage from "./pages/NotFoundPage";
+import { useLocalStorage } from "@uidotdev/usehooks"
 
 
 function App() {
+  const [lightMode, _setLightMode] = useLocalStorage("lightmode", true);
   return (
     <BrowserRouter>
-      <div className="App">
+      <div className={"App" + (lightMode ? '' : ' darkmode')}>
         <NavBar />
         <div id="page-body">
           <Routes>
