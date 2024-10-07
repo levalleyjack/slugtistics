@@ -117,6 +117,8 @@ const HomePage = () => {
   const handleClassSelect = (event, newValue) => {
     setSelectedClass(newValue);
     setFilteredQuarters(quarterList);
+    setTerm("All");
+    setInstructor("All");
     console.log("Selected Class:", newValue);
 
     // fetch instructors for the selected class
