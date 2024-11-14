@@ -14,6 +14,13 @@ import Chart from "chart.js/auto";
 //styles (messing around)
 
 const useStyles = makeStyles((theme) => ({
+  outerContainer: {
+    width: "80vw",
+    margin: "0 auto",
+    [theme.breakpoints.down("md")]: {
+      width: "100vw",
+    },
+  },
   container: {
     padding: theme.spacing(2),
   },
@@ -40,7 +47,8 @@ const HomePage = () => {
   const [filteredQuarters, setFilteredQuarters] = useState([]);
   const [filteredInstructors, setFilteredInstructors] = useState([]);
 
-  const [quarterList, setQuarterList] = useState([
+  const quarterList = [
+    "2024 Fall Quarter",
     "2024 Spring Quarter",
     "2024 Winter Quarter",
     "2023 Fall Quarter",
@@ -60,7 +68,7 @@ const HomePage = () => {
     "2020 Spring Quarter",
     "2020 Winter Quarter",
     "2019 Fall Quarter",
-  ]);
+  ];
 
   const route = "https://api.slugtistics.com/api/";
   // const route = "http://localhost:8080/";
@@ -354,80 +362,82 @@ const HomePage = () => {
   //==========================================================================================================//
   //return statement
   return (
-    <div className={classes.container}>
-      {/* <h1>Class Information</h1> */}
-      <div>
-        {/* Autocomplete for Class Selection */}
-        <Autocomplete
-          options={classTitles}
-          value={selectedClass}
-          onChange={handleClassSelect}
-          freeSolo
-          renderInput={(params) => (
+    <div className={classes.outerContainer}>
+      <div className={classes.container}>
+        {/* <h1>Class Information</h1> */}
+        <div>
+          {/* Autocomplete for Class Selection */}
+          <Autocomplete
+            options={classTitles}
+            value={selectedClass}
+            onChange={handleClassSelect}
+            freeSolo
+            renderInput={(params) => (
+              <TextField
+                {...params}
+                label="Search Classes"
+                variant="outlined"
+                InputLabelProps={{
+                  style: { color: "gray" },
+                }}
+              />
+            )}
+          />
+
+          <div className="filters-container">
             <TextField
-              {...params}
-              label="Search Classes"
+              select
+              label="Instructor"
+              value={instructor}
+              onChange={handleInstructorSelect}
               variant="outlined"
-              InputLabelProps={{
-                style: { color: "gray" },
-              }}
-            />
-          )}
-        />
+              className="instructor-select-field"
+              InputLabelProps={{ style: { color: "gray" } }}
+            >
+              <MenuItem value="All">All Instructors</MenuItem>
+              {filteredInstructors.map((instructor) => (
+                <MenuItem key={instructor} value={instructor}>
+                  {instructor}
+                </MenuItem>
+              ))}
+            </TextField>
 
-        <div className="filters-container">
-          <TextField
-            select
-            label="Instructor"
-            value={instructor}
-            onChange={handleInstructorSelect}
-            variant="outlined"
-            className="instructor-select-field"
-            InputLabelProps={{ style: { color: "gray" } }}
-          >
-            <MenuItem value="All">All Instructors</MenuItem>
-            {filteredInstructors.map((instructor) => (
-              <MenuItem key={instructor} value={instructor}>
-                {instructor}
-              </MenuItem>
-            ))}
-          </TextField>
+            <TextField
+              select
+              label="Term"
+              value={term}
+              onChange={handleTermSelect}
+              variant="outlined"
+              className="term-select-field"
+              InputLabelProps={{ style: { color: "gray" } }}
+            >
+              <MenuItem value="All">All Quarters</MenuItem>
+              {filteredQuarters.map((quarter) => (
+                <MenuItem key={quarter} value={quarter}>
+                  {quarter}
+                </MenuItem>
+              ))}
+            </TextField>
 
-          <TextField
-            select
-            label="Term"
-            value={term}
-            onChange={handleTermSelect}
-            variant="outlined"
-            className="term-select-field"
-            InputLabelProps={{ style: { color: "gray" } }}
-          >
-            <MenuItem value="All">All Quarters</MenuItem>
-            {filteredQuarters.map((quarter) => (
-              <MenuItem key={quarter} value={quarter}>
-                {quarter}
-              </MenuItem>
-            ))}
-          </TextField>
-
-          <Button
-            variant="contained"
-            color="primary"
-            style={{ ...showPercentageButtonStyle }}
-            onClick={() => setShowPercentage((prev) => !prev)}
-            className="percentage-select-field"
-          >
-            {showPercentage ? "Show Raw Data" : "Show Percentage"}
-          </Button>
+            <Button
+              variant="contained"
+              color="primary"
+              style={{ ...showPercentageButtonStyle }}
+              onClick={() => setShowPercentage((prev) => !prev)}
+              className="percentage-select-field"
+            >
+              {showPercentage ? "Show Raw Data" : "Show Percentage"}
+            </Button>
+          </div>
         </div>
+        <Paper className={classes.chart}>
+          <Bar
+            style={chartContainerStyle}
+            data={chartData}
+            options={chartOptions}
+          />
+        </Paper>
       </div>
-      <Paper className={classes.chart}>
-        <Bar
-          style={chartContainerStyle}
-          data={chartData}
-          options={chartOptions}
-        />
-      </Paper>
     </div>
   );
 };
