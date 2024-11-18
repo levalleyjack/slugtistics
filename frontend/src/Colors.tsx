@@ -151,7 +151,7 @@ export const categories = [
     name: "Practice: Service Learning",
     icon: <VolunteerActivismIcon />,
   },
-  { id: "C1", name: "Composition 1", icon: <CreateIcon /> },
-  { id: "C2", name: "Composition 2", icon: <RateReviewIcon /> },
+  { id: "C", name: "Composition", icon: <CreateIcon /> },
+
   { id: "AnyGE", name: "All Courses", icon: <AppsIcon /> },
 ];

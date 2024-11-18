@@ -75,7 +75,7 @@ def store_courses_in_db():
             
             categories = [
                 "CC", "ER", "IM", "MF", "SI", "SR", "TA", "PE-E", "PE-H", "PE-T", 
-                "PR-E", "PR-C", "PR-S", "C1", "C2"
+                "PR-E", "PR-C", "PR-S", "C"
             ]
             
             new_courses = get_courses(categories)
