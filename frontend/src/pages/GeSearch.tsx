@@ -320,7 +320,7 @@ const GeSearch = () => {
     isAllExpanded.current = !isAllExpanded.current;
     setExpandedCodesMap(
       new Map(
-        currentCourses?.map((course) => [course.code, isAllExpanded.current]) ||
+        currentCourses?.map((course) => [course.id, isAllExpanded.current]) ||
           []
       )
     );
@@ -331,11 +331,11 @@ const GeSearch = () => {
       <CourseList>
         {filteredCourses?.map((course) => (
           <CourseCard
-            key={`${course.code}-${course.id}`}
+            key={`${course.id}`}
             course={course}
             isSmallScreen={isSmallScreen}
-            expanded={!!expandedCodesMap.get(course.code)}
-            onExpandChange={() => handleExpandCard(course.code)}
+            expanded={!!expandedCodesMap.get(course.id)}
+            onExpandChange={() => handleExpandCard(course.id)}
           />
         ))}
       </CourseList>
