@@ -198,13 +198,51 @@ export const useCourseData = () => {
       return instructorMap;
     },
     enabled: courseQuery.isSuccess && courseCodes.length > 0,
-    refetchOnMount: false, 
+    refetchOnMount: false,
 
     staleTime: CONFIG.staleTime,
     gcTime: CONFIG.gcTime,
     refetchOnWindowFocus: false,
   });
 
+  const enrollmentQuery = useQuery({
+    queryKey: ["enrollment-batch", courseCodes],
+    queryFn: async () => {
+      const enrollmentMap: Record<string, string> = {};
+      await Promise.all(
+        courseCodes.map(async (code) => {
+          try {
+            const [subject, catalogNbr] = code.split(" ");
+            const response = await fetch(
+              `https://my.ucsc.edu/PSIGW/RESTListeningConnector/PSFT_CSPRD/SCX_CLASS_LIST.v1/2250?subject=${subject}&catalog_nbr=${catalogNbr}`
+            );
+            const data = await response.json();
+            const classInfo = data.classes?.[0];
+
+            if (classInfo) {
+              enrollmentMap[
+                code
+              ] = `${classInfo.enrl_total}/${classInfo.enrl_capacity}`;
+            } else {
+              enrollmentMap[code] = "N/A";
+            }
+          } catch (error) {
+            console.error(
+              `Error fetching enrollment for course ${code}:`,
+              error
+            );
+            enrollmentMap[code] = "N/A";
+          }
+        })
+      );
+      return enrollmentMap;
+    },
+    enabled: courseQuery.isSuccess && courseCodes.length > 0,
+    refetchOnMount: false,
+    staleTime: CONFIG.staleTime,
+    gcTime: CONFIG.gcTime,
+    refetchOnWindowFocus: false,
+  });
   const gpaQuery = useQuery({
     queryKey: ["gpas-batch", courseCodes],
     queryFn: async () => {
@@ -222,7 +260,7 @@ export const useCourseData = () => {
       return gpaMap;
     },
     enabled: courseQuery.isSuccess && courseCodes.length > 0,
-    refetchOnMount: false, 
+    refetchOnMount: false,
     staleTime: CONFIG.staleTime,
     gcTime: CONFIG.gcTime,
     refetchOnWindowFocus: false,
@@ -240,11 +278,17 @@ export const useCourseData = () => {
             instructor:
               instructorQuery.data?.[course.instructor] ?? course.instructor,
             average_gpa: gpaQuery.data?.[course.code] ?? "N/A",
+            class_count: enrollmentQuery.data?.[course.code] ?? "N/A",
           })
         ),
       ])
     );
-  }, [courseQuery.data, instructorQuery.data, gpaQuery.data]);
+  }, [
+    courseQuery.data,
+    instructorQuery.data,
+    gpaQuery.data,
+    enrollmentQuery.data,
+  ]);
 
   return {
     data: enhancedData,
