@@ -13,6 +13,7 @@ import {
   Paper,
   Chip,
 } from "@mui/material";
+import Grid from '@mui/material/Grid';
 import {
   ContentCopy as ContentCopyIcon,
   ExpandMore as ExpandMoreIcon,
@@ -36,7 +37,6 @@ import {
   Rating,
 } from "../Colors";
 import { RatingsModal } from "./RatingsModal";
-import { Grid } from "@material-ui/core";
 
 const SCHOOL_ID = "U2Nob29sLTEwNzg=";
 const RMP_GRAPHQL_URL = "https://www.ratemyprofessors.com/graphql";
@@ -223,7 +223,7 @@ export const CourseCard = ({
       return (
         <Box sx={{ display: "flex", gap: 1, alignItems: "center", mt: 1 }}>
           <RatingChip
-            icon={<StarIcon sx={{ color: "inherit" }} />}
+            icon={<StarIcon color="inherit" />}
             label="Loading rating..."
             size="small"
             sx={{
@@ -240,7 +240,7 @@ export const CourseCard = ({
       return (
         <Box sx={{ display: "flex", gap: 1, alignItems: "center", mt: 1 }}>
           <RatingChip
-            icon={<StarIcon sx={{ color: "inherit" }} />}
+            icon={<StarIcon color="inherit" />}
             label="No rating found"
             size="small"
             sx={{
@@ -256,7 +256,7 @@ export const CourseCard = ({
     return (
       <Box sx={{ display: "flex", gap: 1, alignItems: "center", mt: 1 }}>
         <RatingChip
-          icon={<StarIcon sx={{ color: "inherit" }} />}
+          icon={<StarIcon color="inherit" />}
           label={`${rmpData.avgRating?.toFixed(1) || "N/A"}/5`}
           size="small"
           sx={{
@@ -646,7 +646,7 @@ const CourseCodeChip = styled(Chip)(({ theme }) => ({
   },
 }));
 
-// Rating Chip - Animated gradient background
+//Rating Chip
 const RatingChip = styled(Chip)(({ theme }) => ({
   borderRadius: "6px",
   backgroundSize: "200% 200%",
@@ -665,7 +665,7 @@ const RatingChip = styled(Chip)(({ theme }) => ({
   },
 }));
 
-// Review Count Chip - Frosted glass effect
+//Review Count Chip
 const ReviewCountChip = styled(Chip)(({ theme }) => ({
   borderRadius: "6px",
   background: `linear-gradient(135deg,

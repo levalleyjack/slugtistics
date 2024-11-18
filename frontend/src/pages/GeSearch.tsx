@@ -28,7 +28,6 @@ import FilterAltIcon from "@mui/icons-material/FilterAlt";
 import { CategorySidebar } from "./CategorySideBar";
 import { fetchLastUpdate } from "./FetchLastUpdate";
 
-// Styled components
 const Root = styled("div")(({ theme }) => ({
   display: "flex",
   backgroundColor: COLORS.GRAY_50,
@@ -239,18 +238,13 @@ const filterBySort = (sortBy: string, filterBy: string, courses: Course[]) => {
 const GeSearch = () => {
   const theme = useTheme();
   const [selectedGE, setSelectedGE] = useState("CC");
-  const [expandedCards, setExpandedCards] = useState(new Set<string>());
   const [search, setSearch] = useState("");
   const [sortBy, setSortBy] = useState("GPA");
   const [filterBy, setFilterBy] = useState("All");
-  const [expandAll, setExpandAll] = useState(false);
-  const [expandedState, setExpandedState] = useState<{
-    isExpandAll: boolean;
-    expandedCodes: Set<string>;
-  }>({
-    isExpandAll: false,
-    expandedCodes: new Set<string>(),
-  });
+  const [expandedCodesMap, setExpandedCodesMap] = useState<Map<string, boolean>>(new Map());
+  const isAllExpanded = React.useRef(false);
+
+
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const isSmallScreen = useMediaQuery(theme.breakpoints.down("sm"));
 
@@ -285,59 +279,38 @@ const GeSearch = () => {
     [sortBy, filterBy, courses, search]
   );
 
-  const handleExpandCard = useCallback(
-    (courseCode: string) => {
-      setExpandedState((prev) => {
-        const newExpandedCodes = new Set(prev.expandedCodes);
-        if (newExpandedCodes.has(courseCode)) {
-          newExpandedCodes.delete(courseCode);
-        } else {
-          newExpandedCodes.add(courseCode);
-        }
-
-        // Update isExpandAll based on whether all visible courses are expanded
-        const allCoursesExpanded = courses?.every((course: Course) =>
-          newExpandedCodes.has(course.code)
-        );
-
-        return {
-          isExpandAll: allCoursesExpanded || false,
-          expandedCodes: newExpandedCodes,
-        };
-      });
-    },
-    [courses]
-  );
+  const handleExpandCard = useCallback((courseCode: string) => {
+    setExpandedCodesMap(prevMap => {
+      const newMap = new Map(prevMap);
+      newMap.set(courseCode, !prevMap.get(courseCode));
+      return newMap;
+    });
+  }, []);
 
   const handleExpandAll = useCallback(() => {
-    setExpandedState((prev) => {
-      const newIsExpandAll = !prev.isExpandAll;
-      return {
-        isExpandAll: newIsExpandAll,
-        // If expanding all, include all current course codes. If collapsing, clear the set
-        expandedCodes: newIsExpandAll
-          ? new Set(courses?.map((course: Course) => course.code) || [])
-          : new Set(),
-      };
+    isAllExpanded.current = !isAllExpanded.current;
+    setExpandedCodesMap(prevMap => {
+      const newMap = new Map();
+      filteredCourses?.forEach(course => {
+        newMap.set(course.code, isAllExpanded.current);
+      });
+      return newMap;
     });
-  }, [courses]);
+  }, [filteredCourses]);
 
-  const courseList = useMemo(
-    () => (
-      <CourseList>
-        {filteredCourses?.map((course) => (
-          <CourseCard
-            key={course.id}
-            course={course}
-            isSmallScreen={isSmallScreen}
-            expanded={expandedCards.has(course.code)}
-            onExpandChange={handleExpandCard}
-          />
-        ))}
-      </CourseList>
-    ),
-    [filteredCourses, isSmallScreen, expandedCards, handleExpandCard]
-  );
+  const courseList = useMemo(() => (
+    <CourseList>
+      {filteredCourses?.map((course) => (
+        <CourseCard
+          key={course.code}
+          course={course}
+          isSmallScreen={isSmallScreen}
+          expanded={!!expandedCodesMap.get(course.code)}
+          onExpandChange={() => handleExpandCard(course.code)}
+        />
+      ))}
+    </CourseList>
+  ), [filteredCourses, isSmallScreen, expandedCodesMap, handleExpandCard]);
 
   return (
     <Root>
@@ -368,7 +341,11 @@ const GeSearch = () => {
         <HeaderContainer>
           <SearchSection>
             <StyledTextField
-              onChange={handleSearchChange}
+              onChange={(e) => {
+                setSearch(e.target.value);
+                setExpandedCodesMap(new Map());
+                isAllExpanded.current = false;
+              }}
               value={search}
               label="Search anything..."
               placeholder="THEA 151A, Keiko Yukawa"
@@ -395,16 +372,10 @@ const GeSearch = () => {
               variant="outlined"
               color="primary"
               onClick={handleExpandAll}
-              startIcon={
-                expandedState.isExpandAll ? (
-                  <ExpandLessIcon />
-                ) : (
-                  <ExpandMoreIcon />
-                )
-              }
+              startIcon={isAllExpanded.current ? <ExpandLessIcon /> : <ExpandMoreIcon />}
             >
               <Typography variant={isSmallScreen ? "body2" : "subtitle2"}>
-                {expandedState.isExpandAll ? "Collapse" : "Expand"}{" "}
+                {isAllExpanded.current ? "Collapse" : "Expand"}{" "}
                 {!isSmallScreen && "All"}
               </Typography>
             </ExpandButton>
@@ -428,9 +399,7 @@ const GeSearch = () => {
               <MenuItem value="In Person">In Person</MenuItem>
               <MenuItem value="Hybrid">Hybrid</MenuItem>
               <MenuItem value="Synchronous Online">Synchronous Online</MenuItem>
-              <MenuItem value="Asynchronous Online">
-                Asynchronous Online
-              </MenuItem>
+              <MenuItem value="Asynchronous Online">Asynchronous Online</MenuItem>
             </StyledSelect>
           </ControlsContainer>
         </HeaderContainer>

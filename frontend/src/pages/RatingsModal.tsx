@@ -17,9 +17,8 @@ import {
   SelectChangeEvent,
 } from "@mui/material";
 import { styled } from "@mui/material/styles";
-import { Grid } from "@material-ui/core";
 import he from "he";
-
+import Grid from '@mui/material/Grid';
 import {
   ThumbUp as ThumbUpIcon,
   Visibility as GlassesIcon,
@@ -30,7 +29,7 @@ import {
 } from "@mui/icons-material";
 import { Rating } from "../Colors";
 
-// Type Definitions
+//Type Definitions
 
 
 interface RatingsModalProps {
@@ -43,7 +42,7 @@ interface RatingsModalProps {
 
 type SortOptions = 'date' | 'helpfulRating' | 'clarityRating' | 'difficultyRating';
 
-// Styled Components
+//Styled Components
 const StyledModal = styled(Modal)(({ theme }) => ({
   display: "flex",
   alignItems: "center",
@@ -101,7 +100,6 @@ export const RatingsModal: React.FC<RatingsModalProps> = ({
   };
 
   const processedRatings = useMemo(() => {
-    // First filter
     const filtered = ratings?.filter(rating => {
       const matchesClass = filterBy === "all" ? true : rating.class === filterBy;
       const matchesSearch = rating.comment.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -109,7 +107,6 @@ export const RatingsModal: React.FC<RatingsModalProps> = ({
       return matchesClass && matchesSearch;
     });
 
-    // Then sort
     return filtered?.sort((a, b) => {
       switch (sortBy) {
         case "helpfulRating":
