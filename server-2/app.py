@@ -117,29 +117,29 @@ def schedule_jobs():
     scheduler.start()
     logger.info("Scheduled jobs started")
 
+
+
 @app.route('/api/courses', methods=['GET'])
 def get_courses_data():
     try:
-        course_filter = request.args.get('course', 'AnyGE')
+        courses = CourseModel.query.all()
         
-        query = CourseModel.query
-        if course_filter != 'AnyGE':
-            query = query.filter_by(ge=course_filter)
-        
-        courses = query.all()
-        
-        data = [{
-            "ge": course.ge,
-            "code": course.code,
-            "name": course.name,
-            "instructor": course.instructor,
-            "link": course.link,
-            "class_count": course.class_count,
-            "enroll_num": course.enroll_num,
-            "class_type": course.class_type,
-            "schedule": course.schedule,
-            "location": course.location,
-        } for course in courses]
+        data = {}
+        for course in courses:
+            if course.ge not in data:
+                data[course.ge] = []  
+            data[course.ge].append({
+                "id": course.id,
+                "code": course.code,
+                "name": course.name,
+                "instructor": course.instructor,
+                "link": course.link,
+                "class_count": course.class_count,
+                "enroll_num": course.enroll_num,
+                "class_type": course.class_type,
+                "schedule": course.schedule,
+                "location": course.location,
+            })
         
         return jsonify({
             "data": data,

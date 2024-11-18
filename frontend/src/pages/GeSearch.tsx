@@ -210,29 +210,52 @@ const NoResults = styled(Typography)(({ theme }) => ({
   color: COLORS.GRAY_400,
 }));
 
-const filterBySort = (sortBy: string, filterBy: string, courses: Course[]) => {
-  const filteredCourses =
-    filterBy !== "All"
-      ? courses?.filter(
-          (course) => course.class_type.toLowerCase() === filterBy.toLowerCase()
-        )
-      : courses;
+const filterCourses = (courses: Course[], search: string) => {
+  if (!search) return courses;
+  const searchLower = search.toLowerCase();
+  return courses.filter(
+    (course: Course) =>
+      course.name.toLowerCase().includes(searchLower) ||
+      course.code.toLowerCase().includes(searchLower) ||
+      course.instructor.toLowerCase().includes(searchLower)
+  );
+};
 
-  if (sortBy === "GPA") {
-    return filteredCourses?.sort((a, b) => {
-      if (b.average_gpa === "N/A") return -1;
-      if (a.average_gpa === "N/A") return 1;
-      return parseFloat(b.average_gpa) - parseFloat(a.average_gpa);
-    });
-  } else if (sortBy === "NAME") {
-    return filteredCourses?.sort((a, b) => a.name.localeCompare(b.name));
-  } else if (sortBy === "CODE") {
-    return filteredCourses?.sort((a, b) =>
-      a.code.localeCompare(b.code, undefined, { numeric: true })
-    );
+const filterBySort = (
+  sortBy: string,
+  filterBy: string,
+  currentCourses: Course[]
+): Course[] => {
+  if (!currentCourses) return [];
+
+  const filteredCourses =
+    filterBy === "All"
+      ? currentCourses
+      : currentCourses.filter(
+          (course) => course.class_type.toLowerCase() === filterBy.toLowerCase()
+        );
+
+  const sortedCourses = [...filteredCourses];
+
+  switch (sortBy) {
+    case "GPA":
+      sortedCourses.sort((a, b) => {
+        if (b.average_gpa === "N/A") return -1;
+        if (a.average_gpa === "N/A") return 1;
+        return parseFloat(b.average_gpa) - parseFloat(a.average_gpa);
+      });
+      break;
+    case "NAME":
+      sortedCourses.sort((a, b) => a.name.localeCompare(b.name));
+      break;
+    case "CODE":
+      sortedCourses.sort((a, b) =>
+        a.code.localeCompare(b.code, undefined, { numeric: true })
+      );
+      break;
   }
 
-  return filteredCourses;
+  return sortedCourses;
 };
 
 const GeSearch = () => {
@@ -241,46 +264,52 @@ const GeSearch = () => {
   const [search, setSearch] = useState("");
   const [sortBy, setSortBy] = useState("GPA");
   const [filterBy, setFilterBy] = useState("All");
-  const [expandedCodesMap, setExpandedCodesMap] = useState<Map<string, boolean>>(new Map());
+  const [expandedCodesMap, setExpandedCodesMap] = useState<
+    Map<string, boolean>
+  >(new Map());
   const isAllExpanded = React.useRef(false);
-
-
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const isSmallScreen = useMediaQuery(theme.breakpoints.down("sm"));
 
-  const { data: courses, isLoading } = useCourseData(selectedGE);
+  const { data: courses, isLoading: isFetchLoading } = useCourseData();
+
+  const currentCourses = useMemo(
+    () =>
+      selectedGE !== "AnyGE"
+        ? courses?.[selectedGE] || []
+        : Object.values(courses || {}).flat(),
+    [selectedGE, courses]
+  );
 
   const { data: lastUpdated } = useQuery({
     queryKey: ["lastUpdate"],
     queryFn: fetchLastUpdate,
     refetchInterval: 300000,
     refetchIntervalInBackground: true,
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
   });
 
-  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setSearch(e.target.value);
-  };
+  const filteredCourses = useMemo(() => {
+    const searchFiltered = filterCourses(currentCourses, search);
+    return filterBySort(sortBy, filterBy, searchFiltered);
+  }, [currentCourses, search, sortBy, filterBy]);
 
-  const filteredCourses = useMemo(
-    () =>
-      filterBySort(
-        sortBy,
-        filterBy,
-        courses?.filter((course: Course) => {
-          if (search === "") return true;
-          const searchLower = search.toLowerCase();
-          return (
-            course.name.toLowerCase().includes(searchLower) ||
-            course.code.toLowerCase().includes(searchLower) ||
-            course.instructor.toLowerCase().includes(searchLower)
-          );
-        })
-      ),
-    [sortBy, filterBy, courses, search]
+  const handleSearchChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+      setSearch(e.target.value);
+    },
+    []
   );
 
+  const handleCategorySelect = useCallback((categoryId: string) => {
+    setSelectedGE(categoryId);
+    setExpandedCodesMap(new Map());
+    isAllExpanded.current = false;
+  }, []);
+
   const handleExpandCard = useCallback((courseCode: string) => {
-    setExpandedCodesMap(prevMap => {
+    setExpandedCodesMap((prevMap) => {
       const newMap = new Map(prevMap);
       newMap.set(courseCode, !prevMap.get(courseCode));
       return newMap;
@@ -289,28 +318,30 @@ const GeSearch = () => {
 
   const handleExpandAll = useCallback(() => {
     isAllExpanded.current = !isAllExpanded.current;
-    setExpandedCodesMap(prevMap => {
-      const newMap = new Map();
-      filteredCourses?.forEach(course => {
-        newMap.set(course.code, isAllExpanded.current);
-      });
-      return newMap;
-    });
-  }, [filteredCourses]);
+    setExpandedCodesMap(
+      new Map(
+        currentCourses?.map((course) => [course.code, isAllExpanded.current]) ||
+          []
+      )
+    );
+  }, [currentCourses]);
 
-  const courseList = useMemo(() => (
-    <CourseList>
-      {filteredCourses?.map((course) => (
-        <CourseCard
-          key={course.code}
-          course={course}
-          isSmallScreen={isSmallScreen}
-          expanded={!!expandedCodesMap.get(course.code)}
-          onExpandChange={() => handleExpandCard(course.code)}
-        />
-      ))}
-    </CourseList>
-  ), [filteredCourses, isSmallScreen, expandedCodesMap, handleExpandCard]);
+  const courseList = useMemo(
+    () => (
+      <CourseList>
+        {filteredCourses?.map((course) => (
+          <CourseCard
+            key={`${course.code}-${course.id}`}
+            course={course}
+            isSmallScreen={isSmallScreen}
+            expanded={!!expandedCodesMap.get(course.code)}
+            onExpandChange={() => handleExpandCard(course.code)}
+          />
+        ))}
+      </CourseList>
+    ),
+    [filteredCourses, isSmallScreen, expandedCodesMap, handleExpandCard]
+  );
 
   return (
     <Root>
@@ -328,7 +359,7 @@ const GeSearch = () => {
         <CategoryContainer>
           <CategorySidebar
             selectedCategory={selectedGE}
-            onCategorySelect={(categoryId) => setSelectedGE(categoryId)}
+            onCategorySelect={handleCategorySelect}
           />
         </CategoryContainer>
       </GeContainer>
@@ -341,11 +372,7 @@ const GeSearch = () => {
         <HeaderContainer>
           <SearchSection>
             <StyledTextField
-              onChange={(e) => {
-                setSearch(e.target.value);
-                setExpandedCodesMap(new Map());
-                isAllExpanded.current = false;
-              }}
+              onChange={(e) => handleSearchChange(e)}
               value={search}
               label="Search anything..."
               placeholder="THEA 151A, Keiko Yukawa"
@@ -372,7 +399,9 @@ const GeSearch = () => {
               variant="outlined"
               color="primary"
               onClick={handleExpandAll}
-              startIcon={isAllExpanded.current ? <ExpandLessIcon /> : <ExpandMoreIcon />}
+              startIcon={
+                isAllExpanded.current ? <ExpandLessIcon /> : <ExpandMoreIcon />
+              }
             >
               <Typography variant={isSmallScreen ? "body2" : "subtitle2"}>
                 {isAllExpanded.current ? "Collapse" : "Expand"}{" "}
@@ -399,12 +428,14 @@ const GeSearch = () => {
               <MenuItem value="In Person">In Person</MenuItem>
               <MenuItem value="Hybrid">Hybrid</MenuItem>
               <MenuItem value="Synchronous Online">Synchronous Online</MenuItem>
-              <MenuItem value="Asynchronous Online">Asynchronous Online</MenuItem>
+              <MenuItem value="Asynchronous Online">
+                Asynchronous Online
+              </MenuItem>
             </StyledSelect>
           </ControlsContainer>
         </HeaderContainer>
 
-        {isLoading ? (
+        {isFetchLoading ? (
           <CenterContent>
             <CircularProgress color="inherit" disableShrink />
           </CenterContent>

@@ -10,10 +10,10 @@ interface GradeDistribution {
 interface InstructorMap {
   [key: string]: string;
 }
-
 interface EnhancedCourse extends Course {
   average_gpa: string;
 }
+
 export const local = "http://127.0.0.1:5001";
 
 //constants
@@ -129,23 +129,33 @@ const fetchGradeDistribution = async (code: string): Promise<string> => {
 };
 
 //exporting all course info like instructor, average gpa, etc.
-export const useCourseData = (categoryValue: string) => {
-  // Fetch basic course data
+export const useCourseData = () => {
   const courseQuery = useQuery({
-    queryKey: ["courses", categoryValue],
+    queryKey: ["courses"],
     queryFn: async () => {
-      const response = await axios.get(`${API_URL}?course=${categoryValue}`);
-      return response.data?.data || [];
+      const response = await axios.get<{ data: Record<string, Course[]> }>(
+        API_URL
+      );
+      return response.data?.data ?? {};
     },
+    staleTime: CONFIG.staleTime,
+    refetchInterval: CONFIG.staleTime,
+    refetchOnWindowFocus: false,
+    refetchOnMount: false, //prevent refetching on component mount
+    gcTime: CONFIG.gcTime,
   });
 
-  //Extract unique course codes
   const courseCodes = React.useMemo(() => {
     if (!courseQuery.data) return [];
-    return [...new Set(courseQuery.data.map((course: Course) => course.code))];
+    return [
+      ...new Set(
+        Object.values(courseQuery.data).flatMap((courses) =>
+          courses.map((course) => course.code)
+        )
+      ),
+    ];
   }, [courseQuery.data]);
 
-  //Fetch instructor full name, if possible
   const instructorQuery = useQuery({
     queryKey: ["instructors-batch", courseCodes],
     queryFn: async () => {
@@ -154,9 +164,10 @@ export const useCourseData = (categoryValue: string) => {
       await Promise.all(
         courseCodes.map(async (code) => {
           try {
-            const course = courseQuery.data.find(
-              (c: Course) => c.code === code
-            );
+            const course = Object.values(courseQuery.data ?? {})
+              .flat()
+              .find((c) => c.code === code);
+
             if (!course || course.instructor === "Staff") {
               if (course) instructorMap[course.instructor] = course.instructor;
               return;
@@ -165,11 +176,11 @@ export const useCourseData = (categoryValue: string) => {
             const response = await fetch(
               `${CONFIG.gpaRoute}instructors/${code}`
             );
-            const courseInstructors = await response.json();
-            const normalizedInput = normalizeInstructorName(course.instructor); //removes any special character from original web  scraping instructor
+            const courseInstructors: string[] = await response.json();
+            const normalizedInput = normalizeInstructorName(course.instructor);
 
             instructorMap[course.instructor] = courseInstructors?.length
-              ? findMatchingInstructor(normalizedInput, courseInstructors) || //if can't find instructor from slugtistics data then just return original instructor from scrape, like P. Tantalo instead of Patrick Tantalo
+              ? findMatchingInstructor(normalizedInput, courseInstructors) ??
                 course.instructor
               : course.instructor;
           } catch (error) {
@@ -177,9 +188,9 @@ export const useCourseData = (categoryValue: string) => {
               `Error fetching instructor for course ${code}:`,
               error
             );
-            const course = courseQuery.data.find(
-              (c: Course) => c.code === code
-            );
+            const course = Object.values(courseQuery.data ?? {})
+              .flat()
+              .find((c) => c.code === code);
             if (course) instructorMap[course.instructor] = course.instructor;
           }
         })
@@ -187,39 +198,51 @@ export const useCourseData = (categoryValue: string) => {
       return instructorMap;
     },
     enabled: courseQuery.isSuccess && courseCodes.length > 0,
+    refetchOnMount: false, 
+
+    staleTime: CONFIG.staleTime,
+    gcTime: CONFIG.gcTime,
+    refetchOnWindowFocus: false,
   });
 
-  //Fetch GPA for all class
   const gpaQuery = useQuery({
-    queryKey: ["gpas-batch", courseQuery.data],
+    queryKey: ["gpas-batch", courseCodes],
     queryFn: async () => {
-      const gpaMap: { [code: string]: string } = {};
+      const gpaMap: Record<string, string> = {};
       await Promise.all(
-        courseQuery.data.map(async (course: Course) => {
+        courseCodes.map(async (code) => {
           try {
-            gpaMap[course.code] = await fetchGradeDistribution(course.code);
+            gpaMap[code] = await fetchGradeDistribution(code);
           } catch (error) {
-            console.error(`Error fetching GPA: ${error}`);
-            gpaMap[course.code] = "N/A";
+            console.error(`Error fetching GPA for course ${code}:`, error);
+            gpaMap[code] = "N/A";
           }
         })
       );
       return gpaMap;
     },
-    enabled: courseQuery.isSuccess && courseQuery.data.length > 0,
+    enabled: courseQuery.isSuccess && courseCodes.length > 0,
+    refetchOnMount: false, 
+    staleTime: CONFIG.staleTime,
+    gcTime: CONFIG.gcTime,
+    refetchOnWindowFocus: false,
   });
 
-  //Combine all data
-  const enhancedData = React.useMemo(() => {
-    if (!courseQuery.data) return [];
+  const enhancedData = React.useMemo<Record<string, EnhancedCourse[]>>(() => {
+    if (!courseQuery.data) return {};
 
-    return courseQuery.data.map(
-      (course: Course): EnhancedCourse => ({
-        ...course,
-        instructor:
-          instructorQuery.data?.[course.instructor] || course.instructor,
-        average_gpa: gpaQuery.data?.[course.code] || "N/A",
-      })
+    return Object.fromEntries(
+      Object.entries(courseQuery.data).map(([category, courses]) => [
+        category,
+        courses.map(
+          (course): EnhancedCourse => ({
+            ...course,
+            instructor:
+              instructorQuery.data?.[course.instructor] ?? course.instructor,
+            average_gpa: gpaQuery.data?.[course.code] ?? "N/A",
+          })
+        ),
+      ])
     );
   }, [courseQuery.data, instructorQuery.data, gpaQuery.data]);
 
