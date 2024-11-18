@@ -7,29 +7,16 @@ import MenuItem from "@mui/material/MenuItem";
 import Button from "@mui/material/Button";
 import Paper from "@mui/material/Paper";
 import { Bar } from "react-chartjs-2";
-import styled from "@emotion/styled";
 import "chart.js/auto";
+import { ChartOptions } from "chart.js/auto";
+import { _DeepPartialObject } from "chart.js/dist/types/utils";
+import { useNavigate, useParams, useLocation } from "react-router-dom";
 
-//==========================================================================================================//
-//styles (messing around)
-
-const useStyles = styled((theme) => ({
-  container: {
-    padding: theme.spacing(2),
-  },
-  button: {
-    marginTop: theme.spacing(1),
-  },
-  chart: {
-    marginTop: theme.spacing(2),
-  },
-}));
 //==========================================================================================================//
 //homepage function and state declarations
 //this is the main page of the website
 
 const HomePage = () => {
-  const classes = useStyles();
   const [classTitles, setClassTitles] = useState([]);
   const [selectedClass, setSelectedClass] = useState("");
   const [instructorsList, setInstructorsList] = useState([]);
@@ -37,8 +24,11 @@ const HomePage = () => {
   const [term, setTerm] = useState("All");
   const [classInfo, setClassInfo] = useState([]);
   const [showPercentage, setShowPercentage] = useState(false);
-  const [filteredQuarters, setFilteredQuarters] = useState([]);
+  const [filteredQuarters, setFilteredQuarters] = useState<string[]>([]);
   const [filteredInstructors, setFilteredInstructors] = useState([]);
+  const navigate = useNavigate();
+  const location = useLocation();
+  const params = new URLSearchParams(location.search);
 
   const [quarterList, setQuarterList] = useState([
     "2024 Spring Quarter",
@@ -65,6 +55,27 @@ const HomePage = () => {
   const route = "https://api.slugtistics.com/api/";
   // const route = "http://localhost:8080/";
 
+  
+  //URL parameters load
+  useEffect(() => {
+    const initialClass = params.get("class") || "";
+    const initialInstructor = params.get("instructor") || "All";
+    const initialTerm = params.get("term") || "All";
+  
+    setSelectedClass(initialClass);
+    setInstructor(initialInstructor);
+    setTerm(initialTerm);
+
+    fetch(`${route}instructors/${selectedClass}&term=${term}`)
+    .then((response) => response.json())
+    .then((data) => {
+      setFilteredInstructors(data);
+    })
+    .catch((error) => {
+      console.error("Error:", error);
+    });
+
+  }, []);
   useEffect(() => {
     //fetch initial chart data
     fetch(`${route}grade-distribution/Sum:?instructor=All&term=All`)
@@ -100,6 +111,7 @@ const HomePage = () => {
     }
   }, [selectedClass, instructor, term]);
 
+
   useEffect(() => {
     if (selectedClass) {
       //fetch quarters only when class changes
@@ -114,78 +126,80 @@ const HomePage = () => {
     }
   }, [selectedClass]);
 
-  const handleClassSelect = (event, newValue) => {
-    setSelectedClass(newValue);
+
+  useEffect(() => {
+    if (selectedClass) {
+      //fetch instructors when class changes
+      fetch(`${route}instructors/${selectedClass}`)
+        .then((response) => response.json())
+        .then((data) => {
+          setFilteredInstructors(data);
+        })
+        .catch((error) => {
+          console.error("Error:", error);
+        });
+    }
+  }, [selectedClass]);
+
+
+  const handleClassSelect = (event: any, newValue: string | null) => {
+    setSelectedClass(newValue ?? "");
     setFilteredQuarters(quarterList);
     setTerm("All");
     setInstructor("All");
-    console.log("Selected Class:", newValue);
-
-    // fetch instructors for the selected class
+  
+    // Fetch instructors for the selected class
     if (newValue) {
       fetch(`${route}instructors/${newValue}`)
         .then((response) => response.json())
         .then((data) => {
           setInstructorsList(data);
           setFilteredInstructors(data);
-          console.log("Instructors1:", filteredInstructors);
+          // Check if instructor from URL is in the fetched list; if not, set to "All"
+          const urlInstructor = params.get("instructor") || "All";
+          if (urlInstructor === "All" || data.includes(urlInstructor)) {
+            setInstructor(urlInstructor);
+          } else {
+            setInstructor("All");
+          }
         })
-        .catch((error) => {
-          console.error("Error:", error);
-        });
-      //fetch grade distribution for the selected class
-      fetch(
-        `${route}grade-distribution/${newValue}?instructor=${instructor}&term=${term}`
-      )
+        .catch((error) => console.error("Error:", error));
+  
+      // Fetch grade distribution for the selected class
+      fetch(`${route}grade-distribution/${newValue}?instructor=${instructor}&term=${term}`)
         .then((response) => response.json())
-        .then((data) => {
-          setClassInfo(data);
-        })
-        .catch((error) => {
-          console.error("Error:", error);
-        });
+        .then((data) => setClassInfo(data))
+        .catch((error) => console.error("Error:", error));
     }
   };
 
-  const handleTermSelect = (event) => {
-    const selectedTerm = event.target.value;
-    setTerm(selectedTerm);
+const handleTermSelect = (event: React.ChangeEvent<{ value: unknown }>) => {
+  const selectedTerm = event.target.value as string;
+  setTerm(selectedTerm);
 
-    if (selectedTerm !== "All") {
-      //fetch instructors for the selected quarter
-      fetch(`${route}instructors/${selectedClass}/${selectedTerm}`)
-        .then((response) => response.json())
-        .then((data) => {
-          setFilteredInstructors(data);
-          console.log("Instructors:", data);
-        })
-        .catch((error) => {
-          console.error("Error:", error);
-        });
-      //filter available quarters based on term
-      setFilteredQuarters(filteredQuarters);
-      console.log("Filtered Quarters:", filteredQuarters);
-    } else {
-      // wen All Quarters" is selected, filter quarters based on all quarters for the class
-      fetch(`${route}quarters/All/${selectedClass}`)
-        .then((response) => response.json())
-        .then((data) => {
-          setFilteredQuarters(filteredQuarters);
-          setFilteredInstructors(instructorsList);
-          console.log("Filtered Quarters 2 side:", data);
-        })
-        .catch((error) => {
-          console.error("Error:", error);
-        });
-    }
-  };
+  if (selectedTerm !== "All") {
+    fetch(`${route}instructors/${selectedClass}/${selectedTerm}`)
+      .then((response) => response.json())
+      .then((data) => {
+        setFilteredInstructors(data);
+        const urlInstructor = params.get("instructor") || "All";
+        if (urlInstructor === "All" || data.includes(urlInstructor)) {
+          setInstructor(urlInstructor);
+        } else {
+          setInstructor("All");
+        }
+      })
+      .catch((error) => console.error("Error:", error));
+  } else {
+    setFilteredInstructors(instructorsList);
+  }
+};
 
-  const handleInstructorSelect = (event) => {
+  const handleInstructorSelect = (event: { target: { value: any; }; }) => {
     const selectedInstructor = event.target.value;
     setInstructor(selectedInstructor);
 
     if (selectedInstructor !== "All") {
-      //fetch quarters for the selected instructor
       fetch(`${route}quarters/${selectedClass}/${selectedInstructor}`)
         .then((response) => response.json())
         .then((data) => {
@@ -196,7 +210,6 @@ const HomePage = () => {
           console.error("Error:", error);
         });
     } else {
-      //when "All Instructors" is selected, filter quarters based on all instructors for the class
       fetch(`${route}quarters/${selectedClass}`)
         .then((response) => response.json())
         .then((data) => {
@@ -209,6 +222,16 @@ const HomePage = () => {
         });
     }
   };
+  
+    //Update URL parameters when dropdown selections change
+    useEffect(() => {
+      const searchParams = new URLSearchParams();
+      if (selectedClass) searchParams.append("class", selectedClass);
+      if (instructor !== "All") searchParams.append("instructor", instructor);
+      if (term !== "All") searchParams.append("term", term);
+  
+      navigate({ search: searchParams.toString() });
+    }, [selectedClass, instructor, term, navigate]);
 
   //if All Instructors selected then query for all quarters with X instructor
   //if All Quarters selected then query for all instructors
@@ -236,7 +259,7 @@ const HomePage = () => {
     return averageGPA.toFixed(2);
   };
 
-  const calculateGPA = (grade) => {
+  const calculateGPA = (grade: string) => {
     switch (grade) {
       case "A+":
         return 4.0;
@@ -314,14 +337,14 @@ const HomePage = () => {
       },
     ],
   };
-  const chartOptions = {
+  const chartOptions: ChartOptions<"bar"> = {
     responsive: true,
     maintainAspectRatio: false,
     scales: {
       y: {
         beginAtZero: true,
         ticks: {
-          callback: function (value) {
+          callback: function (value: string | number) {
             return showPercentage ? value + "%" : value;
           },
         },
@@ -339,12 +362,6 @@ const HomePage = () => {
     },
   };
 
-  const chartContainerStyle = {
-    position: "relative",
-    cursor: "default",
-    width: "1500px",
-    height: "550px",
-  };
 
   const showPercentageButtonStyle = {
     backgroundColor: "#111827",
@@ -354,7 +371,7 @@ const HomePage = () => {
   //==========================================================================================================//
   //return statement
   return (
-    <div className={classes.container}>
+    <div style={{ marginTop: "50px" }}>
       {/* <h1>Class Information</h1> */}
       <div>
         {/* Autocomplete for Class Selection */}
@@ -421,13 +438,15 @@ const HomePage = () => {
           </Button>
         </div>
       </div>
-      <Paper className={classes.chart}>
+      <div>
+      <Paper>
         <Bar
-          style={chartContainerStyle}
+          className="chart"
           data={chartData}
           options={chartOptions}
         />
       </Paper>
+      </div>
     </div>
   );
 };

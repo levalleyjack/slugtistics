@@ -59,8 +59,8 @@ nav a:hover {
 
 #page-body {
   max-width: 80vw;
-  margin: auto;
-  padding-top: 64px;
+  padding-top: 40px;
+  margin: 1rem auto;
 }
 
 .instructor-select-field,
@@ -71,16 +71,14 @@ nav a:hover {
   max-width: 300px;
 }
 
-.chart-container {
-  width: 100%;
-  height: auto;
-}
+
 
 .filters-container {
   display: flex;
   padding-top: 20px;
   gap: 10px;
   flex-wrap: wrap;
+  padding-bottom: 15px;
 }
 
 .instructor-select-field,
@@ -88,6 +86,13 @@ nav a:hover {
 .percentage-select-field {
   flex: 1;
   max-width: 300px;
+}
+.chart {
+  position: relative;
+  cursor: default;
+  width: 1500px;
+  height: 550px;
+
 }
 
 /* This is only for the dropdown/button row */
