@@ -164,6 +164,8 @@ const useRMPData = (fullInstructorName: string, enabled = false) => {
           .charAt(0)
           .toLowerCase();
 
+       
+
         return (
           (professorLastName === lastName.toLowerCase() ||
             professorLastNameWithMiddle === lastName.toLowerCase() ||
@@ -708,6 +710,7 @@ const RatingChip = styled(Chip)(({ theme }) => ({
   fontWeight: 600,
   height: "28px",
   animation: "gradient 3s ease infinite",
+  transition: "all 0.2s ease-in-out",
   "@keyframes gradient": {
     "0%": { backgroundPosition: "0% 50%" },
     "50%": { backgroundPosition: "100% 50%" },
@@ -715,7 +718,7 @@ const RatingChip = styled(Chip)(({ theme }) => ({
   },
   "&:hover": {
     transform: "translateY(-2px)",
-    boxShadow: "0 4px 12px rgba(0, 0, 0, 0.15)",
+    boxShadow: "0 4px 12px rgba(0, 0, 0, 0.2)",
   },
 }));
 
