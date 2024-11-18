@@ -9,6 +9,23 @@ import {
 import { styled } from "@mui/material/styles";
 import { categories } from "../Colors";
 
+interface Category {
+  id: string;
+  name?: string;
+  icon: React.ReactNode;
+}
+
+interface CategoryItemProps {
+  category: Category;
+  isSelected: boolean;
+  onSelect: (id: string) => void;
+}
+
+interface CategorySidebarProps {
+  selectedCategory: string;
+  onCategorySelect: (id: string) => void;
+}
+
 const StyledListItem = styled(ListItem)(({ theme }) => ({
   borderRadius: theme.shape.borderRadius,
   margin: theme.spacing(0.5),
@@ -24,18 +41,14 @@ const StyledListItem = styled(ListItem)(({ theme }) => ({
   },
 }));
 
+const Sidebar = styled("div")(({ theme }) => ({
+  width: 280,
+  backgroundColor: theme.palette.background.paper,
+  height: "100%",
+  borderRight: `1px solid ${theme.palette.divider}`,
+}));
 
-interface CategoryItemProps {
-  category: {
-    id: string;
-    name?: string;
-    icon: React.ReactNode;
-  };
-  isSelected: boolean;
-  onSelect: (id: string) => void;
-}
-
-const CategoryItem = memo(({ category, isSelected, onSelect }: CategoryItemProps) => {
+const CategoryItem: React.FC<CategoryItemProps> = memo(({ category, isSelected, onSelect }) => {
   const handleClick = useCallback(() => {
     onSelect(category.id);
   }, [category.id, onSelect]);
@@ -63,35 +76,21 @@ const CategoryItem = memo(({ category, isSelected, onSelect }: CategoryItemProps
 
 CategoryItem.displayName = "CategoryItem";
 
-const Sidebar = styled("div")(({ theme }) => ({
-  width: 280,
-  backgroundColor: theme.palette.background.paper,
-  height: "100%",
-  borderRight: `1px solid ${theme.palette.divider}`,
-}));
-
-interface CategorySidebarProps {
-  selectedCategory: string;
-  onCategorySelect: (id: string) => void;
-}
-
-export const CategorySidebar = memo(
-  ({ selectedCategory, onCategorySelect }: CategorySidebarProps) => {
+export const CategorySidebar: React.FC<CategorySidebarProps> = memo(
+  ({ selectedCategory, onCategorySelect }) => {
     return (
       <Sidebar>
         <List sx={{ p: 1 }}>
-            {categories.map((category: { id: string; name?: string; icon: React.ReactNode }) => (
+          {categories.map((category) => (
             <CategoryItem
               key={category.id}
               category={category}
               isSelected={selectedCategory === category.id}
               onSelect={onCategorySelect}
             />
-            ))}
+          ))}
         </List>
       </Sidebar>
     );
   }
 );
-
-CategorySidebar.displayName = "CategorySidebar";

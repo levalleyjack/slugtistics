@@ -15,6 +15,7 @@ import CreateIcon from "@mui/icons-material/Create";
 import RateReviewIcon from "@mui/icons-material/RateReview";
 import AppsIcon from "@mui/icons-material/Apps";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
+import { ChipProps } from "@mui/material";
 export const COLORS = {
   WHITE: "#ffffff",
   BLACK: "#000000",
@@ -38,7 +39,19 @@ export type ColorType = typeof COLORS;
 // import { COLORS } from './colors';
 // backgroundColor: COLORS.WHITE
 
+export interface ExpandIconProps {
+  expanded: boolean;
+}
+
+export interface GradeChipProps extends ChipProps {
+  grade: number;
+}
+export interface DifficultyChipProps extends ChipProps {
+  difficulty: number;
+}
+
 export interface Course {
+  id: any;
   code: string;
   link: string;
   enroll_num: string;
@@ -49,9 +62,42 @@ export interface Course {
   ge: string;
   schedule: string;
   location: string;
+  average_gpa: string;
 }
 
-export const getLetterGrade = (gpa) => {
+export interface RMPResponse {
+  average_rating: number;
+  number_of_ratings: number;
+  department: string;
+  would_take_again: number;
+  average_difficulty: number;
+  first_name: string;
+  last_name: string;
+}
+
+export interface RMPData {
+  avgRating: number;
+  numRatings: number;
+  department: string;
+  wouldTakeAgainPercent: number;
+  difficultyLevel: number;
+  name: string;
+}
+export interface Rating {
+  clarityRating: number;
+  helpfulRating: number;
+  difficultyRating: number;
+  comment: string;
+  isForOnlineClass: boolean;
+  attendanceMandatory: boolean;
+  textbookUse: number;
+  class: string;
+  date: string;
+  createdByUser: string;
+  flagStatus: 'UNFLAGGED' | 'FLAGGED';
+}
+
+export const getLetterGrade = (gpa: string) => {
   const gpaNum = parseFloat(gpa);
   if (gpaNum >= 4.0) return "A";
   if (gpaNum >= 3.7) return "A-";

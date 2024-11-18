@@ -7,310 +7,194 @@ import {
   Typography,
   IconButton,
   Link,
-  Chip,
   Box,
   Collapse,
   Tooltip,
   Paper,
-  Theme,
+  Chip,
 } from "@mui/material";
-import ContentCopyIcon from "@mui/icons-material/ContentCopy";
-import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
-import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
-import SchoolIcon from "@mui/icons-material/School";
-import PersonIcon from "@mui/icons-material/Person";
-import AccessTimeIcon from "@mui/icons-material/AccessTime";
-import GroupsIcon from "@mui/icons-material/Groups";
-import CategoryIcon from "@mui/icons-material/Category";
-import GradeIcon from "@mui/icons-material/Grade";
-import React from "react";
-import { Button, Grid } from "@mui/material";
-import { COLORS, getLetterGrade } from "../Colors";
-import StarIcon from "@mui/icons-material/Star";
-import { local } from "./GetGEData";
+import {
+  ContentCopy as ContentCopyIcon,
+  ExpandMore as ExpandMoreIcon,
+  CheckCircleOutline as CheckCircleOutlineIcon,
+  School as SchoolIcon,
+  Person as PersonIcon,
+  AccessTime as AccessTimeIcon,
+  Groups as GroupsIcon,
+  Category as CategoryIcon,
+  Grade as GradeIcon,
+  Star as StarIcon,
+} from "@mui/icons-material";
+import { useTheme } from "@mui/material/styles";
+import {
+  COLORS,
+  Course,
+  DifficultyChipProps,
+  ExpandIconProps,
+  getLetterGrade,
+  GradeChipProps,
+  Rating,
+} from "../Colors";
+import { RatingsModal } from "./RatingsModal";
+import { Grid } from "@material-ui/core";
 
-const route = "https://api.slugtistics.com/api/";
+const SCHOOL_ID = "U2Nob29sLTEwNzg=";
+const RMP_GRAPHQL_URL = "https://www.ratemyprofessors.com/graphql";
 
-const gpaMap = {
-  "A+": 4.0,
-  "A": 4.0,
-  "A-": 3.7,
-  "B+": 3.3,
-  "B": 3.0,
-  "B-": 2.7,
-  "C+": 2.3,
-  "C": 2.0,
-  "C-": 1.7,
-  "D+": 1.3,
-  "D": 1.0,
-  "D-": 0.7,
-  "F": 0.0,
-} as const
-const calculateGPA = (grade: keyof typeof gpaMap) => {
-  return gpaMap[grade] || 0.0;
-};
-
-const calculateAverageGPA = (gradeDistribution: Record<string, number>) =>{
-  let totalGPA = 0;
-  let totalStudents = 0;
-
-  Object.entries(gradeDistribution).forEach(([grade, count]) => {
-    totalGPA += calculateGPA(grade as any) * count;
-    totalStudents += count;
-  });
-
-  return totalStudents > 0 ? (totalGPA / totalStudents).toFixed(2) : "N/A";
-};
-
-const StyledCard = styled(Card)(({ theme }) => ({
-  position: "relative",
-  transition: "transform 0.2s ease-in-out",
-  paddingBottom: theme.spacing(2),
-  "&:hover": {
-    transform: "translateY(-4px)",
-    "& .MuiChip-root": {
-      transform: "scale(1.05)",
-    },
-  },
-  ".MuiCardActionArea-focusHighlight": {
-    background: "transparent",
-  },
-}));
-
-const CodeChip = styled(Chip, {
-  shouldForwardProp: (prop) => prop !== "grade",
-})(({ theme }) => ({
-  backgroundColor: theme.palette.primary.main,
-  color: theme.palette.primary.contrastText,
-  fontWeight: 500,
-  fontSize: "0.875rem",
-  transition: "transform 0.2s ease-in-out",
-}));
-
-const GradeChip = styled(Chip)(({ theme, grade }: {theme?: Theme, grade: string}) => {
-  const getGradient = (gpa: number) => {
-    if (gpa >= 3.7) return theme?.palette.success.main;
-    if (gpa >= 3.0) return theme?.palette.warning.main;
-    return theme?.palette.error.main;
-  };
-
-  return {
-    background: getGradient(Number(grade)),
-    color: theme?.palette.common.white,
-    fontWeight: 500,
-  };
-});
-
-const HeaderContent = styled(Box)(({ theme }) => ({
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "space-between",
-  width: "100%",
-  gap: theme.spacing(2),
-}));
-
-const CourseInfo = styled(Box)({
-  flex: 1,
-  minWidth: 0,
-});
-
-const ActionContainer = styled(Box)(({ theme }) => ({
-  display: "flex",
-  alignItems: "center",
-  gap: theme.spacing(1),
-  flexShrink: 0,
-}));
-const RatingChip = styled(Chip)(({ theme, rating }: {theme :Theme, rating: number}) => ({
-  backgroundColor:
-    rating >= 4.0
-      ? theme.palette.success.main
-      : rating >= 3.0
-      ? theme.palette.warning.main
-      : theme.palette.error.main,
-  color: theme.palette.common.white,
-  fontWeight: 500,
-}));
-
-const StyledExpandIcon = styled(ExpandMoreIcon, {
-  shouldForwardProp: (prop) => prop !== "expanded",
-})(({ theme, expanded }: {theme?:Theme, expanded: boolean}) => ({
-  transform: expanded ? "rotate(180deg)" : "rotate(0deg)",
-  transition: theme?.transitions.create("transform", {
-    duration: theme?.transitions.duration.shortest,
-  }),
-}));
-
-const fetchGradeDistribution = async (code: string) => {
-  try {
-    const response = await fetch(
-      `${route}grade-distribution/${code}?instructor=All&term=All`
-    );
-    const gradeData = await response.json();
-    return calculateAverageGPA(gradeData);
-  } catch (error) {
-    console.error(`Error fetching GPA for ${code}:`, error);
-    return "N/A";
-  }
-};
-
-const normalizeInstructorName = (name: string) => {
-  return name
-    .replace(/[**,.]/g, " ")
-    .replace(/\s+/g, " ")
-    .trim();
-};
-
-const getInitials = (name: string) => {
-  return name
-    .split(/[\s.]/)
-    .filter(
-      (part) => part.length === 1 || (part.length === 2 && part.endsWith("."))
-    )
-    .map((initial) => initial.charAt(0).toUpperCase());
-};
-const useInstructor = (code: string, instructor: string) => {
-  return useQuery({
-    queryKey: ["instructor", code, instructor],
-    queryFn: async () => {
-      try {
-        if (!instructor || instructor === "Staff") {
-          console.log("isStaff");
-          return "Staff";
-        }
-        const response = await fetch(`${route}instructors/${code}`);
-        const instructors = await response.json();
-
-        const normalizedInput = normalizeInstructorName(instructor);
-        const inputParts = normalizedInput
-          .split(" ")
-          .filter((part) => part.length > 0);
-
-        const inputLast = inputParts[inputParts.length - 1];
-
-        const inputInitials = getInitials(normalizedInput);
-
-        const matchedInstructor = instructors.find((fullName: string) => {
-          const normalizedFullName = normalizeInstructorName(fullName);
-          const fullNameParts = normalizedFullName.split(" ");
-
-          const firstNames = fullNameParts.slice(0, -1);
-          const lastName = fullNameParts[fullNameParts.length - 1];
-
-          const lastNameMatches =
-            lastName.toLowerCase() === inputLast.toLowerCase();
-          if (!lastNameMatches) return false;
-
-          if (inputInitials.length > 0) {
-            const fullNameInitials = firstNames.map((name) =>
-              name.charAt(0).toUpperCase()
-            );
-
-            const initialsMatch = inputInitials.every(
-              (initial, index) => fullNameInitials[index] === initial
-            );
-
-            return initialsMatch;
+const RMP_QUERY = `
+  query NewSearchTeachersQuery($query: TeacherSearchQuery!) {
+    newSearch {
+      teachers(query: $query) {
+        edges {
+          node {
+            id
+            firstName
+            lastName
+            department
+            avgRating
+            avgDifficulty
+            numRatings
+            wouldTakeAgainPercent
+            ratingsDistribution {
+              r1 r2 r3 r4 r5
+            }
+            ratings(first: 20) {
+              edges {
+                node {
+                  comment
+                  date
+                  class
+                  helpfulRating
+                  clarityRating
+                  difficultyRating
+                  thumbsUpTotal
+                  thumbsDownTotal
+                  wouldTakeAgain
+                  isForCredit
+                  isForOnlineClass
+                  attendanceMandatory
+                  ratingTags
+                  flagStatus
+                }
+              }
+            }
           }
-
-          return firstNames.some(
-            (name) => name.toLowerCase() === inputParts[0].toLowerCase()
-          );
-        });
-
-        return matchedInstructor || instructor;
-      } catch (error) {
-        console.error(`Error fetching instructor for ${code}:`, error);
-        return instructor;
+        }
       }
+    }
+  }
+`;
+
+const useRMPData = (fullInstructorName: string, enabled = false) => {
+  return useQuery({
+    queryKey: ["rmp", fullInstructorName],
+    queryFn: async () => {
+      if (!fullInstructorName || fullInstructorName === "Staff") {
+        throw new Error("Invalid professor name");
+      }
+
+      const nameParts = fullInstructorName.split(" ");
+      const searchQuery = nameParts[0].includes(".")
+        ? nameParts[1]
+        : `${nameParts[0]} ${nameParts[nameParts.length - 1]}`;
+
+      const response = await fetch(RMP_GRAPHQL_URL, {
+        method: "POST",
+        headers: {
+          Authorization: "Basic dGVzdDp0ZXN0",
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          query: RMP_QUERY,
+          variables: { query: { schoolID: SCHOOL_ID, text: searchQuery } },
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error: ${response.status}`);
+      }
+
+      const { data, errors } = await response.json();
+
+      if (errors) {
+        throw new Error(errors[0]?.message || "GraphQL error");
+      }
+
+      const teachers = data?.newSearch?.teachers?.edges;
+      if (!teachers?.length) {
+        throw new Error("Professor not found");
+      }
+
+      const professor = teachers[0].node;
+      const allRatings = professor.ratings.edges.map(({ node: rating }) => ({
+        class: rating.class,
+        date: rating.date,
+        helpfulRating: rating.helpfulRating,
+        clarityRating: rating.clarityRating,
+        difficultyRating: rating.difficultyRating,
+        overallRating: (rating.helpfulRating + rating.clarityRating) / 2,
+        comment: rating.comment,
+        thumbsUp: rating.thumbsUpTotal,
+        thumbsDown: rating.thumbsDownTotal,
+        wouldTakeAgain: rating.wouldTakeAgain === 1,
+        isOnline: rating.isForOnlineClass,
+        isForCredit: rating.isForCredit,
+        requiresAttendance: rating.attendanceMandatory === "mandatory",
+        tags: rating.ratingTags,
+        flagStatus: rating.flagStatus,
+      }));
+
+      return {
+        avgRating: professor.avgRating,
+        numRatings: professor.numRatings,
+        department: professor.department,
+        wouldTakeAgainPercent: professor.wouldTakeAgainPercent,
+        difficultyLevel: professor.avgDifficulty,
+        name: `${professor.firstName} ${professor.lastName}`,
+        all_ratings: allRatings,
+        ratingDistribution: [
+          professor.ratingsDistribution.r1,
+          professor.ratingsDistribution.r2,
+          professor.ratingsDistribution.r3,
+          professor.ratingsDistribution.r4,
+          professor.ratingsDistribution.r5,
+        ],
+      };
     },
-    enabled: !!code && !!instructor,
+    enabled: enabled && !!fullInstructorName && fullInstructorName !== "Staff",
+    staleTime: 5 * 60 * 1000,
+    gcTime: 30 * 60 * 1000,
   });
 };
+
+interface CourseCardProps {
+  course: Course;
+  isSmallScreen: boolean;
+  expanded: boolean;
+  onExpandChange: (courseCode: string) => void;
+}
 
 export const CourseCard = ({
   course,
   isSmallScreen,
-  onGPALoaded,
   expanded,
   onExpandChange,
-}: {
-  course: any,
-  isSmallScreen: boolean,
-  onGPALoaded: (a: any, b: any) => void,
-  expanded: boolean,
-  onExpandChange: (a: any) => void,
-}) => {
+}: CourseCardProps) => {
   const [copied, setCopied] = useState(false);
-  const [rmpData, setRmpData] = useState<any>();
-  const [isLoadingRMP, setIsLoadingRMP] = useState(false);
-  const [rmpError, setRmpError] = useState(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const theme = useTheme();
+  const { instructor: fullInstructorName, average_gpa: avgGPA } = course;
 
-  const { data: avgGPA, isLoading: isLoadingGPA } = useQuery({
-    queryKey: ["gradeDistribution", course.code],
-    queryFn: () => fetchGradeDistribution(course.code),
-  });
+  const {
+    data: rmpData,
+    isLoading: isLoadingRMP,
+    error: rmpError,
+  } = useRMPData(fullInstructorName, fullInstructorName !== "Staff");
 
-  const { data: fullInstructorName, isLoading: isLoadingInstructor } =
-    useInstructor(course.code, course.instructor);
-
-  const handleFetchRMP = async () => {
-    if (isLoadingRMP || !fullInstructorName || fullInstructorName === "Staff")
-      return;
-    const searchName =
-      fullInstructorName.split(" ")[0].indexOf(".") !== -1
-        ? fullInstructorName.split(" ")[1]
-        : fullInstructorName.split(" ")[0] +
-          " " +
-          fullInstructorName.split(" ")[
-            fullInstructorName.split(" ").length - 1
-          ];
-
-    setIsLoadingRMP(true);
-    setRmpError(null);
-
-    try {
-      const response = await fetch(
-        `http://${local}/search_professor?school_id=1078&professor_name=${encodeURIComponent(
-          searchName
-        )}`
-      );
-
-      if (!response.ok) {
-        throw new Error(
-          `Failed to fetch professor data: ${response.statusText}`
-        );
-      }
-
-      const data = await response.json();
-
-      if (data.error) {
-        throw new Error(data.error);
-      }
-
-      setRmpData({
-        avgRating: data.average_rating,
-        numRatings: data.number_of_ratings,
-        department: data.department,
-        wouldTakeAgainPercent: data.would_take_again,
-        difficultyLevel: data.average_difficulty,
-        name: `${data.first_name} ${data.last_name}`,
-      });
-    } catch (error: any) {
-      console.error("Error fetching RMP data:", error);
-      setRmpError(error.message || "Failed to fetch professor rating");
-    } finally {
-      setIsLoadingRMP(false);
-    }
-  };
-
-  React.useEffect(() => {
-    if (avgGPA !== undefined) {
-      onGPALoaded(course.code, avgGPA);
-    }
-  }, [avgGPA, course.code, onGPALoaded]);
-
-  const handleExpandClick = () => {
-    onExpandChange(course.code);
+  const handleExpandClick = () => onExpandChange(course.code);
+  const handleOpenModal = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setIsModalOpen(true);
   };
 
   const handleCopyClick = async () => {
@@ -324,14 +208,86 @@ export const CourseCard = ({
   };
 
   const searchName =
-    fullInstructorName?.split(" ")[0].indexOf(".") == -1
-      ? fullInstructorName
+    fullInstructorName?.split(" ")[0].indexOf(".") === -1
+      ? `${fullInstructorName.split(" ")[0]} ${
+          fullInstructorName.split(" ")[2]
+        }`
       : fullInstructorName?.split(" ").slice(1).join(" ") || "";
-  const isStaffOrLoading =
-    isLoadingInstructor || fullInstructorName === "Staff";
 
+  const isStaffOrLoading = fullInstructorName === "Staff";
+
+  const RenderRMPContent = () => {
+    if (isStaffOrLoading) return null;
+
+    if (isLoadingRMP) {
+      return (
+        <Box sx={{ display: "flex", gap: 1, alignItems: "center", mt: 1 }}>
+          <RatingChip
+            icon={<StarIcon sx={{ color: "inherit" }} />}
+            label="Loading rating..."
+            size="small"
+            sx={{
+              backgroundColor: theme.palette.grey[500],
+              color: "white",
+              fontWeight: "bold",
+            }}
+          />
+        </Box>
+      );
+    }
+
+    if (rmpError || !rmpData) {
+      return (
+        <Box sx={{ display: "flex", gap: 1, alignItems: "center", mt: 1 }}>
+          <RatingChip
+            icon={<StarIcon sx={{ color: "inherit" }} />}
+            label="No rating found"
+            size="small"
+            sx={{
+              backgroundColor: theme.palette.grey.A700,
+              color: "white",
+              fontWeight: "bold",
+            }}
+          />
+        </Box>
+      );
+    }
+
+    return (
+      <Box sx={{ display: "flex", gap: 1, alignItems: "center", mt: 1 }}>
+        <RatingChip
+          icon={<StarIcon sx={{ color: "inherit" }} />}
+          label={`${rmpData.avgRating?.toFixed(1) || "N/A"}/5`}
+          size="small"
+          sx={{
+            backgroundColor:
+              rmpData.avgRating >= 4
+                ? theme.palette.success.dark
+                : rmpData.avgRating >= 3
+                ? theme.palette.warning.dark
+                : theme.palette.error.dark,
+            color: "white",
+            fontWeight: "bold",
+          }}
+        />
+        <DifficultyChip
+          label={`${rmpData.difficultyLevel?.toFixed(1) || "N/A"}/5 difficulty`}
+          size="small"
+          variant="outlined"
+          difficulty={rmpData.difficultyLevel}
+        />
+      </Box>
+    );
+  };
   return (
     <StyledCard elevation={2}>
+      <RatingsModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        professorName={rmpData?.name || fullInstructorName}
+        ratings={rmpData?.all_ratings}
+        currentClass={course.code.replace(" ", "")}
+      />
       <CardContent sx={{ pb: 1, "&:last-child": { pb: 1 } }}>
         <HeaderContent>
           <CourseInfo>
@@ -348,11 +304,27 @@ export const CourseCard = ({
                   },
                 }}
               >
-                <CodeChip
+                <CourseCodeChip
                   label={course.code}
                   size="small"
                   onClick={(e) => e.stopPropagation()}
-                  sx={{ zIndex: 2 }}
+                  sx={{
+                    zIndex: 2,
+                    height: "28px",
+                    background: (theme) => `linear-gradient(135deg, 
+                      ${theme.palette.primary.dark} 0%, 
+                      ${theme.palette.primary.main} 100%)`,
+                    boxShadow: "0 2px 8px rgba(0, 0, 0, 0.15)",
+                    fontWeight: 600,
+                    letterSpacing: "0.5px",
+                    "&:hover": {
+                      transform: "translateY(-2px)",
+                      boxShadow: "0 4px 12px rgba(0, 0, 0, 0.2)",
+                      background: (theme) => `linear-gradient(135deg, 
+                        ${theme.palette.primary.main} 0%, 
+                        ${theme.palette.primary.light} 100%)`,
+                    },
+                  }}
                 />
               </Link>
               <Box
@@ -385,101 +357,107 @@ export const CourseCard = ({
             >
               <PersonIcon sx={{ fontSize: 18 }} />
               {fullInstructorName !== "Staff" ? (
-                <Link
-                  href={`https://www.ratemyprofessors.com/search/professors/1078?q=${searchName}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  onClick={(e) => e.stopPropagation()}
-                  variant="body2"
-                  noWrap
-                  sx={{
-                    textDecoration: "none",
-                    "&:hover": {
-                      textDecoration: "none",
-                    },
-                  }}
+                <Grid
+                  container
+                  spacing={1}
+                  style={{ flexDirection: "row", alignItems: "center" }}
                 >
-                  {fullInstructorName}
-                </Link>
+                  <Grid item>
+                    <Link
+                      href={`https://www.ratemyprofessors.com/search/professors/1078?q=${searchName}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      onClick={(e) => e.stopPropagation()}
+                      variant="body2"
+                      noWrap
+                      sx={{
+                        textDecoration: "none",
+                        "&:hover": {
+                          textDecoration: "underline",
+                        },
+                      }}
+                    >
+                      {fullInstructorName}
+                    </Link>
+                  </Grid>
+                  <Grid item>
+                    {rmpData?.numRatings != undefined && (
+                      <ReviewCountChip
+                        disableRipple
+                        label={`${rmpData?.numRatings} ${
+                          rmpData?.numRatings === 1 ? "review" : "reviews"
+                        }`}
+                        onClick={handleOpenModal}
+                        size="small"
+                        sx={{
+                          height: "24px",
+                          background: (theme) => `linear-gradient(135deg,
+                            rgba(255, 255, 255, 0.9) 0%,
+                            rgba(255, 255, 255, 0.7) 100%)`,
+                          backdropFilter: "blur(8px)",
+                          "&:hover": {
+                            background: (theme) => `linear-gradient(135deg,
+                              ${theme.palette.primary.light} 0%,
+                              ${theme.palette.primary.main} 100%)`,
+                            color: "white",
+                            transform: "translateY(-2px)",
+                            boxShadow: "0 4px 12px rgba(0, 0, 0, 0.1)",
+                          },
+                        }}
+                      />
+                    )}
+                  </Grid>
+                </Grid>
               ) : (
                 <Typography variant="body2">{"Staff"}</Typography>
               )}
             </Box>
 
-            {!isStaffOrLoading && (
-              <Box
-                sx={{
-                  mt: 1,
-                  display: "flex",
-                  flexWrap: "wrap",
-                  gap: 1,
-                  alignItems: "center",
-                }}
-              >
-                {!rmpData && !rmpError && (
-                  <Button
-                    size="small"
-                    variant="outlined"
-                    onClick={handleFetchRMP}
-                    disabled={isLoadingRMP}
-                    startIcon={<StarIcon />}
-                  >
-                    {isLoadingRMP ? "Loading..." : "Get Rating"}
-                  </Button>
-                )}
-
-                {rmpData && (
-                  <>
-                    <Chip
-                      icon={<StarIcon />}
-                      label={`Rating: ${
-                        rmpData.avgRating?.toFixed(1) || "N/A"
-                      }/5`}
-                      color={
-                        rmpData.avgRating >= 3.5
-                          ? "success"
-                          : rmpData.avgRating >= 2.5
-                          ? "warning"
-                          : "error"
-                      }
-                      size="small"
-                    />
-                    <Chip
-                      label={`${rmpData.numRatings || 0} reviews`}
-                      size="small"
-                      variant="outlined"
-                    />
-                  </>
-                )}
-
-                {rmpError && (
-                  <Chip
-                    label={rmpError}
-                    color="error"
-                    size="small"
-                    variant="outlined"
-                  />
-                )}
-              </Box>
-            )}
+            <>
+              <RenderRMPContent />
+            </>
           </CourseInfo>
 
           <ActionContainer>
-            {avgGPA !== "N/A" && (
+            {avgGPA !== "N/A" ? (
               <Tooltip
                 title={`${!isSmallScreen ? "Average GPA:" : ""} ${avgGPA}`}
               >
                 <GradeChip
-                  grade={avgGPA || ""}
+                  grade={Number(avgGPA)}
                   icon={
-                    <GradeIcon sx={{ fontSize: 16 }} htmlColor={COLORS.WHITE} />
+                    <GradeIcon sx={{ fontSize: 16, color: COLORS.WHITE }} />
                   }
                   label={`${
                     !isSmallScreen ? "Average Grade:" : ""
                   } ${getLetterGrade(avgGPA)}`}
                   size="small"
+                  sx={{
+                    height: "28px",
+                    fontWeight: 600,
+                    boxShadow: "0 2px 8px rgba(0, 0, 0, 0.15)",
+                    "&:hover": {
+                      transform: "translateY(-2px)",
+                      boxShadow: "0 4px 12px rgba(0, 0, 0, 0.2)",
+                    },
+                  }}
                 />
               </Tooltip>
+            ) : (
+              <StyledChip
+                icon={<GradeIcon sx={{ fontSize: 16, color: COLORS.WHITE }} />}
+                label={"No GPA information"}
+                size="small"
+                sx={{
+                  height: "28px",
+                  fontWeight: 600,
+                  boxShadow: "0 2px 8px rgba(0, 0, 0, 0.15)",
+                  "&:hover": {
+                    transform: "translateY(-2px)",
+                    boxShadow: "0 4px 12px rgba(0, 0, 0, 0.2)",
+                  },
+                }}
+              />
             )}
             <IconButton
               onClick={(e) => {
@@ -515,22 +493,9 @@ export const CourseCard = ({
         </HeaderContent>
       </CardContent>
 
-      <Collapse
-        in={expanded}
-        timeout="auto"
-        unmountOnExit
-        sx={{
-          transformOrigin: "top",
-        }}
-      >
+      <Collapse in={expanded} timeout="auto" unmountOnExit>
         <CardContent sx={{ pt: 0, pb: "8px !important" }}>
-          <Paper
-            variant="outlined"
-            sx={{
-              p: 1.5,
-              mt: 1,
-            }}
-          >
+          <Paper variant="outlined" sx={{ p: 1.5, mt: 1 }}>
             <Grid container spacing={2}>
               <Grid item xs={6}>
                 <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
@@ -571,3 +536,215 @@ export const CourseCard = ({
     </StyledCard>
   );
 };
+
+//styles
+
+const StyledCard = styled(Card)(({ theme }) => ({
+  position: "relative",
+  transition: "transform 0.2s ease-in-out",
+  paddingBottom: theme.spacing(2),
+  "&:hover": {
+    //for hovering, translates it up and enlarges the chips to give 3D effect
+    transform: "translateY(-4px)",
+    "& .MuiChip-root": {
+      transform: "scale(1.05)",
+    },
+  },
+  ".MuiCardActionArea-focusHighlight": {
+    background: "transparent",
+  },
+}));
+
+const GradeChip = styled(Chip)<GradeChipProps>(({ theme, grade }) => {
+  const getGradient = (gpa: number) => {
+    if (gpa >= 3.7) {
+      return `linear-gradient(135deg, 
+        ${theme.palette.success.light} 0%, 
+        ${theme.palette.success.main} 50%,
+        ${theme.palette.success.dark} 100%)`;
+    }
+    if (gpa >= 3.3) {
+      return `linear-gradient(135deg, 
+        ${theme.palette.success.light} 0%, 
+        ${theme.palette.warning.light} 100%)`;
+    }
+    if (gpa >= 3.0) {
+      return `linear-gradient(135deg, 
+        ${theme.palette.warning.light} 0%, 
+        ${theme.palette.warning.main} 50%,
+        ${theme.palette.warning.dark} 100%)`;
+    }
+    if (gpa >= 2.7) {
+      return `linear-gradient(135deg, 
+        ${theme.palette.warning.main} 0%, 
+        ${theme.palette.error.light} 100%)`;
+    }
+    return `linear-gradient(135deg, 
+      ${theme.palette.error.light} 0%, 
+      ${theme.palette.error.main} 50%,
+      ${theme.palette.error.dark} 100%)`;
+  };
+
+  return {
+    background: getGradient(grade),
+    color: theme.palette.common.white,
+    fontWeight: 500,
+    transition: "all 0.3s ease",
+    boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
+    borderRadius: "4px",
+    "&:hover": {
+      boxShadow: "0 4px 8px rgba(0,0,0,0.2)",
+      transform: "translateY(-1px)",
+    },
+    "& .MuiChip-icon": {
+      color: "inherit",
+    },
+    "& .MuiChip-label": {
+      textShadow: "0 1px 2px rgba(0,0,0,0.1)",
+    },
+  };
+});
+
+const StyledChip = styled(Chip)(({ theme }) => ({
+  borderRadius: "6px",
+  "&.MuiChip-outlined": {
+    background: "linear-gradient(135deg, #ffffff 0%, #f5f5f5 100%)",
+    borderColor: theme.palette.grey[300],
+    transition: "all 0.3s ease",
+    "&:hover": {
+      background: "linear-gradient(135deg, #f5f5f5 0%, #e8e8e8 100%)",
+      borderColor: theme.palette.grey[400],
+      boxShadow: "0 2px 4px rgba(0,0,0,0.05)",
+    },
+  },
+  "&.MuiChip-clickable": {
+    cursor: "pointer",
+    "&:hover": {
+      transform: "translateY(-1px)",
+    },
+  },
+}));
+
+const CourseCodeChip = styled(Chip)(({ theme }) => ({
+  borderRadius: "6px",
+  background: `linear-gradient(135deg, 
+    ${theme.palette.primary.dark} 0%, 
+    ${theme.palette.primary.main} 100%)`,
+  color: "white",
+  fontWeight: 600,
+  letterSpacing: "0.5px",
+  padding: "0 4px",
+  height: "28px",
+  boxShadow: "0 2px 8px rgba(0, 0, 0, 0.15)",
+  transition: "all 0.2s ease-in-out",
+  "&:hover": {
+    transform: "translateY(-2px)",
+    boxShadow: "0 4px 12px rgba(0, 0, 0, 0.2)",
+    background: `linear-gradient(135deg, 
+      ${theme.palette.primary.main} 0%, 
+      ${theme.palette.primary.light} 100%)`,
+  },
+}));
+
+// Rating Chip - Animated gradient background
+const RatingChip = styled(Chip)(({ theme }) => ({
+  borderRadius: "6px",
+  backgroundSize: "200% 200%",
+  color: "white",
+  fontWeight: 600,
+  height: "28px",
+  animation: "gradient 3s ease infinite",
+  "@keyframes gradient": {
+    "0%": { backgroundPosition: "0% 50%" },
+    "50%": { backgroundPosition: "100% 50%" },
+    "100%": { backgroundPosition: "0% 50%" },
+  },
+  "&:hover": {
+    transform: "translateY(-2px)",
+    boxShadow: "0 4px 12px rgba(0, 0, 0, 0.15)",
+  },
+}));
+
+// Review Count Chip - Frosted glass effect
+const ReviewCountChip = styled(Chip)(({ theme }) => ({
+  borderRadius: "6px",
+  background: `linear-gradient(135deg,
+    rgba(255, 255, 255, 0.9) 0%,
+    rgba(255, 255, 255, 0.7) 100%)`,
+  backdropFilter: "blur(8px)",
+  border: `1px solid ${theme.palette.primary.dark}`,
+  color: theme.palette.primary.main,
+  fontWeight: 500,
+  height: "24px",
+  transition: "all 0.2s ease-in-out",
+  "&:hover": {
+    background: `linear-gradient(135deg,
+      ${theme.palette.primary.light} 0%,
+      ${theme.palette.primary.main} 100%)`,
+    color: "white",
+    transform: "translateY(-2px)",
+    boxShadow: "0 4px 12px rgba(0, 0, 0, 0.1)",
+  },
+}));
+
+const DifficultyChip = styled(Chip)<DifficultyChipProps>(
+  ({ theme, difficulty }) => ({
+    borderRadius: "6px",
+    background: "transparent",
+    border: `1.5px solid ${
+      difficulty >= 4
+        ? theme.palette.error.main
+        : difficulty >= 3
+        ? theme.palette.warning.main
+        : theme.palette.success.main
+    }`,
+    color:
+      difficulty >= 4
+        ? theme.palette.error.main
+        : difficulty >= 3
+        ? theme.palette.warning.main
+        : theme.palette.success.main,
+    fontWeight: 500,
+    height: "24px",
+    transition: "all 0.2s ease-in-out",
+    "&:hover": {
+      background:
+        difficulty >= 4
+          ? theme.palette.error.light
+          : difficulty >= 3
+          ? theme.palette.warning.light
+          : theme.palette.success.light,
+      color: "white",
+      transform: "translateY(-2px)",
+    },
+  })
+);
+
+const HeaderContent = styled(Box)(({ theme }) => ({
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "space-between",
+  width: "100%",
+  gap: theme.spacing(2),
+}));
+
+const CourseInfo = styled(Box)({
+  flex: 1,
+  minWidth: 0,
+});
+
+const ActionContainer = styled(Box)(({ theme }) => ({
+  display: "flex",
+  alignItems: "center",
+  gap: theme.spacing(1),
+  flexShrink: 0,
+}));
+
+const StyledExpandIcon = styled(ExpandMoreIcon, {
+  shouldForwardProp: (prop) => prop !== "expanded",
+})<ExpandIconProps>(({ theme, expanded }) => ({
+  transform: expanded ? "rotate(180deg)" : "rotate(0deg)",
+  transition: theme.transitions.create("transform", {
+    duration: theme.transitions.duration.shortest,
+  }),
+}));

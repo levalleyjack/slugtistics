@@ -11,7 +11,30 @@ import "chart.js/auto";
 import { ChartOptions } from "chart.js/auto";
 import { _DeepPartialObject } from "chart.js/dist/types/utils";
 import { useNavigate, useParams, useLocation } from "react-router-dom";
+import { styled } from "@mui/material";
 
+
+const OuterContainer = styled('div')(({ theme }) => ({
+  width: '80vw',
+  margin: '0 auto',
+  [theme.breakpoints.down('md')]: {
+    width: '100vw',
+  },
+}));
+
+const Container = styled('div')(({ theme }) => ({
+  padding: theme.spacing(2),
+}));
+
+const StyledPaper = styled(Paper)(({ theme }) => ({
+  marginTop: theme.spacing(2),
+}));
+
+const ChartContainer = styled('div')({
+  position: 'relative',
+  cursor: 'default',
+  height: '550px',
+});
 //==========================================================================================================//
 //homepage function and state declarations
 //this is the main page of the website
@@ -204,7 +227,6 @@ const handleTermSelect = (event: React.ChangeEvent<{ value: unknown }>) => {
         .then((response) => response.json())
         .then((data) => {
           setFilteredQuarters(data);
-          console.log("Filtered Quarters Inst side:", data);
         })
         .catch((error) => {
           console.error("Error:", error);
@@ -215,7 +237,6 @@ const handleTermSelect = (event: React.ChangeEvent<{ value: unknown }>) => {
         .then((data) => {
           setFilteredQuarters(data);
           setFilteredInstructors(instructorsList);
-          console.log("Filtered Quarters 1 side:", data);
         })
         .catch((error) => {
           console.error("Error:", error);
@@ -293,7 +314,6 @@ const handleTermSelect = (event: React.ChangeEvent<{ value: unknown }>) => {
   };
 
   const averageGPA = calculateAverageGPA();
-  console.log("Average GPA:", averageGPA);
 
   //==========================================================================================================//
   //chart.js magic
@@ -371,84 +391,83 @@ const handleTermSelect = (event: React.ChangeEvent<{ value: unknown }>) => {
   //==========================================================================================================//
   //return statement
   return (
-    <div style={{ marginTop: "50px" }}>
-      {/* <h1>Class Information</h1> */}
-      <div>
-        {/* Autocomplete for Class Selection */}
-        <Autocomplete
-          options={classTitles}
-          value={selectedClass}
-          onChange={handleClassSelect}
-          freeSolo
-          renderInput={(params) => (
+    <OuterContainer>
+      <Container>
+        <div>
+          <Autocomplete
+            options={classTitles}
+            value={selectedClass}
+            onChange={handleClassSelect}
+            freeSolo
+            renderInput={(params) => (
+              <TextField
+                {...params}
+                label="Search Classes"
+                variant="outlined"
+                InputLabelProps={{
+                  style: { color: "gray" },
+                }}
+              />
+            )}
+          />
+
+          <div className="filters-container">
             <TextField
-              {...params}
-              label="Search Classes"
+              select
+              label="Instructor"
+              value={instructor}
+              onChange={handleInstructorSelect}
               variant="outlined"
-              InputLabelProps={{
-                style: { color: "gray" },
-              }}
-            />
-          )}
-        />
+              className="instructor-select-field"
+              InputLabelProps={{ style: { color: "gray" } }}
+            >
+              <MenuItem value="All">All Instructors</MenuItem>
+              {filteredInstructors.map((instructor) => (
+                <MenuItem key={instructor} value={instructor}>
+                  {instructor}
+                </MenuItem>
+              ))}
+            </TextField>
 
-        <div className="filters-container">
-          <TextField
-            select
-            label="Instructor"
-            value={instructor}
-            onChange={handleInstructorSelect}
-            variant="outlined"
-            className="instructor-select-field"
-            InputLabelProps={{ style: { color: "gray" } }}
-          >
-            <MenuItem value="All">All Instructors</MenuItem>
-            {filteredInstructors.map((instructor) => (
-              <MenuItem key={instructor} value={instructor}>
-                {instructor}
-              </MenuItem>
-            ))}
-          </TextField>
+            <TextField
+              select
+              label="Term"
+              value={term}
+              onChange={handleTermSelect}
+              variant="outlined"
+              className="term-select-field"
+              InputLabelProps={{ style: { color: "gray" } }}
+            >
+              <MenuItem value="All">All Quarters</MenuItem>
+              {filteredQuarters.map((quarter) => (
+                <MenuItem key={quarter} value={quarter}>
+                  {quarter}
+                </MenuItem>
+              ))}
+            </TextField>
 
-          <TextField
-            select
-            label="Term"
-            value={term}
-            onChange={handleTermSelect}
-            variant="outlined"
-            className="term-select-field"
-            InputLabelProps={{ style: { color: "gray" } }}
-          >
-            <MenuItem value="All">All Quarters</MenuItem>
-            {filteredQuarters.map((quarter) => (
-              <MenuItem key={quarter} value={quarter}>
-                {quarter}
-              </MenuItem>
-            ))}
-          </TextField>
-
-          <Button
-            variant="contained"
-            color="primary"
-            style={{ ...showPercentageButtonStyle }}
-            onClick={() => setShowPercentage((prev) => !prev)}
-            className="percentage-select-field"
-          >
-            {showPercentage ? "Show Raw Data" : "Show Percentage"}
-          </Button>
+            <Button
+              variant="contained"
+              color="primary"
+              style={{ ...showPercentageButtonStyle }}
+              onClick={() => setShowPercentage((prev) => !prev)}
+              className="percentage-select-field"
+            >
+              {showPercentage ? "Show Raw Data" : "Show Percentage"}
+            </Button>
+          </div>
         </div>
-      </div>
-      <div>
-      <Paper>
-        <Bar
-          className="chart"
-          data={chartData}
-          options={chartOptions}
-        />
-      </Paper>
-      </div>
-    </div>
+        <StyledPaper>
+          <ChartContainer>
+            <Bar
+              className="chart"
+              data={chartData}
+              options={chartOptions}
+            />
+          </ChartContainer>
+        </StyledPaper>
+      </Container>
+    </OuterContainer>
   );
 };
-
 export default HomePage;
