@@ -75,6 +75,7 @@ const RMP_QUERY = `
                   attendanceMandatory
                   ratingTags
                   flagStatus
+                  textbookUse
                 }
               }
             }
@@ -164,8 +165,6 @@ const useRMPData = (fullInstructorName: string, enabled = false) => {
           .charAt(0)
           .toLowerCase();
 
-       
-
         return (
           (professorLastName === lastName.toLowerCase() ||
             professorLastNameWithMiddle === lastName.toLowerCase() ||
@@ -194,7 +193,8 @@ const useRMPData = (fullInstructorName: string, enabled = false) => {
         wouldTakeAgain: rating.wouldTakeAgain === 1,
         isOnline: rating.isForOnlineClass,
         isForCredit: rating.isForCredit,
-        requiresAttendance: rating.attendanceMandatory === "mandatory",
+        attendanceMandatory: rating.attendanceMandatory,
+        textbookUse: rating.textbookUse,
         tags: rating.ratingTags,
         flagStatus: rating.flagStatus,
       }));
