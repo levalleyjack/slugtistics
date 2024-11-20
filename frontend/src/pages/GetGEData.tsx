@@ -14,7 +14,7 @@ interface EnhancedCourse extends Course {
   average_gpa: string;
 }
 
-export const local = "http://127.0.0.1:5001";
+export const local = "https://api.slugtistics.com/api/pyback/";
 
 //constants
 export const CONFIG = {
