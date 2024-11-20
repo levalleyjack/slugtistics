@@ -1,3 +1,4 @@
+from dataclasses import dataclass
 from flask_cors import CORS
 from flask import Flask, jsonify, request
 from apscheduler.schedulers.background import BackgroundScheduler
@@ -7,10 +8,11 @@ from datetime import datetime
 import pytz
 import os
 import logging
+from pathlib import Path
+import sqlite3
 from ucsc_courses import get_courses
-
-
-# Set up logging
+from ratings import search_professor
+from helper_functions import calculate_gpa, find_matching_instructor
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
@@ -25,6 +27,9 @@ app.config['SQLALCHEMY_DATABASE_URI'] = DATABASE_URL
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
 migrate = Migrate(app, db)
+
+current_dir = Path(__file__).parent
+slugtistics_db_path = current_dir / "slugtistics.db"
 
 class Degree(db.Model):
     __tablename__ = 'degrees'
@@ -55,10 +60,16 @@ class CourseModel(db.Model):
     class_type = db.Column(db.String(19))
     schedule = db.Column(db.String(25))
     location = db.Column(db.String(20))
+    gpa = db.Column(db.String(10)) 
     timestamp = db.Column(db.DateTime, default=datetime.now(tz=pytz.utc))
+    instructor_ratings = db.Column(db.JSON)
+
+def get_slugtistics_db_connection():
+    conn = sqlite3.connect(str(slugtistics_db_path))
+    conn.row_factory = sqlite3.Row
+    return conn
 
 def create_db():
-    """Create all database tables and ensure they exist"""
     with app.app_context():
         db.drop_all()
         db.create_all()
@@ -66,43 +77,87 @@ def create_db():
 
 last_update_time = None
 
+
 def store_courses_in_db():
     global last_update_time
     
     with app.app_context():
         try:
             logger.info("Starting course update process...")
-            
             categories = [
                 "CC", "ER", "IM", "MF", "SI", "SR", "TA", "PE-E", "PE-H", "PE-T", 
-                "PR-E", "PR-C", "PR-S", "C"
-            ]
-            
+                "PR-E", "PR-C", "PR-S","C"]
             new_courses = get_courses(categories)
             
             if not new_courses:
                 logger.warning("No new courses retrieved, skipping update")
                 return
             
+            conn = get_slugtistics_db_connection()
+            cursor = conn.cursor()
+            
+            instructor_cache = {}
+            gpa_cache = {}
+            
             CourseModel.query.delete()
             
             for course in new_courses:
+                if course.instructor != "Staff" and course.instructor not in instructor_cache:
+                    cursor.execute(
+                        'SELECT DISTINCT "Instructors" FROM GradeData WHERE "SubjectCatalogNbr" = ? ORDER BY Instructors',
+                        (course.code,)
+                    )
+                    historical_instructors = [row[0] for row in cursor.fetchall()]
+                    
+                    if historical_instructors:
+                        matched_instructor = find_matching_instructor(
+                            course.instructor,
+                            historical_instructors
+                        )
+                        instructor_cache[course.instructor] = matched_instructor or course.instructor
+                    else:
+                        instructor_cache[course.instructor] = course.instructor
+                
+                if course.code not in gpa_cache:
+                    cursor.execute('''
+                        SELECT 
+                            SUM("A+") as "A+", SUM("A") as "A", SUM("A-") as "A-",
+                            SUM("B+") as "B+", SUM("B") as "B", SUM("B-") as "B-",
+                            SUM("C+") as "C+", SUM("C") as "C", SUM("C-") as "C-",
+                            SUM("D+") as "D+", SUM("D") as "D", SUM("D-") as "D-",
+                            SUM("F") as "F"
+                        FROM GradeData 
+                        WHERE "SubjectCatalogNbr" = ?
+                    ''', (course.code,))
+                    
+                    grade_distribution = dict(cursor.fetchone())
+                    gpa_cache[course.code] = calculate_gpa(grade_distribution)
+                
+                matched_instructor = instructor_cache.get(course.instructor, course.instructor)
+                course_gpa = gpa_cache.get(course.code, "N/A")
+                
+                instructor_ratings = search_professor(matched_instructor)
+                if instructor_ratings:
+                    instructor_ratings = instructor_ratings.to_dict()
+                
                 new_course = CourseModel(
                     ge=course.ge,
                     code=course.code,
                     name=course.name,
-                    instructor=course.instructor,
+                    instructor=matched_instructor,
                     link=course.link,
                     class_count=course.class_count,
                     enroll_num=course.enroll_num,
                     class_type=course.class_type,
                     schedule=course.schedule,
                     location=course.location,
+                    gpa=course_gpa,
+                    instructor_ratings=instructor_ratings,  
                 )
                 db.session.add(new_course)
             
+            conn.close()
             db.session.commit()
-            
             last_update_time = datetime.now(pytz.timezone('America/Los_Angeles'))
             logger.info(f"Courses updated successfully. Total courses: {len(new_courses)}")
         
@@ -116,8 +171,6 @@ def schedule_jobs():
     scheduler.add_job(store_courses_in_db, 'interval', hours=1, id='store_courses_in_db_job')
     scheduler.start()
     logger.info("Scheduled jobs started")
-
-
 
 @app.route('/api/courses', methods=['GET'])
 def get_courses_data():
@@ -139,6 +192,8 @@ def get_courses_data():
                 "class_type": course.class_type,
                 "schedule": course.schedule,
                 "location": course.location,
+                "gpa": course.gpa,
+                "instructor_ratings":course.instructor_ratings
             })
         
         return jsonify({
@@ -159,5 +214,4 @@ if __name__ == '__main__':
         logger.error(f"Initial data load failed: {str(e)}")
     
     schedule_jobs()
-    
     app.run(host='0.0.0.0', port=5001)

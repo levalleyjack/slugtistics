@@ -15,10 +15,10 @@ import {
   FormControl,
   InputLabel,
   SelectChangeEvent,
+  Grid,
 } from "@mui/material";
 import { styled } from "@mui/material/styles";
 import he from "he";
-import Grid from '@mui/material/Grid';
 import {
   ThumbUp as ThumbUpIcon,
   Visibility as GlassesIcon,
@@ -31,7 +31,6 @@ import { Rating } from "../Colors";
 
 //Type Definitions
 
-
 interface RatingsModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -40,7 +39,11 @@ interface RatingsModalProps {
   currentClass: string;
 }
 
-type SortOptions = 'date' | 'helpfulRating' | 'clarityRating' | 'difficultyRating';
+type SortOptions =
+  | "date"
+  | "helpful_rating"
+  | "clarity_rating"
+  | "difficulty_rating";
 
 //Styled Components
 const StyledModal = styled(Modal)(({ theme }) => ({
@@ -70,7 +73,11 @@ const StatCard = styled(Card)(({ theme }) => ({
   },
 }));
 
-const isUnique = (element: React.ReactElement, index: number, array: React.ReactElement[]): boolean => {
+const isUnique = (
+  element: React.ReactElement,
+  index: number,
+  array: React.ReactElement[]
+): boolean => {
   const firstIndex = array.findIndex(
     (item) => item.props.value === element.props.value
   );
@@ -87,7 +94,7 @@ export const RatingsModal: React.FC<RatingsModalProps> = ({
   const [sortBy, setSortBy] = useState<SortOptions>("date");
   const [filterBy, setFilterBy] = useState<string>(() => {
     if (!ratings || currentClass === "all") return "all";
-    return ratings.some((rating) => rating.class === currentClass)
+    return ratings.some((rating) => rating.class_name === currentClass)
       ? currentClass
       : "all";
   });
@@ -100,21 +107,23 @@ export const RatingsModal: React.FC<RatingsModalProps> = ({
   };
 
   const processedRatings = useMemo(() => {
-    const filtered = ratings?.filter(rating => {
-      const matchesClass = filterBy === "all" ? true : rating.class === filterBy;
-      const matchesSearch = rating.comment.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                          rating.class.toLowerCase().includes(searchTerm.toLowerCase());
+    const filtered = ratings?.filter((rating) => {
+      const matchesClass =
+        filterBy === "all" ? true : rating.class_name === filterBy;
+      const matchesSearch =
+        rating.comment.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        rating.class_name.toLowerCase().includes(searchTerm.toLowerCase());
       return matchesClass && matchesSearch;
     });
 
     return filtered?.sort((a, b) => {
       switch (sortBy) {
-        case "helpfulRating":
-          return b.helpfulRating - a.helpfulRating;
-        case "clarityRating":
-          return b.clarityRating - a.clarityRating;
-        case "difficultyRating":
-          return b.difficultyRating - a.difficultyRating;
+        case "helpful_rating":
+          return b.helpful_rating - a.helpful_rating;
+        case "clarity_rating":
+          return b.clarity_rating - a.clarity_rating;
+        case "difficulty_rating":
+          return b.difficulty_rating - a.difficulty_rating;
         case "date":
         default:
           return new Date(b.date).getTime() - new Date(a.date).getTime();
@@ -130,9 +139,17 @@ export const RatingsModal: React.FC<RatingsModalProps> = ({
     setFilterBy(event.target.value);
   };
 
-  const calculateAverage = (ratings: Rating[], key: keyof Pick<Rating, 'clarityRating' | 'helpfulRating' | 'difficultyRating'>): string => {
+  const calculateAverage = (
+    ratings: Rating[],
+    key: keyof Pick<
+      Rating,
+      "clarity_rating" | "helpful_rating" | "difficulty_rating"
+    >
+  ): string => {
     return ratings.length > 0
-      ? (ratings.reduce((acc, r) => acc + r[key], 0) / ratings.length).toFixed(1)
+      ? (ratings.reduce((acc, r) => acc + r[key], 0) / ratings.length).toFixed(
+          1
+        )
       : "0";
   };
 
@@ -166,8 +183,12 @@ export const RatingsModal: React.FC<RatingsModalProps> = ({
             <Grid item xs={6} md={3}>
               <StatCard>
                 <CardContent>
-                  <Typography variant="h4" color="success.main" fontWeight="bold">
-                    {calculateAverage(ratings, 'clarityRating')}
+                  <Typography
+                    variant="h4"
+                    color="success.main"
+                    fontWeight="bold"
+                  >
+                    {calculateAverage(ratings, "clarity_rating")}
                   </Typography>
                   <Typography variant="body2" color="text.secondary">
                     Avg. Clarity
@@ -178,8 +199,12 @@ export const RatingsModal: React.FC<RatingsModalProps> = ({
             <Grid item xs={6} md={3}>
               <StatCard>
                 <CardContent>
-                  <Typography variant="h4" color="primary.main" fontWeight="bold">
-                    {calculateAverage(ratings, 'helpfulRating')}
+                  <Typography
+                    variant="h4"
+                    color="primary.main"
+                    fontWeight="bold"
+                  >
+                    {calculateAverage(ratings, "helpful_rating")}
                   </Typography>
                   <Typography variant="body2" color="text.secondary">
                     Avg. Helpfulness
@@ -190,8 +215,12 @@ export const RatingsModal: React.FC<RatingsModalProps> = ({
             <Grid item xs={6} md={3}>
               <StatCard>
                 <CardContent>
-                  <Typography variant="h4" color="warning.main" fontWeight="bold">
-                    {calculateAverage(ratings, 'difficultyRating')}
+                  <Typography
+                    variant="h4"
+                    color="warning.main"
+                    fontWeight="bold"
+                  >
+                    {calculateAverage(ratings, "difficulty_rating")}
                   </Typography>
                   <Typography variant="body2" color="text.secondary">
                     Avg. Difficulty
@@ -202,7 +231,11 @@ export const RatingsModal: React.FC<RatingsModalProps> = ({
             <Grid item xs={6} md={3}>
               <StatCard>
                 <CardContent>
-                  <Typography variant="h4" color="secondary.main" fontWeight="bold">
+                  <Typography
+                    variant="h4"
+                    color="secondary.main"
+                    fontWeight="bold"
+                  >
                     {ratings.length}
                   </Typography>
                   <Typography variant="body2" color="text.secondary">
@@ -239,9 +272,13 @@ export const RatingsModal: React.FC<RatingsModalProps> = ({
                       label="Sort By"
                     >
                       <MenuItem value="date">Most Recent</MenuItem>
-                      <MenuItem value="helpfulRating">Most Helpful</MenuItem>
-                      <MenuItem value="clarityRating">Highest Clarity</MenuItem>
-                      <MenuItem value="difficultyRating">Most Difficult</MenuItem>
+                      <MenuItem value="helpful_rating">Most Helpful</MenuItem>
+                      <MenuItem value="clarity_rating">
+                        Highest Clarity
+                      </MenuItem>
+                      <MenuItem value="difficulty_rating">
+                        Most Difficult
+                      </MenuItem>
                     </Select>
                   </FormControl>
                   <FormControl fullWidth>
@@ -254,8 +291,11 @@ export const RatingsModal: React.FC<RatingsModalProps> = ({
                       <MenuItem value="all">All Courses</MenuItem>
                       {ratings
                         ?.map((rating) => (
-                          <MenuItem key={rating.class} value={rating.class}>
-                            {rating.class}
+                          <MenuItem
+                            key={rating.class_name}
+                            value={rating.class_name}
+                          >
+                            {rating.class_name}
                           </MenuItem>
                         ))
                         ?.filter(isUnique)}
@@ -274,13 +314,13 @@ export const RatingsModal: React.FC<RatingsModalProps> = ({
                   <Grid item xs={12} sm={4}>
                     <Stack direction="row" alignItems="center" spacing={1}>
                       <GlassesIcon
-                        sx={{ color: getRatingColor(rating.clarityRating) }}
+                        sx={{ color: getRatingColor(rating.clarity_rating) }}
                       />
                       <Typography
                         fontWeight="bold"
-                        color={getRatingColor(rating.clarityRating)}
+                        color={getRatingColor(rating.clarity_rating)}
                       >
-                        {rating.clarityRating}/5
+                        {rating.clarity_rating}/5
                       </Typography>
                       <Typography variant="body2" color="text.secondary">
                         clarity
@@ -290,13 +330,13 @@ export const RatingsModal: React.FC<RatingsModalProps> = ({
                   <Grid item xs={12} sm={4}>
                     <Stack direction="row" alignItems="center" spacing={1}>
                       <ThumbUpIcon
-                        sx={{ color: getRatingColor(rating.helpfulRating) }}
+                        sx={{ color: getRatingColor(rating.helpful_rating) }}
                       />
                       <Typography
                         fontWeight="bold"
-                        color={getRatingColor(rating.helpfulRating)}
+                        color={getRatingColor(rating.helpful_rating)}
                       >
-                        {rating.helpfulRating}/5
+                        {rating.helpful_rating}/5
                       </Typography>
                       <Typography variant="body2" color="text.secondary">
                         helpful
@@ -306,13 +346,13 @@ export const RatingsModal: React.FC<RatingsModalProps> = ({
                   <Grid item xs={12} sm={4}>
                     <Stack direction="row" alignItems="center" spacing={1}>
                       <BrainIcon
-                        sx={{ color: getRatingColor(rating.difficultyRating) }}
+                        sx={{ color: getRatingColor(rating.difficulty_rating) }}
                       />
                       <Typography
                         fontWeight="bold"
-                        color={getRatingColor(rating.difficultyRating)}
+                        color={getRatingColor(rating.difficulty_rating)}
                       >
-                        {rating.difficultyRating}/5
+                        {rating.difficulty_rating}/5
                       </Typography>
                       <Typography variant="body2" color="text.secondary">
                         difficulty
@@ -325,17 +365,17 @@ export const RatingsModal: React.FC<RatingsModalProps> = ({
                   {he.decode(rating.comment)}
                 </Typography>
                 <Stack direction="row" spacing={1} sx={{ mb: 2 }}>
-                  {rating.isForOnlineClass && (
+                  {rating.is_online && (
                     <Chip label="Online" color="primary" variant="outlined" />
                   )}
-                  {rating.attendanceMandatory && (
+                  {rating.attendance_mandatory == "mandatory" && (
                     <Chip
                       label="Attendance Required"
                       color="secondary"
                       variant="outlined"
                     />
                   )}
-                  {rating.textbookUse > 0 && (
+                  {rating.textbook_use > 0 && (
                     <Chip
                       label="Textbooks Used"
                       color="success"
@@ -357,7 +397,7 @@ export const RatingsModal: React.FC<RatingsModalProps> = ({
                         sx={{ fontSize: 16, color: "text.secondary" }}
                       />
                       <Typography variant="body2" color="text.secondary">
-                        {rating.class}
+                        {rating.class_name}
                       </Typography>
                     </Stack>
                     <Typography variant="body2" color="text.secondary">
@@ -368,7 +408,7 @@ export const RatingsModal: React.FC<RatingsModalProps> = ({
                     <Typography variant="body2" color="text.secondary">
                       {rating.createdByUser}
                     </Typography>
-                    {rating.flagStatus !== "UNFLAGGED" && (
+                    {rating.flag_status !== "UNFLAGGED" && (
                       <Chip label="Flagged" color="error" size="small" />
                     )}
                   </Stack>

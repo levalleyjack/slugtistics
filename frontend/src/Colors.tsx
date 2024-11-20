@@ -62,7 +62,8 @@ export interface Course {
   ge: string;
   schedule: string;
   location: string;
-  average_gpa: string;
+  gpa: string;
+  instructor_ratings: any;
 }
 
 export interface RMPResponse {
@@ -84,17 +85,23 @@ export interface RMPData {
   name: string;
 }
 export interface Rating {
-  clarityRating: number;
-  helpfulRating: number;
-  difficultyRating: number;
+  clarity_rating: number;
+  helpful_rating: number;
+  difficulty_rating: number;
   comment: string;
-  isForOnlineClass: boolean;
-  attendanceMandatory: boolean;
-  textbookUse: number;
-  class: string;
+  is_online: boolean;
+  attendance_mandatory: string;
+  textbook_use: number;
+  class_name: string;
   date: string;
   createdByUser: string;
-  flagStatus: 'UNFLAGGED' | 'FLAGGED';
+  flag_status: 'UNFLAGGED' | 'FLAGGED';
+  tags: string;
+  thumbs_up:number;
+  thumbs_down:number;
+  would_take_again:true;
+  overall_rating:number;
+
 }
 
 export const getLetterGrade = (gpa: string) => {

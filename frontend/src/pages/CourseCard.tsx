@@ -38,189 +38,6 @@ import {
 } from "../Colors";
 import { RatingsModal } from "./RatingsModal";
 
-const SCHOOL_ID = "U2Nob29sLTEwNzg=";
-const RMP_GRAPHQL_URL = "https://www.ratemyprofessors.com/graphql";
-
-const RMP_QUERY = `
-  query NewSearchTeachersQuery($query: TeacherSearchQuery!) {
-    newSearch {
-      teachers(query: $query) {
-        edges {
-          node {
-            id
-            firstName
-            lastName
-            department
-            avgRating
-            avgDifficulty
-            numRatings
-            wouldTakeAgainPercent
-            ratingsDistribution {
-              r1 r2 r3 r4 r5
-            }
-            ratings(first: 20) {
-              edges {
-                node {
-                  comment
-                  date
-                  class
-                  helpfulRating
-                  clarityRating
-                  difficultyRating
-                  thumbsUpTotal
-                  thumbsDownTotal
-                  wouldTakeAgain
-                  isForCredit
-                  isForOnlineClass
-                  attendanceMandatory
-                  ratingTags
-                  flagStatus
-                  textbookUse
-                }
-              }
-            }
-          }
-        }
-      }
-    }
-  }
-`;
-
-const useRMPData = (fullInstructorName: string, enabled = false) => {
-  return useQuery({
-    queryKey: ["rmp", fullInstructorName],
-    queryFn: async () => {
-      if (!fullInstructorName || fullInstructorName === "Staff") {
-        throw new Error("Invalid professor name");
-      }
-
-      // Parse name and create search query based on format
-      const searchQuery = fullInstructorName.includes(".")
-        ? fullInstructorName.split(" ")[
-            fullInstructorName.split(" ").length - 1
-          ]
-        : `${fullInstructorName.split(" ")[0]} ${
-            fullInstructorName.split(" ")[
-              fullInstructorName.split(" ").length - 1
-            ]
-          }`;
-
-      const firstInitial = fullInstructorName
-        .split(" ")[0]
-        .charAt(0)
-        .toLowerCase();
-      const lastName = fullInstructorName
-        .split(" ")
-        [fullInstructorName.split(" ").length - 1].toLowerCase()
-        .trim();
-
-      const response = await fetch(RMP_GRAPHQL_URL, {
-        method: "POST",
-        headers: {
-          Authorization: "Basic dGVzdDp0ZXN0",
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          query: RMP_QUERY,
-          variables: { query: { schoolID: SCHOOL_ID, text: searchQuery } },
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error: ${response.status}`);
-      }
-
-      const { data, errors } = await response.json();
-
-      if (errors) {
-        throw new Error(errors[0]?.message || "GraphQL error");
-      }
-
-      const teachers = data?.newSearch?.teachers?.edges;
-      if (teachers.length == 0) {
-        return null;
-      }
-
-      const matchingProfessor = teachers.find(({ node: professor }) => {
-        const professorLastName = professor.lastName.toLowerCase().trim();
-        const professorLastNameParts = professor.lastName.split(" ");
-        const professorLastNameWithHypher = professor.lastName.split("-");
-
-        const professorLastNameWithMiddle =
-          professorLastNameParts.length > 1
-            ? professorLastNameParts[professorLastNameParts.length - 1]
-                .toLowerCase()
-                .trim()
-            : professor.lastName.toLowerCase().trim();
-        const professorLastNameCheckHyphen =
-          professorLastNameWithHypher.length > 1
-            ? professorLastNameWithHypher[
-                professorLastNameWithHypher.length - 1
-              ]
-                .toLowerCase()
-                .trim()
-            : professor.lastName.toLowerCase().trim();
-
-        const professorFirstInitial = professor.firstName
-          .charAt(0)
-          .toLowerCase();
-
-        return (
-          (professorLastName === lastName.toLowerCase() ||
-            professorLastNameWithMiddle === lastName.toLowerCase() ||
-            professorLastNameCheckHyphen === lastName.toLowerCase()) &&
-          (professorFirstInitial === firstInitial ||
-            (fullInstructorName.includes(".") &&
-              professorFirstInitial === firstInitial))
-        );
-      });
-
-      if (!matchingProfessor) {
-        return null;
-      }
-
-      const professor = matchingProfessor.node;
-      const allRatings = professor.ratings.edges.map(({ node: rating }) => ({
-        class: rating.class,
-        date: rating.date,
-        helpfulRating: rating.helpfulRating,
-        clarityRating: rating.clarityRating,
-        difficultyRating: rating.difficultyRating,
-        overallRating: (rating.helpfulRating + rating.clarityRating) / 2,
-        comment: rating.comment,
-        thumbsUp: rating.thumbsUpTotal,
-        thumbsDown: rating.thumbsDownTotal,
-        wouldTakeAgain: rating.wouldTakeAgain === 1,
-        isOnline: rating.isForOnlineClass,
-        isForCredit: rating.isForCredit,
-        attendanceMandatory: rating.attendanceMandatory,
-        textbookUse: rating.textbookUse,
-        tags: rating.ratingTags,
-        flagStatus: rating.flagStatus,
-      }));
-
-      return {
-        avgRating: professor.avgRating,
-        numRatings: professor.numRatings,
-        department: professor.department,
-        wouldTakeAgainPercent: professor.wouldTakeAgainPercent,
-        difficultyLevel: professor.avgDifficulty,
-        name: `${professor.firstName} ${professor.lastName}`,
-        all_ratings: allRatings,
-        ratingDistribution: [
-          professor.ratingsDistribution.r1,
-          professor.ratingsDistribution.r2,
-          professor.ratingsDistribution.r3,
-          professor.ratingsDistribution.r4,
-          professor.ratingsDistribution.r5,
-        ],
-      };
-    },
-    enabled: enabled && !!fullInstructorName && fullInstructorName !== "Staff",
-    staleTime: 5 * 60 * 1000,
-    gcTime: 30 * 60 * 1000,
-  });
-};
 interface CourseCardProps {
   course: Course;
   isSmallScreen: boolean;
@@ -237,13 +54,12 @@ export const CourseCard = ({
   const [copied, setCopied] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const theme = useTheme();
-  const { instructor: fullInstructorName, average_gpa: avgGPA } = course;
-
   const {
-    data: rmpData,
-    isLoading: isLoadingRMP,
-    error: rmpError,
-  } = useRMPData(fullInstructorName, fullInstructorName !== "Staff");
+    instructor: fullInstructorName,
+    gpa: avgGPA,
+    instructor_ratings: rmpData,
+  } = course;
+  console.log(course);
 
   const handleExpandClick = () => onExpandChange(course.code);
   const handleOpenModal = (e: React.MouseEvent) => {
@@ -275,24 +91,7 @@ export const CourseCard = ({
   const RenderRMPContent = () => {
     if (isStaffOrLoading) return null;
 
-    if (isLoadingRMP) {
-      return (
-        <Box sx={{ display: "flex", gap: 1, alignItems: "center", mt: 1 }}>
-          <RatingChip
-            icon={<StarIcon color="inherit" />}
-            label="Loading rating..."
-            size="small"
-            sx={{
-              backgroundColor: theme.palette.grey[500],
-              color: "white",
-              fontWeight: "bold",
-            }}
-          />
-        </Box>
-      );
-    }
-
-    if (rmpError || !rmpData) {
+    if (!rmpData) {
       return (
         <Box sx={{ display: "flex", gap: 1, alignItems: "center", mt: 1 }}>
           <RatingChip
@@ -313,13 +112,13 @@ export const CourseCard = ({
       <Box sx={{ display: "flex", gap: 1, alignItems: "center", mt: 1 }}>
         <RatingChip
           icon={<StarIcon color="inherit" />}
-          label={`${rmpData.avgRating?.toFixed(1) || "N/A"}/5`}
+          label={`${rmpData.avg_rating?.toFixed(1) || "N/A"}/5`}
           size="small"
           sx={{
             backgroundColor:
-              rmpData.avgRating >= 4
+              rmpData.avg_rating >= 4
                 ? theme.palette.success.dark
-                : rmpData.avgRating >= 3
+                : rmpData.avg_rating >= 3
                 ? theme.palette.warning.dark
                 : theme.palette.error.dark,
             color: "white",
@@ -327,10 +126,12 @@ export const CourseCard = ({
           }}
         />
         <DifficultyChip
-          label={`${rmpData.difficultyLevel?.toFixed(1) || "N/A"}/5 difficulty`}
+          label={`${
+            rmpData.difficulty_level?.toFixed(1) || "N/A"
+          }/5 difficulty`}
           size="small"
           variant="outlined"
-          difficulty={rmpData.difficultyLevel}
+          difficulty={rmpData.difficulty_level}
         />
       </Box>
     );
@@ -437,11 +238,11 @@ export const CourseCard = ({
                     </Link>
                   </Grid>
                   <Grid item>
-                    {rmpData?.numRatings != undefined && (
+                    {rmpData?.num_ratings != undefined && (
                       <ReviewCountChip
                         disableRipple
-                        label={`${rmpData?.numRatings} ${
-                          rmpData?.numRatings === 1 ? "review" : "reviews"
+                        label={`${rmpData?.num_ratings} ${
+                          rmpData?.num_ratings === 1 ? "review" : "reviews"
                         }`}
                         onClick={handleOpenModal}
                         size="small"

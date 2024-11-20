@@ -240,9 +240,9 @@ const filterBySort = (
   switch (sortBy) {
     case "GPA":
       sortedCourses.sort((a, b) => {
-        if (b.average_gpa === "N/A") return -1;
-        if (a.average_gpa === "N/A") return 1;
-        return parseFloat(b.average_gpa) - parseFloat(a.average_gpa);
+        if (b.gpa === "N/A") return -1;
+        if (a.gpa === "N/A") return 1;
+        return parseFloat(b.gpa) - parseFloat(a.gpa);
       });
       break;
     case "NAME":
@@ -414,9 +414,9 @@ const GeSearch = () => {
               variant="outlined"
               startAdornment={<Sort />}
             >
-              <MenuItem value="GPA">GPA</MenuItem>
-              <MenuItem value="NAME">Title</MenuItem>
-              <MenuItem value="CODE">Code</MenuItem>
+              <MenuItem value="GPA">GPA (High to Low)</MenuItem>
+              <MenuItem value="NAME">Title (A-Z)</MenuItem>
+              <MenuItem value="CODE">Code (A-Z)</MenuItem>
             </StyledSelect>
             <StyledSelect
               value={filterBy}
