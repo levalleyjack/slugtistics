@@ -25,7 +25,7 @@ const AboutPage = () => {
         </section>
 
         <section className="mb-8">
-          <h2 className="text-2xl font-semibold mb-4">How far does the data go back?</h2>
+          <h2 className="text-2x1 font-semibold mb-4">How far does the data go back?</h2>
           <p className="mb-4">
             The data goes back to Fall 2019. Getting this data costs money, but if the desire is large enough I will get earlier data.
           </p>
@@ -38,7 +38,7 @@ const AboutPage = () => {
             My name is <b><a href="https://www.linkedin.com/in/jack-levalley/" className="text-blue-600 hover:text-blue-800">Jack LeValley</a></b>, message me on Discord at: <b>eggw</b>
           </p>
           <p className="mb-2">
-            Special Thanks to <b><a href="https://www.linkedin.com/in/qaysbadri/" className="text-blue-600 hover:text-blue-800">Qays Badri</a></b>
+            Contributions from <b><a href="https://www.linkedin.com/in/qaysbadri/" className="text-blue-600 hover:text-blue-800">Qays Badri</a></b> and <b><a href="https://www.linkedin.com/in/ashwinsm10/" className="text-blue-600 hover:text-blue-800">Ashwin Murthy</a></b>
           </p>
           <p className="mb-2">
             <b><a href="https://github.com/levalleyjack/slugtistics" className="text-blue-600 hover:text-blue-800">Github</a></b>
