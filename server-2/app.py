@@ -12,7 +12,7 @@ from pathlib import Path
 import sqlite3
 from ucsc_courses import get_courses
 from ratings import search_professor
-from helper_functions import calculate_gpa, find_matching_instructor
+from helper_functions import find_matching_instructor, get_course_gpa
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
@@ -102,43 +102,35 @@ def store_courses_in_db():
             CourseModel.query.delete()
             
             for course in new_courses:
-                if course.instructor != "Staff" and course.instructor not in instructor_cache:
-                    cursor.execute(
-                        'SELECT DISTINCT "Instructors" FROM GradeData WHERE "SubjectCatalogNbr" = ? ORDER BY Instructors',
-                        (course.code,)
-                    )
-                    historical_instructors = [row[0] for row in cursor.fetchall()]
-                    
-                    if historical_instructors:
+                if not course.instructor or course.instructor.strip().lower() in ['staff', 'n/a', '']:
+                    matched_instructor = 'Staff'
+                    instructor_ratings = None
+                else:
+                    if course.instructor not in instructor_cache:
+                        cursor.execute(
+                            'SELECT DISTINCT "Instructors" FROM GradeData WHERE "SubjectCatalogNbr" = ? ORDER BY Instructors',
+                            (course.code,)
+                        )
+                        historical_instructors = [row[0] for row in cursor.fetchall()]
+                        
                         matched_instructor = find_matching_instructor(
                             course.instructor,
                             historical_instructors
-                        )
-                        instructor_cache[course.instructor] = matched_instructor or course.instructor
-                    else:
-                        instructor_cache[course.instructor] = course.instructor
-                
-                if course.code not in gpa_cache:
-                    cursor.execute('''
-                        SELECT 
-                            SUM("A+") as "A+", SUM("A") as "A", SUM("A-") as "A-",
-                            SUM("B+") as "B+", SUM("B") as "B", SUM("B-") as "B-",
-                            SUM("C+") as "C+", SUM("C") as "C", SUM("C-") as "C-",
-                            SUM("D+") as "D+", SUM("D") as "D", SUM("D-") as "D-",
-                            SUM("F") as "F"
-                        FROM GradeData 
-                        WHERE "SubjectCatalogNbr" = ?
-                    ''', (course.code,))
+                        ) or course.instructor
+                        
+                        instructor_cache[course.instructor] = matched_instructor
+
+                    matched_instructor = instructor_cache.get(course.instructor, course.instructor)
                     
-                    grade_distribution = dict(cursor.fetchone())
-                    gpa_cache[course.code] = calculate_gpa(grade_distribution)
-                
-                matched_instructor = instructor_cache.get(course.instructor, course.instructor)
-                course_gpa = gpa_cache.get(course.code, "N/A")
-                
-                instructor_ratings = search_professor(matched_instructor)
-                if instructor_ratings:
-                    instructor_ratings = instructor_ratings.to_dict()
+                    try:
+                        instructor_ratings = search_professor(matched_instructor)
+                        if instructor_ratings:
+                            instructor_ratings = instructor_ratings.to_dict()
+                    except Exception as rating_error:
+                        logger.warning(f"Could not retrieve ratings for {matched_instructor}: {rating_error}")
+                        instructor_ratings = None
+
+                course_gpa = get_course_gpa(cursor,course.code)
                 
                 new_course = CourseModel(
                     ge=course.ge,

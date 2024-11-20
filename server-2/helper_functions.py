@@ -1,5 +1,14 @@
 def normalize_instructor_name(name: str) -> str:
-    return ' '.join(name.split()).lower()
+    if not isinstance(name, str):
+        return ""
+    
+    cleaned_name = ' '.join(name.strip().split())
+    
+    parts = cleaned_name.split()
+    if len(parts) < 2:  
+        return cleaned_name
+    
+    return cleaned_name.lower()
 def get_initials(name: str) -> list:
     parts = name.split()
     if len(parts) <= 1:
@@ -22,7 +31,12 @@ def calculate_gpa(grade_distribution):
     total_students = 0
     
     for grade, count in grade_distribution.items():
-        if grade in grade_points and count:
+        if count is None:
+            count = 0
+        
+        count = int(count)
+        
+        if grade in grade_points and count > 0:
             total_points += grade_points[grade] * count
             total_students += count
     
@@ -32,29 +46,48 @@ def calculate_gpa(grade_distribution):
     gpa = total_points / total_students
     return f"{gpa:.2f}"
 
+def get_course_gpa(cursor, course_code):
+    """
+    Retrieve GPA for a specific course
+    """
+    query = '''
+        SELECT 
+            COALESCE(SUM("A+"), 0) as "A+", COALESCE(SUM("A"), 0) as "A", COALESCE(SUM("A-"), 0) as "A-",
+            COALESCE(SUM("B+"), 0) as "B+", COALESCE(SUM("B"), 0) as "B", COALESCE(SUM("B-"), 0) as "B-",
+            COALESCE(SUM("C+"), 0) as "C+", COALESCE(SUM("C"), 0) as "C", COALESCE(SUM("C-"), 0) as "C-",
+            COALESCE(SUM("D+"), 0) as "D+", COALESCE(SUM("D"), 0) as "D", COALESCE(SUM("D-"), 0) as "D-",
+            COALESCE(SUM("F"), 0) as "F"
+        FROM GradeData 
+        WHERE "SubjectCatalogNbr" = ?
+    '''
+    cursor.execute(query, (course_code,))
+    
+    result = cursor.fetchone()
+    
+    grade_distribution = {k: v for k, v in dict(result).items() if v > 0}
+    
+    return calculate_gpa(grade_distribution)
 
 def find_matching_instructor(instructor: str, historical_instructors: list) -> str:
-    current_instructor = normalize_instructor_name(instructor)
 
-    if not current_instructor or not historical_instructors:
+    if not instructor or not isinstance(historical_instructors, list):
         return instructor
     
-    current_name = ' '.join(current_instructor.split()).lower()
-    current_parts = current_name.split()
+    current_instructor = normalize_instructor_name(instructor)
     
-    if len(current_parts) == 0:
+    if not current_instructor:
+        return instructor
+    
+    current_parts = current_instructor.split()
+    
+    if len(current_parts) < 2:
         return instructor
     
     current_last = current_parts[-1]
-    
-    current_initials = []
-    for part in current_parts[:-1]:
-        cleaned_part = part.replace('.', '').strip()
-        if cleaned_part:
-            current_initials.append(cleaned_part[0].upper())
+    current_initials = [part[0].upper() for part in current_parts[:-1]]
     
     for full_name in historical_instructors:
-        if normalize_instructor_name(full_name) == current_name:
+        if normalize_instructor_name(full_name) == current_instructor:
             return full_name
     
     for full_name in historical_instructors:
@@ -65,14 +98,14 @@ def find_matching_instructor(instructor: str, historical_instructors: list) -> s
             continue
         
         hist_last = hist_parts[-1]
+        hist_initials = [part[0].upper() for part in hist_parts[:-1]]
         
         if hist_last != current_last:
             continue
         
-        hist_initials = [part[0].upper() for part in hist_parts[:-1]]
-        
-        if len(current_initials) > 0 and len(hist_initials) >= len(current_initials):
-            if all(c == h for c, h in zip(current_initials, hist_initials)):
-                return full_name
+        if (len(current_initials) > 0 and 
+            len(hist_initials) >= len(current_initials) and 
+            all(c == h for c, h in zip(current_initials, hist_initials))):
+            return full_name
     
     return instructor
