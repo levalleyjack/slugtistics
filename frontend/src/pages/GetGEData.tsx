@@ -18,7 +18,7 @@ export const local = "https://api.slugtistics.com/api/pyback/";
 
 //constants
 export const CONFIG = {
-  local: "http://127.0.0.1:5001",
+  local: "https://api.slugtistics.com/api/pyback/",
   gpaRoute: "https://api.slugtistics.com/api/",
   schoolId: 1078,
   staleTime: 5 * 60 * 1000, // 5 minutes
