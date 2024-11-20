@@ -13,7 +13,7 @@ import {
   Paper,
   Chip,
 } from "@mui/material";
-import Grid from '@mui/material/Grid';
+import Grid from "@mui/material/Grid";
 import {
   ContentCopy as ContentCopyIcon,
   ExpandMore as ExpandMoreIcon,
@@ -75,6 +75,7 @@ const RMP_QUERY = `
                   attendanceMandatory
                   ratingTags
                   flagStatus
+                  textbookUse
                 }
               }
             }
@@ -93,10 +94,25 @@ const useRMPData = (fullInstructorName: string, enabled = false) => {
         throw new Error("Invalid professor name");
       }
 
-      const nameParts = fullInstructorName.split(" ");
-      const searchQuery = nameParts[0].includes(".")
-        ? nameParts[1]
-        : `${nameParts[0]} ${nameParts[nameParts.length - 1]}`;
+      // Parse name and create search query based on format
+      const searchQuery = fullInstructorName.includes(".")
+        ? fullInstructorName.split(" ")[
+            fullInstructorName.split(" ").length - 1
+          ]
+        : `${fullInstructorName.split(" ")[0]} ${
+            fullInstructorName.split(" ")[
+              fullInstructorName.split(" ").length - 1
+            ]
+          }`;
+
+      const firstInitial = fullInstructorName
+        .split(" ")[0]
+        .charAt(0)
+        .toLowerCase();
+      const lastName = fullInstructorName
+        .split(" ")
+        [fullInstructorName.split(" ").length - 1].toLowerCase()
+        .trim();
 
       const response = await fetch(RMP_GRAPHQL_URL, {
         method: "POST",
@@ -121,11 +137,49 @@ const useRMPData = (fullInstructorName: string, enabled = false) => {
       }
 
       const teachers = data?.newSearch?.teachers?.edges;
-      if (!teachers?.length) {
-        throw new Error("Professor not found");
+      if (teachers.length == 0) {
+        return null;
       }
 
-      const professor = teachers[0].node;
+      const matchingProfessor = teachers.find(({ node: professor }) => {
+        const professorLastName = professor.lastName.toLowerCase().trim();
+        const professorLastNameParts = professor.lastName.split(" ");
+        const professorLastNameWithHypher = professor.lastName.split("-");
+
+        const professorLastNameWithMiddle =
+          professorLastNameParts.length > 1
+            ? professorLastNameParts[professorLastNameParts.length - 1]
+                .toLowerCase()
+                .trim()
+            : professor.lastName.toLowerCase().trim();
+        const professorLastNameCheckHyphen =
+          professorLastNameWithHypher.length > 1
+            ? professorLastNameWithHypher[
+                professorLastNameWithHypher.length - 1
+              ]
+                .toLowerCase()
+                .trim()
+            : professor.lastName.toLowerCase().trim();
+
+        const professorFirstInitial = professor.firstName
+          .charAt(0)
+          .toLowerCase();
+
+        return (
+          (professorLastName === lastName.toLowerCase() ||
+            professorLastNameWithMiddle === lastName.toLowerCase() ||
+            professorLastNameCheckHyphen === lastName.toLowerCase()) &&
+          (professorFirstInitial === firstInitial ||
+            (fullInstructorName.includes(".") &&
+              professorFirstInitial === firstInitial))
+        );
+      });
+
+      if (!matchingProfessor) {
+        return null;
+      }
+
+      const professor = matchingProfessor.node;
       const allRatings = professor.ratings.edges.map(({ node: rating }) => ({
         class: rating.class,
         date: rating.date,
@@ -139,7 +193,8 @@ const useRMPData = (fullInstructorName: string, enabled = false) => {
         wouldTakeAgain: rating.wouldTakeAgain === 1,
         isOnline: rating.isForOnlineClass,
         isForCredit: rating.isForCredit,
-        requiresAttendance: rating.attendanceMandatory === "mandatory",
+        attendanceMandatory: rating.attendanceMandatory,
+        textbookUse: rating.textbookUse,
         tags: rating.ratingTags,
         flagStatus: rating.flagStatus,
       }));
@@ -166,7 +221,6 @@ const useRMPData = (fullInstructorName: string, enabled = false) => {
     gcTime: 30 * 60 * 1000,
   });
 };
-
 interface CourseCardProps {
   course: Course;
   isSmallScreen: boolean;
@@ -210,7 +264,9 @@ export const CourseCard = ({
   const searchName =
     fullInstructorName?.split(" ")[0].indexOf(".") === -1
       ? `${fullInstructorName.split(" ")[0]} ${
-          fullInstructorName.split(" ")[2]
+          fullInstructorName.split(" ")[
+            fullInstructorName.split(" ").length - 1
+          ]
         }`
       : fullInstructorName?.split(" ").slice(1).join(" ") || "";
 
@@ -654,6 +710,7 @@ const RatingChip = styled(Chip)(({ theme }) => ({
   fontWeight: 600,
   height: "28px",
   animation: "gradient 3s ease infinite",
+  transition: "all 0.2s ease-in-out",
   "@keyframes gradient": {
     "0%": { backgroundPosition: "0% 50%" },
     "50%": { backgroundPosition: "100% 50%" },
@@ -661,7 +718,7 @@ const RatingChip = styled(Chip)(({ theme }) => ({
   },
   "&:hover": {
     transform: "translateY(-2px)",
-    boxShadow: "0 4px 12px rgba(0, 0, 0, 0.15)",
+    boxShadow: "0 4px 12px rgba(0, 0, 0, 0.2)",
   },
 }));
 
