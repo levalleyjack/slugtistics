@@ -165,7 +165,9 @@ const ControlsContainer = styled("div")(({ theme }) => ({
   gap: theme.spacing(2),
   [theme.breakpoints.down("sm")]: {
     width: "100%",
+    flexWrap: "wrap",
     justifyContent: "space-between",
+    rowGap: theme.spacing(1),
   },
 }));
 
@@ -177,6 +179,8 @@ const ExpandButton = styled(Button)(({ theme }) => ({
   },
   [theme.breakpoints.down("sm")]: {
     flex: 1,
+    minWidth: "120px",
+    marginRight: theme.spacing(1),
   },
 }));
 
@@ -192,6 +196,8 @@ const StyledSelect = styled(Select<string>)(({ theme }) => ({
   },
   [theme.breakpoints.down("sm")]: {
     flex: 1,
+    minWidth: "calc(50% - 8px)", // Adjust width to fit in the row
+    marginBottom: theme.spacing(1),
   },
 }));
 

@@ -303,7 +303,7 @@ export const CourseCard = ({
             ) : (
               <StyledChip
                 icon={<GradeIcon sx={{ fontSize: 16, color: COLORS.WHITE }} />}
-                label={"No GPA information"}
+                label={isSmallScreen ? "No GPA" :"No GPA information"}
                 size="small"
                 sx={{
                   height: "28px",
