@@ -244,15 +244,15 @@ const handleTermSelect = (event: React.ChangeEvent<{ value: unknown }>) => {
     }
   };
   
-    //Update URL parameters when dropdown selections change
-    useEffect(() => {
-      const searchParams = new URLSearchParams();
-      if (selectedClass) searchParams.append("class", selectedClass);
-      if (instructor !== "All") searchParams.append("instructor", instructor);
-      if (term !== "All") searchParams.append("term", term);
+    // //Update URL parameters when dropdown selections change
+    // useEffect(() => {
+    //   const searchParams = new URLSearchParams();
+    //   if (selectedClass) searchParams.append("class", selectedClass);
+    //   if (instructor !== "All") searchParams.append("instructor", instructor);
+    //   if (term !== "All") searchParams.append("term", term);
   
-      navigate({ search: searchParams.toString() });
-    }, [selectedClass, instructor, term, navigate]);
+    //   navigate({ search: searchParams.toString() });
+    // }, [selectedClass, instructor, term, navigate]);
 
   //if All Instructors selected then query for all quarters with X instructor
   //if All Quarters selected then query for all instructors
