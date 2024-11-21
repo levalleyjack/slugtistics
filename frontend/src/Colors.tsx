@@ -23,6 +23,7 @@ export const COLORS = {
   INDIGO_LIGHT: "rgba(79, 70, 229, 0.1)",
   GRAY_50: "#f8fafc",
   GRAY_100: "#f1f5f9",
+  GRAY_300: "#d1d5db", 
   GRAY_400: "#9ca3af",
   GRAY_500: "#6B7280",
   YELLOW: "#ffc107",

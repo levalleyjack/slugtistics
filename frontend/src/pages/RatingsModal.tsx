@@ -306,7 +306,6 @@ export const RatingsModal: React.FC<RatingsModalProps> = ({
             </Grid>
           </Paper>
 
-          {/* Reviews List */}
           <Stack spacing={2}>
             {processedRatings?.map((rating, index) => (
               <Paper key={index} sx={{ p: 3 }}>

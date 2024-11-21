@@ -27,7 +27,7 @@ const NavBar = () => {
             isActive ? "navbar-link navbar-link-active" : "navbar-link"
           }
         >
-          <h2>Slugtistics</h2>
+          <h2 style={{ fontWeight: "700"}}>Slugtistics</h2>
         </NavLink>
         <NavLink
           to="/ge"
@@ -35,7 +35,7 @@ const NavBar = () => {
             isActive ? "navbar-link navbar-link-active" : "navbar-link"
           }
         >
-          <h2>GE Search</h2>
+          <h2 style={{ color: "#c9c9ca" }}>GE Search</h2>
         </NavLink>
       </div>
       <div className="navbar-right">
@@ -45,7 +45,7 @@ const NavBar = () => {
             isActive ? "navbar-link navbar-link-active" : "navbar-link"
           }
         >
-          <h2>About</h2>
+          <h2 style={{ color: "#c9c9ca" }}>About</h2>
         </NavLink>
       </div>
     </nav>

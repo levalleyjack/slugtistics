@@ -1,11 +1,19 @@
 body {
-  font-family: "Inter", sans-serif;
+  font-family: 'Geist', sans-serif;
   font-size: 16px;
   margin: 0;
 }
+@font-face {
+  font-family: 'Geist';
+  src: url('../../public/Geist[wght].woff2') format('woff2'),
+       url('/fonts/mycustomfont.woff') format('woff'),
+       url('/fonts/mycustomfont.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+}
 
 :root {
-  --primary-color: #111827;
+  --primary-color: #11141b;
   --secondary-color: #1f2937;
 }
 

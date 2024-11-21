@@ -13,6 +13,9 @@ import {
   Paper,
   Chip,
 } from "@mui/material";
+import RateReviewIcon from "@mui/icons-material/RateReview";
+import CancelIcon from "@mui/icons-material/Cancel";
+import EqualizerIcon from "@mui/icons-material/Equalizer";
 import Grid from "@mui/material/Grid";
 import {
   ContentCopy as ContentCopyIcon,
@@ -25,6 +28,7 @@ import {
   Category as CategoryIcon,
   Grade as GradeIcon,
   Star as StarIcon,
+  RadioButtonChecked,
 } from "@mui/icons-material";
 import { useTheme } from "@mui/material/styles";
 import {
@@ -241,8 +245,9 @@ export const CourseCard = ({
                     {rmpData?.num_ratings != undefined && (
                       <ReviewCountChip
                         disableRipple
+                        icon={<RateReviewIcon color="inherit" />}
                         label={`${rmpData?.num_ratings} ${
-                          rmpData?.num_ratings === 1 ? "review" : "reviews"
+                          rmpData?.num_ratings > 1 ? "reviews" : "review"
                         }`}
                         onClick={handleOpenModal}
                         size="small"
@@ -283,7 +288,7 @@ export const CourseCard = ({
                 <GradeChip
                   grade={Number(avgGPA)}
                   icon={
-                    <GradeIcon sx={{ fontSize: 16, color: COLORS.WHITE }} />
+                    <EqualizerIcon sx={{ fontSize: 16, color: COLORS.WHITE }} />
                   }
                   label={`${
                     !isSmallScreen ? "Average Grade:" : ""
@@ -294,7 +299,6 @@ export const CourseCard = ({
                     fontWeight: 600,
                     boxShadow: "0 2px 8px rgba(0, 0, 0, 0.15)",
                     "&:hover": {
-                      transform: "translateY(-2px)",
                       boxShadow: "0 4px 12px rgba(0, 0, 0, 0.2)",
                     },
                   }}
@@ -302,40 +306,42 @@ export const CourseCard = ({
               </Tooltip>
             ) : (
               <StyledChip
-                icon={<GradeIcon sx={{ fontSize: 16, color: COLORS.WHITE }} />}
-                label={isSmallScreen ? "No GPA" :"No GPA information"}
+                icon={<CancelIcon sx={{ fontSize: 16, color: COLORS.WHITE }} />}
+                label={isSmallScreen ? "No GPA" : "No GPA information"}
                 size="small"
                 sx={{
                   height: "28px",
                   fontWeight: 600,
                   boxShadow: "0 2px 8px rgba(0, 0, 0, 0.15)",
                   "&:hover": {
-                    transform: "translateY(-2px)",
                     boxShadow: "0 4px 12px rgba(0, 0, 0, 0.2)",
                   },
                 }}
               />
             )}
-            <IconButton
-              onClick={(e) => {
-                e.stopPropagation();
-                handleCopyClick();
-              }}
-              size="small"
-              sx={{
-                p: 0.5,
-                borderRadius: "8px",
-                "& .MuiTouchRipple-root .MuiTouchRipple-child": {
+            <Tooltip title={`${course.enroll_num}`} placement="bottom">
+              <IconButton
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleCopyClick();
+                }}
+                size="small"
+                sx={{
+                  p: 0.5,
                   borderRadius: "8px",
-                },
-              }}
-            >
-              {copied ? (
-                <CheckCircleOutlineIcon color="success" fontSize="small" />
-              ) : (
-                <ContentCopyIcon fontSize="small" />
-              )}
-            </IconButton>
+                  "& .MuiTouchRipple-root .MuiTouchRipple-child": {
+                    borderRadius: "8px",
+                  },
+                }}
+              >
+                {copied ? (
+                  <CheckCircleOutlineIcon color="success" fontSize="small" />
+                ) : (
+                  <ContentCopyIcon fontSize="small" />
+                )}
+              </IconButton>
+            </Tooltip>
+
             <IconButton
               onClick={(e) => {
                 e.stopPropagation();
@@ -376,6 +382,9 @@ export const CourseCard = ({
                   <Typography variant="body2" noWrap>
                     {course.class_count} enrolled
                   </Typography>
+                  <Tooltip title="Updated every 5 minutes">
+                  <RadioButtonChecked sx={{ fontSize: 18 }} color="error" />
+                  </Tooltip>
                 </Box>
               </Grid>
               <Grid item xs={6}>
@@ -401,9 +410,7 @@ const StyledCard = styled(Card)(({ theme }) => ({
   transition: "transform 0.2s ease-in-out",
   paddingBottom: theme.spacing(2),
   "&:hover": {
-    //for hovering, translates it up and enlarges the chips to give 3D effect
-    transform: "translateY(-4px)",
-    "& .MuiChip-root": {
+    "& .MuiChip-clickable": {
       transform: "scale(1.05)",
     },
   },
@@ -451,7 +458,6 @@ const GradeChip = styled(Chip)<GradeChipProps>(({ theme, grade }) => {
     borderRadius: "4px",
     "&:hover": {
       boxShadow: "0 4px 8px rgba(0,0,0,0.2)",
-      transform: "translateY(-1px)",
     },
     "& .MuiChip-icon": {
       color: "inherit",
@@ -495,7 +501,6 @@ const CourseCodeChip = styled(Chip)(({ theme }) => ({
   boxShadow: "0 2px 8px rgba(0, 0, 0, 0.15)",
   transition: "all 0.2s ease-in-out",
   "&:hover": {
-    transform: "translateY(-2px)",
     boxShadow: "0 4px 12px rgba(0, 0, 0, 0.2)",
     background: `linear-gradient(135deg, 
       ${theme.palette.primary.main} 0%, 
@@ -503,7 +508,6 @@ const CourseCodeChip = styled(Chip)(({ theme }) => ({
   },
 }));
 
-//Rating Chip
 const RatingChip = styled(Chip)(({ theme }) => ({
   borderRadius: "6px",
   backgroundSize: "200% 200%",
@@ -518,12 +522,10 @@ const RatingChip = styled(Chip)(({ theme }) => ({
     "100%": { backgroundPosition: "0% 50%" },
   },
   "&:hover": {
-    transform: "translateY(-2px)",
     boxShadow: "0 4px 12px rgba(0, 0, 0, 0.2)",
   },
 }));
 
-//Review Count Chip
 const ReviewCountChip = styled(Chip)(({ theme }) => ({
   borderRadius: "6px",
   background: `linear-gradient(135deg,
@@ -540,7 +542,6 @@ const ReviewCountChip = styled(Chip)(({ theme }) => ({
       ${theme.palette.primary.light} 0%,
       ${theme.palette.primary.main} 100%)`,
     color: "white",
-    transform: "translateY(-2px)",
     boxShadow: "0 4px 12px rgba(0, 0, 0, 0.1)",
   },
 }));
@@ -573,7 +574,6 @@ const DifficultyChip = styled(Chip)<DifficultyChipProps>(
           ? theme.palette.warning.light
           : theme.palette.success.light,
       color: "white",
-      transform: "translateY(-2px)",
     },
   })
 );
