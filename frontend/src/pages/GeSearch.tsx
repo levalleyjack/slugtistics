@@ -35,7 +35,7 @@ import { fetchLastUpdate } from "./FetchLastUpdate";
 const Root = styled("div")(({ theme }) => ({
   display: "flex",
   backgroundColor: COLORS.GRAY_50,
-  height: "90vh",
+  height: "93vh",
   position: "relative",
   overflow: "hidden",
   [theme.breakpoints.down("sm")]: {
@@ -48,7 +48,7 @@ const DrawerHeader = styled("div")(({ theme }) => ({
   alignItems: "center",
   justifyContent: "space-between",
   padding: theme.spacing(1, 2),
-  borderBottom: `1px solid ${COLORS.GRAY_100}`,
+  borderBottom: `1px solid ${theme.palette.divider}`,
 }));
 
 const MenuButton = styled(IconButton)(({ theme }) => ({
@@ -65,15 +65,15 @@ const MenuButton = styled(IconButton)(({ theme }) => ({
     display: "none",
   },
 }));
-const GeContainer = styled("div")(({ theme }) => ({
+const GeContainer = styled('div')(({ theme }) => ({
   width: "300px",
   marginRight: "40px",
   height: "100%",
-  borderRight: `1px solid ${COLORS.GRAY_100}`,
-  backgroundColor: COLORS.WHITE,
+  backgroundColor: COLORS.SECONDARY,
   display: "flex",
   flexDirection: "column",
   flexShrink: 0,
+  borderRight: `1px solid ${COLORS.GRAY_100}`,
   [theme.breakpoints.down("md")]: {
     width: "280px",
   },
@@ -81,6 +81,7 @@ const GeContainer = styled("div")(({ theme }) => ({
     width: "240px",
   },
 }));
+
 
 const CategoryContainer = styled("div")(({ theme }) => ({
   height: "100%",
@@ -107,6 +108,7 @@ const CategoryContainer = styled("div")(({ theme }) => ({
 }));
 const CourseContainer = styled("div")(({ theme }) => ({
   flex: 1,
+  borderLeft: `1px solid ${theme.palette.divider}`,
   height: "100%",
   display: "flex",
   flexDirection: "column",
@@ -124,7 +126,7 @@ const HeaderContainer = styled("div")(({ theme }) => ({
   alignItems: "center",
   justifyContent: "space-between",
   padding: theme.spacing(2, 3),
-  borderBottom: `1px solid ${COLORS.GRAY_50}`,
+  borderBottom: `1px solid ${theme.palette.divider}`,
   backgroundColor: COLORS.WHITE,
   flexWrap: "wrap",
   gap: theme.spacing(1),
@@ -229,6 +231,7 @@ const StyledSelect = styled(Select<string>)(({ theme }) => ({
   "& .MuiSelect-select:focus": {
     backgroundColor: "transparent",
   },
+  
 }));
 
 const CenterContent = styled("div")({

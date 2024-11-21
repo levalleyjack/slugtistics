@@ -30,7 +30,7 @@ interface CategorySidebarProps {
 
 const StyledListItem = styled(ListItem)(({ theme }) => ({
   borderRadius: theme.shape.borderRadius,
-  margin: theme.spacing(0.5),
+  margin: theme.spacing(0.1),
   transition: "all 0.2s ease",
   "&:hover": {
     backgroundColor: theme.palette.action.hover,
@@ -45,15 +45,15 @@ const StyledListItem = styled(ListItem)(({ theme }) => ({
   },
   [theme.breakpoints.down("sm")]: {
     padding: theme.spacing(1),
-    margin: theme.spacing(0.25),
+    margin: theme.spacing(0.1),
   },
 }));
 
 const Sidebar = styled("div")(({ theme }) => ({
-  width: "99%",
+  width: "100% - 1px",
   height: "100%",
-  backgroundColor: theme.palette.background.paper,
   borderRight: `1px solid ${theme.palette.divider}`,
+  backgroundColor: theme.palette.background.paper,
   [theme.breakpoints.down("sm")]: {
     maxWidth: "100%",
     borderRight: "none",
