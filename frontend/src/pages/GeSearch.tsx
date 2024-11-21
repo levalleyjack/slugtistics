@@ -10,6 +10,10 @@ import {
   SelectChangeEvent,
   useTheme,
   styled,
+  Drawer,
+  Dialog,
+  DialogTitle,
+  DialogContent,
 } from "@mui/material";
 import SearchIcon from "@mui/icons-material/Search";
 import { COLORS, Course } from "../Colors";
@@ -36,78 +40,106 @@ const Root = styled("div")(({ theme }) => ({
   overflow: "hidden",
   [theme.breakpoints.down("sm")]: {
     flexDirection: "column",
-    height: "100vh",
+    height: "90vh",
   },
+}));
+const DrawerHeader = styled("div")(({ theme }) => ({
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "space-between",
+  padding: theme.spacing(1, 2),
+  borderBottom: `1px solid ${COLORS.GRAY_100}`,
 }));
 
 const MenuButton = styled(IconButton)(({ theme }) => ({
-  position: "absolute",
-  top: theme.spacing(1),
-  right: theme.spacing(1),
-  zIndex: 1000,
+  position: "fixed",
+  top: theme.spacing(9),
+  left: theme.spacing(1),
+  zIndex: 1100,
   backgroundColor: COLORS.WHITE,
+  boxShadow: theme.shadows[2],
   "&:hover": {
     backgroundColor: COLORS.GRAY_50,
   },
+  [theme.breakpoints.up("md")]: {
+    display: "none",
+  },
 }));
-
 const GeContainer = styled("div")(({ theme }) => ({
-  width: "350px",
+  width: "300px",
+  marginRight: "40px",
   height: "100%",
   borderRight: `1px solid ${COLORS.GRAY_100}`,
   backgroundColor: COLORS.WHITE,
+  display: "flex",
+  flexDirection: "column",
+  flexShrink: 0,
   [theme.breakpoints.down("md")]: {
-    width: "250px",
+    width: "280px",
   },
   [theme.breakpoints.down("sm")]: {
-    width: "100%",
-    height: "auto",
-    borderRight: "none",
-    borderBottom: `1px solid ${COLORS.GRAY_100}`,
+    width: "240px",
   },
 }));
 
-const CategoryContainer = styled("div")({
+const CategoryContainer = styled("div")(({ theme }) => ({
   height: "100%",
   backgroundColor: COLORS.WHITE,
   display: "flex",
   flexDirection: "column",
-  overflowY: "scroll",
-  msOverflowStyle: "none",
-  scrollbarWidth: "none",
+  overflowY: "auto",
   "&::-webkit-scrollbar": {
-    display: "none",
+    width: "8px",
   },
-});
-
+  "&::-webkit-scrollbar-track": {
+    backgroundColor: COLORS.GRAY_50,
+    borderRadius: "4px",
+  },
+  "&::-webkit-scrollbar-thumb": {
+    backgroundColor: COLORS.GRAY_300,
+    borderRadius: "4px",
+    "&:hover": {
+      backgroundColor: COLORS.GRAY_400,
+    },
+  },
+  scrollbarWidth: "thin",
+  scrollbarColor: `${COLORS.GRAY_300} ${COLORS.GRAY_50}`,
+}));
 const CourseContainer = styled("div")(({ theme }) => ({
   flex: 1,
   height: "100%",
   display: "flex",
   flexDirection: "column",
   backgroundColor: COLORS.WHITE,
+  minWidth: 0,
+  [theme.breakpoints.down("md")]: {
+    width: "100%",
+  },
   [theme.breakpoints.down("sm")]: {
-    height: "calc(100% - 60px)",
+    height: "100%",
   },
 }));
-
 const HeaderContainer = styled("div")(({ theme }) => ({
   display: "flex",
-  alignItems: "flex-start",
+  alignItems: "center",
   justifyContent: "space-between",
   padding: theme.spacing(2, 3),
   borderBottom: `1px solid ${COLORS.GRAY_50}`,
   backgroundColor: COLORS.WHITE,
+  flexWrap: "wrap",
+  gap: theme.spacing(1),
   [theme.breakpoints.down("sm")]: {
-    padding: theme.spacing(2),
+    padding: theme.spacing(1),
     flexDirection: "column",
-    gap: theme.spacing(2),
+    alignItems: "stretch",
   },
 }));
 
 const CourseListWrapper = styled("div")(({ theme }) => ({
   flex: 1,
   overflowY: "auto",
+  width: "100%",
+  minHeight: 0,
   "&::-webkit-scrollbar": {
     width: "8px",
   },
@@ -128,16 +160,18 @@ const CourseList = styled("div")(({ theme }) => ({
   display: "flex",
   flexDirection: "column",
   gap: theme.spacing(2),
+  width: "100%",
+  maxWidth: "100%",
+  boxSizing: "border-box",
 }));
-
 const SearchSection = styled("div")(({ theme }) => ({
   display: "flex",
   flexDirection: "column",
   flex: 1,
   marginRight: theme.spacing(2),
   [theme.breakpoints.down("sm")]: {
-    width: "100%",
-    marginRight: 0,
+    width: "auto",
+    marginLeft: "12%",
   },
 }));
 
@@ -180,12 +214,13 @@ const ExpandButton = styled(Button)(({ theme }) => ({
   [theme.breakpoints.down("sm")]: {
     flex: 1,
     minWidth: "120px",
-    marginRight: theme.spacing(1),
+    marginLeft: theme.spacing(1),
+    marginRight: theme.spacing(2),
   },
 }));
 
 const StyledSelect = styled(Select<string>)(({ theme }) => ({
-  minWidth: 140,
+  minWidth: "120px",
   backgroundColor: COLORS.GRAY_50,
   "& .MuiOutlinedInput-input": {
     paddingTop: 8,
@@ -193,11 +228,6 @@ const StyledSelect = styled(Select<string>)(({ theme }) => ({
   },
   "& .MuiSelect-select:focus": {
     backgroundColor: "transparent",
-  },
-  [theme.breakpoints.down("sm")]: {
-    flex: 1,
-    minWidth: "calc(50% - 8px)", // Adjust width to fit in the row
-    marginBottom: theme.spacing(1),
   },
 }));
 
@@ -275,7 +305,10 @@ const GeSearch = () => {
   >(new Map());
   const isAllExpanded = React.useRef(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [mobileFilterOpen, setMobileFilterOpen] = useState(false);
+
   const isSmallScreen = useMediaQuery(theme.breakpoints.down("sm"));
+  const isMediumScreen = useMediaQuery(theme.breakpoints.down("md"));
 
   const { data: courses, isLoading: isFetchLoading } = useCourseData();
 
@@ -351,30 +384,103 @@ const GeSearch = () => {
 
   return (
     <Root>
-      {isSmallScreen && (
-        <MenuButton onClick={() => setMobileMenuOpen(!mobileMenuOpen)}>
-          {mobileMenuOpen ? <CloseIcon /> : <MenuIcon />}
-        </MenuButton>
+      <MenuButton
+        onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+        aria-label="Toggle Categories"
+      >
+        <MenuIcon />
+      </MenuButton>
+
+      {isSmallScreen || isMediumScreen ? (
+        <Drawer
+          anchor="left"
+          open={mobileMenuOpen}
+          onClose={() => setMobileMenuOpen(false)}
+          sx={{
+            "& .MuiDrawer-paper": {
+              width: 240,
+              boxSizing: "border-box",
+            },
+          }}
+        >
+          <DrawerHeader>
+            <Typography variant="subtitle1" fontWeight="medium">
+              Categories
+            </Typography>
+            <IconButton onClick={() => setMobileMenuOpen(false)}>
+              <CloseIcon />
+            </IconButton>
+          </DrawerHeader>
+          <CategoryContainer>
+            <CategorySidebar
+              selectedCategory={selectedGE}
+              onCategorySelect={handleCategorySelect}
+            />
+          </CategoryContainer>
+        </Drawer>
+      ) : (
+        <GeContainer>
+          <CategoryContainer>
+            <CategorySidebar
+              selectedCategory={selectedGE}
+              onCategorySelect={handleCategorySelect}
+            />
+          </CategoryContainer>
+        </GeContainer>
       )}
 
-      <GeContainer
-        sx={{
-          display: isSmallScreen && !mobileMenuOpen ? "none" : "block",
-        }}
+      <Dialog
+        open={mobileFilterOpen}
+        onClose={() => setMobileFilterOpen(false)}
+        fullWidth
+        maxWidth="xs"
       >
-        <CategoryContainer>
-          <CategorySidebar
-            selectedCategory={selectedGE}
-            onCategorySelect={handleCategorySelect}
-          />
-        </CategoryContainer>
-      </GeContainer>
-
-      <CourseContainer
-        sx={{
-          display: isSmallScreen && mobileMenuOpen ? "none" : "flex",
-        }}
-      >
+        <DialogTitle>
+          Filter and Sort
+          <IconButton
+            aria-label="close"
+            onClick={() => setMobileFilterOpen(false)}
+            sx={{ position: "absolute", right: 8, top: 8 }}
+          >
+            <CloseIcon />
+          </IconButton>
+        </DialogTitle>
+        <DialogContent>
+          <ControlsContainer sx={{ flexDirection: "column", gap: 2 }}>
+            <StyledSelect
+              fullWidth
+              value={sortBy}
+              onChange={(e: SelectChangeEvent) => {
+                setSortBy(e.target.value);
+                setMobileFilterOpen(false);
+              }}
+              startAdornment={<Sort />}
+            >
+              <MenuItem value="GPA">GPA (High to Low)</MenuItem>
+              <MenuItem value="NAME">Title (A-Z)</MenuItem>
+              <MenuItem value="CODE">Code (A-Z)</MenuItem>
+            </StyledSelect>
+            <StyledSelect
+              fullWidth
+              value={filterBy}
+              onChange={(e: SelectChangeEvent) => {
+                setFilterBy(e.target.value);
+                setMobileFilterOpen(false);
+              }}
+              startAdornment={<FilterAltIcon />}
+            >
+              <MenuItem value="All">All</MenuItem>
+              <MenuItem value="In Person">In Person</MenuItem>
+              <MenuItem value="Hybrid">Hybrid</MenuItem>
+              <MenuItem value="Synchronous Online">Synchronous Online</MenuItem>
+              <MenuItem value="Asynchronous Online">
+                Asynchronous Online
+              </MenuItem>
+            </StyledSelect>
+          </ControlsContainer>
+        </DialogContent>
+      </Dialog>
+      <CourseContainer>
         <HeaderContainer>
           <SearchSection>
             <StyledTextField
@@ -394,50 +500,94 @@ const GeSearch = () => {
             />
             <Typography
               variant="caption"
-              sx={{ color: "text.secondary", mt: 0.5, fontSize: "0.75rem" }}
+              sx={{
+                color: "text.secondary",
+                mt: 0.5,
+                fontSize: "0.75rem",
+                display: isSmallScreen ? "none" : "block",
+              }}
             >
               {lastUpdated ?? "Loading..."}
             </Typography>
           </SearchSection>
 
           <ControlsContainer>
-            <ExpandButton
-              variant="outlined"
-              color="primary"
-              onClick={handleExpandAll}
-              startIcon={
-                isAllExpanded.current ? <ExpandLessIcon /> : <ExpandMoreIcon />
-              }
-            >
-              <Typography variant={isSmallScreen ? "body2" : "subtitle2"}>
-                {isAllExpanded.current ? "Collapse" : "Expand"}{" "}
-                {!isSmallScreen && "All"}
-              </Typography>
-            </ExpandButton>
-            <StyledSelect
-              value={sortBy}
-              onChange={(e: SelectChangeEvent) => setSortBy(e.target.value)}
-              variant="outlined"
-              startAdornment={<Sort />}
-            >
-              <MenuItem value="GPA">GPA (High to Low)</MenuItem>
-              <MenuItem value="NAME">Title (A-Z)</MenuItem>
-              <MenuItem value="CODE">Code (A-Z)</MenuItem>
-            </StyledSelect>
-            <StyledSelect
-              value={filterBy}
-              onChange={(e: SelectChangeEvent) => setFilterBy(e.target.value)}
-              variant="outlined"
-              startAdornment={<FilterAltIcon />}
-            >
-              <MenuItem value="All">All</MenuItem>
-              <MenuItem value="In Person">In Person</MenuItem>
-              <MenuItem value="Hybrid">Hybrid</MenuItem>
-              <MenuItem value="Synchronous Online">Synchronous Online</MenuItem>
-              <MenuItem value="Asynchronous Online">
-                Asynchronous Online
-              </MenuItem>
-            </StyledSelect>
+            {isSmallScreen ? (
+              <>
+                <Button
+                  variant="outlined"
+                  color="primary"
+                  onClick={() => setMobileFilterOpen(true)}
+                  startIcon={<FilterAltIcon />}
+                  sx={{
+                    marginLeft: theme.spacing(1),
+                    marginRight: theme.spacing(2),
+                  }}
+                  fullWidth
+                >
+                  Filter & Sort
+                </Button>
+                <ExpandButton
+                  variant="outlined"
+                  color="primary"
+                  onClick={handleExpandAll}
+                  startIcon={
+                    isAllExpanded.current ? (
+                      <ExpandLessIcon />
+                    ) : (
+                      <ExpandMoreIcon />
+                    )
+                  }
+                  fullWidth
+                >
+                  {isAllExpanded.current ? "Collapse" : "Expand"}
+                </ExpandButton>
+              </>
+            ) : (
+              <>
+                <ExpandButton
+                  variant="outlined"
+                  color="primary"
+                  onClick={handleExpandAll}
+                  startIcon={
+                    isAllExpanded.current ? (
+                      <ExpandLessIcon />
+                    ) : (
+                      <ExpandMoreIcon />
+                    )
+                  }
+                >
+                  {isAllExpanded.current ? "Collapse" : "Expand"}{" "}
+                  {isMediumScreen ? "" : "All"}
+                </ExpandButton>
+                <StyledSelect
+                  value={sortBy}
+                  onChange={(e: SelectChangeEvent) => setSortBy(e.target.value)}
+                  startAdornment={<Sort />}
+                >
+                  <MenuItem value="GPA">GPA (High to Low)</MenuItem>
+                  <MenuItem value="NAME">Title (A-Z)</MenuItem>
+                  <MenuItem value="CODE">Code (A-Z)</MenuItem>
+                </StyledSelect>
+                <StyledSelect
+                  value={filterBy}
+                  onChange={(e: SelectChangeEvent) =>
+                    setFilterBy(e.target.value)
+                  }
+                  startAdornment={<FilterAltIcon />}
+                >
+                  <MenuItem value="All">All</MenuItem>
+                  <MenuItem value="In Person">In Person</MenuItem>
+                  <MenuItem value="Hybrid">Hybrid</MenuItem>
+                  <MenuItem value="Synchronous Online">
+                    Synchronous Online
+                  </MenuItem>
+                  <MenuItem value="Asynchronous Online">
+                    Asynchronous Online
+                  </MenuItem>
+                </StyledSelect>
+              </>
+            )}
           </ControlsContainer>
         </HeaderContainer>
 
