@@ -13,6 +13,9 @@ import {
   Paper,
   Chip,
 } from "@mui/material";
+import RateReviewIcon from "@mui/icons-material/RateReview";
+import CancelIcon from "@mui/icons-material/Cancel";
+import EqualizerIcon from "@mui/icons-material/Equalizer";
 import Grid from "@mui/material/Grid";
 import {
   ContentCopy as ContentCopyIcon,
@@ -25,6 +28,7 @@ import {
   Category as CategoryIcon,
   Grade as GradeIcon,
   Star as StarIcon,
+  RadioButtonChecked,
 } from "@mui/icons-material";
 import { useTheme } from "@mui/material/styles";
 import {
@@ -241,8 +245,9 @@ export const CourseCard = ({
                     {rmpData?.num_ratings != undefined && (
                       <ReviewCountChip
                         disableRipple
+                        icon={<RateReviewIcon color="inherit" />}
                         label={`${rmpData?.num_ratings} ${
-                          rmpData?.num_ratings === 1 ? "review" : "reviews"
+                          rmpData?.num_ratings > 1 ? "reviews" : "review"
                         }`}
                         onClick={handleOpenModal}
                         size="small"
@@ -283,7 +288,7 @@ export const CourseCard = ({
                 <GradeChip
                   grade={Number(avgGPA)}
                   icon={
-                    <GradeIcon sx={{ fontSize: 16, color: COLORS.WHITE }} />
+                    <EqualizerIcon sx={{ fontSize: 16, color: COLORS.WHITE }} />
                   }
                   label={`${
                     !isSmallScreen ? "Average Grade:" : ""
@@ -301,7 +306,7 @@ export const CourseCard = ({
               </Tooltip>
             ) : (
               <StyledChip
-                icon={<GradeIcon sx={{ fontSize: 16, color: COLORS.WHITE }} />}
+                icon={<CancelIcon sx={{ fontSize: 16, color: COLORS.WHITE }} />}
                 label={isSmallScreen ? "No GPA" : "No GPA information"}
                 size="small"
                 sx={{
@@ -377,6 +382,9 @@ export const CourseCard = ({
                   <Typography variant="body2" noWrap>
                     {course.class_count} enrolled
                   </Typography>
+                  <Tooltip title="Updated every 5 minutes">
+                  <RadioButtonChecked sx={{ fontSize: 18 }} color="error" />
+                  </Tooltip>
                 </Box>
               </Grid>
               <Grid item xs={6}>

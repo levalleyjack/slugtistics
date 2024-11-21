@@ -69,7 +69,7 @@ const GeContainer = styled('div')(({ theme }) => ({
   width: "300px",
   marginRight: "40px",
   height: "100%",
-  backgroundColor: COLORS.SECONDARY,
+  backgroundColor: COLORS.WHITE,
   display: "flex",
   flexDirection: "column",
   flexShrink: 0,
@@ -509,6 +509,7 @@ const GeSearch = () => {
                 fontSize: "0.75rem",
                 display: isSmallScreen ? "none" : "block",
               }}
+              
             >
               {lastUpdated ?? "Loading..."}
             </Typography>
