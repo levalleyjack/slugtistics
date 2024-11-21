@@ -73,7 +73,7 @@ const GeContainer = styled("div")(({ theme }) => ({
   backgroundColor: COLORS.WHITE,
   display: "flex",
   flexDirection: "column",
-  flexShrink: 0, 
+  flexShrink: 0,
   [theme.breakpoints.down("md")]: {
     width: "280px",
   },
@@ -111,9 +111,9 @@ const CourseContainer = styled("div")(({ theme }) => ({
   display: "flex",
   flexDirection: "column",
   backgroundColor: COLORS.WHITE,
-  minWidth: 0, 
+  minWidth: 0,
   [theme.breakpoints.down("md")]: {
-    width: "100%", 
+    width: "100%",
   },
   [theme.breakpoints.down("sm")]: {
     height: "100%",
@@ -139,7 +139,7 @@ const CourseListWrapper = styled("div")(({ theme }) => ({
   flex: 1,
   overflowY: "auto",
   width: "100%",
-  minHeight: 0, 
+  minHeight: 0,
   "&::-webkit-scrollbar": {
     width: "8px",
   },
@@ -160,9 +160,9 @@ const CourseList = styled("div")(({ theme }) => ({
   display: "flex",
   flexDirection: "column",
   gap: theme.spacing(2),
-  width: "100%", 
-  maxWidth: "100%", 
-  boxSizing: "border-box", 
+  width: "100%",
+  maxWidth: "100%",
+  boxSizing: "border-box",
 }));
 const SearchSection = styled("div")(({ theme }) => ({
   display: "flex",
@@ -391,7 +391,7 @@ const GeSearch = () => {
         <MenuIcon />
       </MenuButton>
 
-      {isSmallScreen ? (
+      {isSmallScreen || isMediumScreen ? (
         <Drawer
           anchor="left"
           open={mobileMenuOpen}
