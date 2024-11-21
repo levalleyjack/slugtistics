@@ -71,7 +71,7 @@ University of California, Santa Cruz. Slugtistics is a project created by a UCSC
 1. Run Frontend
    ```sh
    cd frontend
-   npm start
+   npm run dev
    ```
    You will need to change the "route" variable the localhost in Homepage.js to interact with the local backend.
       ```sh
@@ -84,7 +84,7 @@ University of California, Santa Cruz. Slugtistics is a project created by a UCSC
    ```
 3. Navigate to webpage
    ```sh
-   http://localhost:3000/
+   http://localhost:5173
    ```
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
