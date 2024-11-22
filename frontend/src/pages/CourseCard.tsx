@@ -19,7 +19,6 @@ import EqualizerIcon from "@mui/icons-material/Equalizer";
 import Grid from "@mui/material/Grid";
 import {
   ContentCopy as ContentCopyIcon,
-  ExpandMore as ExpandMoreIcon,
   CheckCircleOutline as CheckCircleOutlineIcon,
   School as SchoolIcon,
   Person as PersonIcon,
@@ -35,10 +34,9 @@ import {
   COLORS,
   Course,
   DifficultyChipProps,
-  ExpandIconProps,
   getLetterGrade,
   GradeChipProps,
-  Rating,
+  StyledExpandIcon,
 } from "../Colors";
 import { RatingsModal } from "./RatingsModal";
 
@@ -623,11 +621,3 @@ const ActionContainer = styled(Box)(({ theme }) => ({
   flexShrink: 0,
 }));
 
-const StyledExpandIcon = styled(ExpandMoreIcon, {
-  shouldForwardProp: (prop) => prop !== "expanded",
-})<ExpandIconProps>(({ theme, expanded }) => ({
-  transform: expanded ? "rotate(180deg)" : "rotate(0deg)",
-  transition: theme.transitions.create("transform", {
-    duration: theme.transitions.duration.shortest,
-  }),
-}));

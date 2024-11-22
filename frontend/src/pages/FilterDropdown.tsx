@@ -16,7 +16,7 @@ import {
   SelectProps,
 } from "@mui/material";
 import FilterAltIcon from "@mui/icons-material/FilterAlt";
-import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
+import { StyledExpandIcon } from "../Colors";
 
 const StyledFormControl = styled(FormControl)(({ theme }) => ({
   width: "100%",
@@ -91,6 +91,8 @@ const MenuProps: SelectProps["MenuProps"] = {
   },
 };
 
+
+
 const classTypeOptions = [
   "In Person",
   "Hybrid",
@@ -143,7 +145,7 @@ const FilterDropdown: React.FC<FilterDropdownProps> = ({
         onClick={handleClick}
         variant="outlined"
         startIcon={<FilterAltIcon />}
-        endIcon={<KeyboardArrowDownIcon />}
+        endIcon={<StyledExpandIcon expanded={open} />}
         disableRipple
       >
         {getButtonLabel()}

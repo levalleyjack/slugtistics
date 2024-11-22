@@ -15,7 +15,9 @@ import CreateIcon from "@mui/icons-material/Create";
 import RateReviewIcon from "@mui/icons-material/RateReview";
 import AppsIcon from "@mui/icons-material/Apps";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
-import { ChipProps } from "@mui/material";
+import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
+
+import { ChipProps, styled } from "@mui/material";
 export const COLORS = {
   WHITE: "#ffffff",
   BLACK: "#000000",
@@ -50,7 +52,14 @@ export interface GradeChipProps extends ChipProps {
 export interface DifficultyChipProps extends ChipProps {
   difficulty: number;
 }
-
+export const StyledExpandIcon = styled(KeyboardArrowDownIcon)<{ expanded: boolean }>(
+  ({ theme, expanded }) => ({
+    transform: expanded ? "rotate(180deg)" : "rotate(0deg)",
+    transition: theme.transitions.create("transform", {
+      duration: theme.transitions.duration.shortest,
+    }),
+  })
+);
 export interface Course {
   id: any;
   code: string;

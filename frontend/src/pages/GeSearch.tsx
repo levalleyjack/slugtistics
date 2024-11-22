@@ -12,11 +12,11 @@ import {
   Grid2,
 } from "@mui/material";
 import SearchIcon from "@mui/icons-material/Search";
-import { COLORS, Course } from "../Colors";
+import { COLORS, Course, StyledExpandIcon } from "../Colors";
 import React, { useState, useCallback, useMemo } from "react";
 import { useMediaQuery } from "@mui/material";
 import MenuIcon from "@mui/icons-material/Menu";
-import ArrowBackIcon from '@mui/icons-material/ArrowBack';
+import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import { useQuery } from "@tanstack/react-query";
 import { useCourseData } from "./GetGEData";
 import { CourseCard } from "./CourseCard";
@@ -246,43 +246,37 @@ const filterBySort = (
   selectedEnrollmentStatuses: string[],
   currentCourses: Course[]
 ): Course[] => {
-  if (!currentCourses) return [];
+  if (!currentCourses || currentCourses.length === 0) return [];
 
-  let filteredCourses = currentCourses;
-
-  if (selectedClassTypes.length > 0) {
-    filteredCourses = filteredCourses.filter((course) =>
-      selectedClassTypes.includes(course.class_type)
-    );
-  }
-
-  if (selectedEnrollmentStatuses.length > 0) {
-    filteredCourses = filteredCourses.filter((course) =>
-      selectedEnrollmentStatuses.includes(course.class_status)
-    );
-  }
-
-  const sortedCourses = [...filteredCourses];
+  const filteredCourses = currentCourses.filter((course) => {
+    const matchType =
+      selectedClassTypes.length === 0 ||
+      selectedClassTypes.includes(course.class_type);
+    const matchStatus =
+      selectedEnrollmentStatuses.length === 0 ||
+      selectedEnrollmentStatuses.includes(course.class_status);
+    return matchType && matchStatus;
+  });
 
   switch (sortBy) {
     case "GPA":
-      sortedCourses.sort((a, b) => {
-        if (b.gpa === "N/A") return -1;
-        if (a.gpa === "N/A") return 1;
-        return parseFloat(b.gpa) - parseFloat(a.gpa);
+      return filteredCourses.sort((a, b) => {
+        const gpaA = a.gpa === "N/A" ? -Infinity : parseFloat(a.gpa);
+        const gpaB = b.gpa === "N/A" ? -Infinity : parseFloat(b.gpa);
+        return gpaB - gpaA;
       });
-      break;
+
     case "NAME":
-      sortedCourses.sort((a, b) => a.name.localeCompare(b.name));
-      break;
+      return filteredCourses.sort((a, b) => a.name.localeCompare(b.name));
+
     case "CODE":
-      sortedCourses.sort((a, b) =>
+      return filteredCourses.sort((a, b) =>
         a.code.localeCompare(b.code, undefined, { numeric: true })
       );
-      break;
-  }
 
-  return sortedCourses;
+    default:
+      return filteredCourses;
+  }
 };
 
 const GeSearch = () => {
@@ -476,11 +470,7 @@ const GeSearch = () => {
                   color="primary"
                   onClick={handleExpandAll}
                   startIcon={
-                    isAllExpanded.current ? (
-                      <ExpandLessIcon />
-                    ) : (
-                      <ExpandMoreIcon />
-                    )
+                    <StyledExpandIcon expanded={isAllExpanded.current} />
                   }
                   fullWidth
                 >
@@ -502,11 +492,7 @@ const GeSearch = () => {
                   color="primary"
                   onClick={handleExpandAll}
                   endIcon={
-                    isAllExpanded.current ? (
-                      <ExpandLessIcon />
-                    ) : (
-                      <ExpandMoreIcon />
-                    )
+                    <StyledExpandIcon expanded={isAllExpanded.current} />
                   }
                 >
                   {isAllExpanded.current ? "Collapse" : "Expand"}{" "}
