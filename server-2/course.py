@@ -1,5 +1,5 @@
 class Course:
-    def __init__(self,ge,code, name, instructor, link, class_count, enroll_num,class_type,schedule, location):
+    def __init__(self,ge,code, name, instructor, link, class_count, enroll_num,class_type,schedule, location, class_status):
         self.ge = ge
         self.code=code
         self.name = name
@@ -10,6 +10,7 @@ class Course:
         self.class_type = class_type
         self.schedule=schedule
         self.location=location
+        self.class_status = class_status
 
     
 

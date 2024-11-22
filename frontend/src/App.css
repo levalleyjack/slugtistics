@@ -5,13 +5,23 @@ body {
 }
 @font-face {
   font-family: 'Geist';
-  src: url('../../public/Geist[wght].woff2') format('woff2'),
+  src: url('../../Geist[wght].woff2') format('woff2'),
        url('/fonts/mycustomfont.woff') format('woff'),
        url('/fonts/mycustomfont.ttf') format('truetype');
   font-weight: normal;
   font-style: normal;
 }
-
+body {
+  font-family: var(--font-geist);
+}
+.MuiTypography-root,
+.MuiButton-root,
+.MuiChip-root {
+  font-family: var(--font-geist) !important;
+}
+:root {
+  --font-geist: 'Geist', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+}
 :root {
   --primary-color: #11141b;
   --secondary-color: #1f2937;

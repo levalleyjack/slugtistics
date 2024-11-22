@@ -16,7 +16,10 @@ import {
   InputLabel,
   SelectChangeEvent,
   Grid,
+  useTheme,
+  useMediaQuery,
 } from "@mui/material";
+import OutlinedFlagIcon from "@mui/icons-material/OutlinedFlag";
 import { styled } from "@mui/material/styles";
 import he from "he";
 import {
@@ -26,11 +29,11 @@ import {
   School as SchoolIcon,
   Search as SearchIcon,
   Close as CloseIcon,
+  LocalOffer as TagIcon,
 } from "@mui/icons-material";
 import { Rating } from "../Colors";
 
 //Type Definitions
-
 interface RatingsModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -61,6 +64,11 @@ const ModalContent = styled(Paper)(({ theme }) => ({
   display: "flex",
   flexDirection: "column",
   backgroundColor: theme.palette.background.default,
+  [theme.breakpoints.down("sm")]: {
+    maxHeight: "100vh",
+    height: "100%",
+    borderRadius: 0,
+  },
 }));
 
 const StatCard = styled(Card)(({ theme }) => ({
@@ -70,6 +78,20 @@ const StatCard = styled(Card)(({ theme }) => ({
     display: "flex",
     flexDirection: "column",
     justifyContent: "center",
+    padding: theme.spacing(2),
+    [theme.breakpoints.down("sm")]: {
+      padding: theme.spacing(1),
+    },
+  },
+}));
+
+const ResponsiveStack = styled(Stack)(({ theme }) => ({
+  [theme.breakpoints.down("sm")]: {
+    flexDirection: "column",
+    "& > *": {
+      marginBottom: theme.spacing(2),
+      marginRight: 0,
+    },
   },
 }));
 
@@ -91,6 +113,8 @@ export const RatingsModal: React.FC<RatingsModalProps> = ({
   ratings = [],
   currentClass,
 }) => {
+  const theme = useTheme();
+  const isSmallScreen = useMediaQuery(theme.breakpoints.down("sm"));
   const [sortBy, setSortBy] = useState<SortOptions>("date");
   const [filterBy, setFilterBy] = useState<string>(() => {
     if (!ratings || currentClass === "all") return "all";
@@ -156,7 +180,13 @@ export const RatingsModal: React.FC<RatingsModalProps> = ({
   return (
     <StyledModal open={isOpen} onClose={onClose}>
       <ModalContent>
-        <Box sx={{ p: 2, borderBottom: 1, borderColor: "divider" }}>
+        <Box
+          sx={{
+            p: isSmallScreen ? 1 : 2,
+            borderBottom: 1,
+            borderColor: "divider",
+          }}
+        >
           <Box
             sx={{
               display: "flex",
@@ -165,26 +195,33 @@ export const RatingsModal: React.FC<RatingsModalProps> = ({
             }}
           >
             <Box>
-              <Typography variant="h5" component="h2" fontWeight="bold">
+              <Typography
+                variant={isSmallScreen ? "h6" : "h5"}
+                component="h2"
+                fontWeight="bold"
+              >
                 {professorName}'s Ratings
               </Typography>
               <Typography variant="body2" color="text.secondary">
                 Recent {ratings.length} reviews
               </Typography>
             </Box>
-            <IconButton onClick={onClose} size="large">
+            <IconButton
+              onClick={onClose}
+              size={isSmallScreen ? "medium" : "large"}
+            >
               <CloseIcon />
             </IconButton>
           </Box>
         </Box>
 
-        <Box sx={{ flexGrow: 1, overflow: "auto", p: 2 }}>
-          <Grid container spacing={2}>
+        <Box sx={{ flexGrow: 1, overflow: "auto", p: isSmallScreen ? 1 : 2 }}>
+          <Grid container spacing={isSmallScreen ? 1 : 2}>
             <Grid item xs={6} md={3}>
               <StatCard>
                 <CardContent>
                   <Typography
-                    variant="h4"
+                    variant={isSmallScreen ? "h5" : "h4"}
                     color="success.main"
                     fontWeight="bold"
                   >
@@ -200,7 +237,7 @@ export const RatingsModal: React.FC<RatingsModalProps> = ({
               <StatCard>
                 <CardContent>
                   <Typography
-                    variant="h4"
+                    variant={isSmallScreen ? "h5" : "h4"}
                     color="primary.main"
                     fontWeight="bold"
                   >
@@ -216,7 +253,7 @@ export const RatingsModal: React.FC<RatingsModalProps> = ({
               <StatCard>
                 <CardContent>
                   <Typography
-                    variant="h4"
+                    variant={isSmallScreen ? "h5" : "h4"}
                     color="warning.main"
                     fontWeight="bold"
                   >
@@ -232,7 +269,7 @@ export const RatingsModal: React.FC<RatingsModalProps> = ({
               <StatCard>
                 <CardContent>
                   <Typography
-                    variant="h4"
+                    variant={isSmallScreen ? "h5" : "h4"}
                     color="secondary.main"
                     fontWeight="bold"
                   >
@@ -247,8 +284,8 @@ export const RatingsModal: React.FC<RatingsModalProps> = ({
           </Grid>
 
           {/* Filters */}
-          <Paper sx={{ p: 2, mb: 3 }}>
-            <Grid container spacing={2}>
+          <Paper sx={{ p: isSmallScreen ? 1 : 2, mb: isSmallScreen ? 2 : 3 }}>
+            <Grid container spacing={isSmallScreen ? 1 : 2}>
               <Grid item xs={12} md={6}>
                 <TextField
                   fullWidth
@@ -263,7 +300,10 @@ export const RatingsModal: React.FC<RatingsModalProps> = ({
                 />
               </Grid>
               <Grid item xs={12} md={6}>
-                <Stack direction="row" spacing={2}>
+                <ResponsiveStack
+                  direction={isSmallScreen ? "column" : "row"}
+                  spacing={2}
+                >
                   <FormControl fullWidth>
                     <InputLabel>Sort By</InputLabel>
                     <Select
@@ -301,15 +341,19 @@ export const RatingsModal: React.FC<RatingsModalProps> = ({
                         ?.filter(isUnique)}
                     </Select>
                   </FormControl>
-                </Stack>
+                </ResponsiveStack>
               </Grid>
             </Grid>
           </Paper>
 
-          <Stack spacing={2}>
+          <Stack spacing={isSmallScreen ? 1 : 2}>
             {processedRatings?.map((rating, index) => (
-              <Paper key={index} sx={{ p: 3 }}>
-                <Grid container style={{ paddingBottom: 10 }}>
+              <Paper key={index} sx={{ p: isSmallScreen ? 2 : 3 }}>
+                <Grid
+                  container
+                  spacing={isSmallScreen ? 1 : 2}
+                  sx={{ pb: isSmallScreen ? 1 : 2 }}
+                >
                   <Grid item xs={12} sm={4}>
                     <Stack direction="row" alignItems="center" spacing={1}>
                       <GlassesIcon
@@ -363,11 +407,12 @@ export const RatingsModal: React.FC<RatingsModalProps> = ({
                 <Typography sx={{ mb: 2 }}>
                   {he.decode(rating.comment)}
                 </Typography>
-                <Stack direction="row" spacing={1} sx={{ mb: 2 }}>
+
+                <Box sx={{ mb: 2, display: "flex", flexWrap: "wrap", gap: 1 }}>
                   {rating.is_online && (
                     <Chip label="Online" color="primary" variant="outlined" />
                   )}
-                  {rating.attendance_mandatory == "mandatory" && (
+                  {rating.attendance_mandatory === "mandatory" && (
                     <Chip
                       label="Attendance Required"
                       color="secondary"
@@ -381,16 +426,36 @@ export const RatingsModal: React.FC<RatingsModalProps> = ({
                       variant="outlined"
                     />
                   )}
-                </Stack>
+                  {!(rating?.tags === "") &&
+                    rating.tags?.split("--").map((tag, tagIndex) => (
+                      <Chip
+                        key={tagIndex}
+                        label={tag}
+                        size="small"
+                        icon={<TagIcon />}
+                        sx={{
+                          "& .MuiChip-icon": {
+                            fontSize: "0.8rem",
+                          },
+                        }}
+                      />
+                    ))}
+                </Box>
 
                 <Box
                   sx={{
                     display: "flex",
                     justifyContent: "space-between",
                     alignItems: "center",
+                    flexWrap: isSmallScreen ? "wrap" : "nowrap",
+                    gap: 1,
                   }}
                 >
-                  <Stack direction="row" spacing={2} alignItems="center">
+                  <Stack
+                    direction={isSmallScreen ? "column" : "row"}
+                    spacing={isSmallScreen ? 0.5 : 2}
+                    alignItems={isSmallScreen ? "flex-start" : "center"}
+                  >
                     <Stack direction="row" spacing={0.5} alignItems="center">
                       <SchoolIcon
                         sx={{ fontSize: 16, color: "text.secondary" }}
@@ -403,17 +468,24 @@ export const RatingsModal: React.FC<RatingsModalProps> = ({
                       {new Date(rating.date).toLocaleDateString()}
                     </Typography>
                   </Stack>
-                  <Stack direction="row" spacing={1} alignItems="center">
-                    <Typography variant="body2" color="text.secondary">
-                      {rating.createdByUser}
-                    </Typography>
-                    {rating.flag_status !== "UNFLAGGED" && (
-                      <Chip label="Flagged" color="error" size="small" />
-                    )}
-                  </Stack>
+                  {rating.flag_status !== "UNFLAGGED" && (
+                    <Chip
+                      icon={<OutlinedFlagIcon />}
+                      color="error"
+                      size="small"
+                      sx={{ ml: "auto" }}
+                    />
+                  )}
                 </Box>
               </Paper>
             ))}
+            {processedRatings?.length === 0 && (
+              <Paper sx={{ p: 3, textAlign: "center" }}>
+                <Typography color="text.secondary">
+                  No ratings found matching your criteria
+                </Typography>
+              </Paper>
+            )}
           </Stack>
         </Box>
       </ModalContent>
