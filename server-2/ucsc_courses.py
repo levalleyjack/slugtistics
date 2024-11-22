@@ -76,9 +76,10 @@ def process_page(driver, class_list,ge):
                 link_text = link_element.text.split("   ")
                 class_code = link_text[0].split(" - ")[0]
                 class_name = link_text[1] if len(link_text) > 1 else ""
-
+                status_element = row.find_element(By.XPATH, ".//span[@class='sr-only']")
+                class_status = status_element.text if status_element else "Unknown"
                 enroll_num = get_text_safely(row, 'div.col-xs-6.col-sm-3', "Class Number: ")
-                
+                print(class_status)
                 teacher_name = get_text_safely(row, 'div.col-xs-6.col-sm-3', "Instructor: ", 1)
                 teacher_name = teacher_name.split(": ")[1]
                 names = teacher_name.split(",")
@@ -115,7 +116,8 @@ def process_page(driver, class_list,ge):
                     enroll_num=enroll_num,
                     class_type=class_type,
                     schedule=schedule,
-                    location=location
+                    location=location,
+                    class_status=class_status.lower()
                 ))
 
             except Exception as e:
@@ -142,6 +144,12 @@ def scrape_courses(ge_choice):
         term_dropdown = wait_for_element(driver, By.ID, 'term_dropdown')
         selected_option = term_dropdown.find_element(By.CSS_SELECTOR, 'option:checked')
         print(f"Current Quarter: {selected_option.text}")
+        class_dropdown = wait_for_element(driver, By.ID, 'reg_status')
+        class_dropdown.click()
+        class_option = wait_for_element(driver, By.XPATH, f"//option[@value='all']")
+        class_option.click()
+        
+        
 
         ge_dropdown = wait_for_element(driver, By.ID, 'ge')
         ge_dropdown.click()

@@ -65,6 +65,7 @@ export interface Course {
   location: string;
   gpa: string;
   instructor_ratings: any;
+  class_status:string;
 }
 
 export interface RMPResponse {

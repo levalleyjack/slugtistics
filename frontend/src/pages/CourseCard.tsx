@@ -63,7 +63,6 @@ export const CourseCard = ({
     gpa: avgGPA,
     instructor_ratings: rmpData,
   } = course;
-  console.log(course);
 
   const handleExpandClick = () => onExpandChange(course.code);
   const handleOpenModal = (e: React.MouseEvent) => {
@@ -294,7 +293,7 @@ export const CourseCard = ({
                     !isSmallScreen ? "Average Grade:" : ""
                   } ${getLetterGrade(avgGPA)}`}
                   size="small"
-                  sx={{
+                  sx={{ 
                     height: "28px",
                     fontWeight: 600,
                     boxShadow: "0 2px 8px rgba(0, 0, 0, 0.15)",
@@ -532,7 +531,7 @@ const ReviewCountChip = styled(Chip)(({ theme }) => ({
     rgba(255, 255, 255, 0.9) 0%,
     rgba(255, 255, 255, 0.7) 100%)`,
   backdropFilter: "blur(8px)",
-  border: `1px solid ${theme.palette.primary.dark}`,
+  border: `1.5px solid ${theme.palette.primary.dark}`,
   color: theme.palette.primary.main,
   fontWeight: 500,
   height: "24px",

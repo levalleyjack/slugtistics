@@ -65,7 +65,7 @@ const MenuButton = styled(IconButton)(({ theme }) => ({
     display: "none",
   },
 }));
-const GeContainer = styled('div')(({ theme }) => ({
+const GeContainer = styled("div")(({ theme }) => ({
   width: "300px",
   marginRight: "40px",
   height: "100%",
@@ -81,7 +81,6 @@ const GeContainer = styled('div')(({ theme }) => ({
     width: "240px",
   },
 }));
-
 
 const CategoryContainer = styled("div")(({ theme }) => ({
   height: "100%",
@@ -231,7 +230,6 @@ const StyledSelect = styled(Select<string>)(({ theme }) => ({
   "& .MuiSelect-select:focus": {
     backgroundColor: "transparent",
   },
-  
 }));
 
 const CenterContent = styled("div")({
@@ -270,9 +268,15 @@ const filterBySort = (
   const filteredCourses =
     filterBy === "All"
       ? currentCourses
-      : currentCourses.filter(
-          (course) => course.class_type.toLowerCase() === filterBy.toLowerCase()
-        );
+      : currentCourses.filter((course) => {
+          if (filterBy === "Open") {
+            return course.class_status.toLowerCase() === "open";
+          } else if (filterBy === "Closed") {
+            return course.class_status.toLowerCase() === "closed";
+          } else {
+            return course.class_type.toLowerCase() === filterBy.toLowerCase();
+          }
+        });
 
   const sortedCourses = [...filteredCourses];
 
@@ -479,6 +483,8 @@ const GeSearch = () => {
               <MenuItem value="Asynchronous Online">
                 Asynchronous Online
               </MenuItem>
+              <MenuItem value="Open">Open</MenuItem>
+              <MenuItem value="Closed">Closed</MenuItem>
             </StyledSelect>
           </ControlsContainer>
         </DialogContent>
@@ -509,7 +515,6 @@ const GeSearch = () => {
                 fontSize: "0.75rem",
                 display: isSmallScreen ? "none" : "block",
               }}
-              
             >
               {lastUpdated ?? "Loading..."}
             </Typography>
@@ -589,6 +594,8 @@ const GeSearch = () => {
                   <MenuItem value="Asynchronous Online">
                     Asynchronous Online
                   </MenuItem>
+                  <MenuItem value="Open">Open</MenuItem>
+                  <MenuItem value="Closed">Closed</MenuItem>
                 </StyledSelect>
               </>
             )}

@@ -63,6 +63,7 @@ class CourseModel(db.Model):
     gpa = db.Column(db.String(10)) 
     timestamp = db.Column(db.DateTime, default=datetime.now(tz=pytz.utc))
     instructor_ratings = db.Column(db.JSON)
+    class_status = db.Column(db.String(10))
 
 def get_slugtistics_db_connection():
     conn = sqlite3.connect(str(slugtistics_db_path))
@@ -145,6 +146,7 @@ def store_courses_in_db():
                     location=course.location,
                     gpa=course_gpa,
                     instructor_ratings=instructor_ratings,  
+                    class_status = course.class_status
                 )
                 db.session.add(new_course)
             
@@ -185,7 +187,8 @@ def get_courses_data():
                 "schedule": course.schedule,
                 "location": course.location,
                 "gpa": course.gpa,
-                "instructor_ratings":course.instructor_ratings
+                "instructor_ratings":course.instructor_ratings,
+                "class_status": course.class_status,
             })
         
         return jsonify({
