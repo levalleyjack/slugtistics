@@ -129,7 +129,6 @@ export const RatingsModal: React.FC<RatingsModalProps> = ({
     if (score >= 3) return "warning.main";
     return "error.main";
   };
-  console.log(ratings);
 
   const processedRatings = useMemo(() => {
     const filtered = ratings?.filter((rating) => {
