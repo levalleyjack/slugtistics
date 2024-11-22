@@ -136,6 +136,32 @@ export const CourseCard = ({
           variant="outlined"
           difficulty={rmpData.difficulty_level}
         />
+        {isSmallScreen && rmpData?.num_ratings != undefined && (
+          <ReviewCountChip
+            disableRipple
+            icon={<RateReviewIcon color="inherit" />}
+            label={`${rmpData?.num_ratings} ${
+              rmpData?.num_ratings > 1 ? "reviews" : "review"
+            }`}
+            onClick={handleOpenModal}
+            size="small"
+            sx={{
+              height: "24px",
+              background: (theme) => `linear-gradient(135deg,
+                            rgba(255, 255, 255, 0.9) 0%,
+                            rgba(255, 255, 255, 0.7) 100%)`,
+              backdropFilter: "blur(8px)",
+              "&:hover": {
+                background: (theme) => `linear-gradient(135deg,
+                              ${theme.palette.primary.light} 0%,
+                              ${theme.palette.primary.main} 100%)`,
+                color: "white",
+                transform: "translateY(-2px)",
+                boxShadow: "0 4px 12px rgba(0, 0, 0, 0.1)",
+              },
+            }}
+          />
+        )}
       </Box>
     );
   };
@@ -241,7 +267,7 @@ export const CourseCard = ({
                     </Link>
                   </Grid>
                   <Grid item>
-                    {rmpData?.num_ratings != undefined && (
+                    {!isSmallScreen && rmpData?.num_ratings != undefined && (
                       <ReviewCountChip
                         disableRipple
                         icon={<RateReviewIcon color="inherit" />}
@@ -293,7 +319,7 @@ export const CourseCard = ({
                     !isSmallScreen ? "Average Grade:" : ""
                   } ${getLetterGrade(avgGPA)}`}
                   size="small"
-                  sx={{ 
+                  sx={{
                     height: "28px",
                     fontWeight: 600,
                     boxShadow: "0 2px 8px rgba(0, 0, 0, 0.15)",
@@ -382,7 +408,7 @@ export const CourseCard = ({
                     {course.class_count} enrolled
                   </Typography>
                   <Tooltip title="Updated every 5 minutes">
-                  <RadioButtonChecked sx={{ fontSize: 18 }} color="error" />
+                    <RadioButtonChecked sx={{ fontSize: 18 }} color="error" />
                   </Tooltip>
                 </Box>
               </Grid>

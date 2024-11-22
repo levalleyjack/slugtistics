@@ -92,7 +92,7 @@ export const useCourseData = () => {
         courses.map(
           (course): Course => ({
             ...course,
-            class_count: enrollmentQuery.data?.[course.code] ?? "Loading...",
+            class_count: enrollmentQuery.data?.[course.code] ?? course.class_count,
           })
         ),
       ])

@@ -5,32 +5,27 @@ import {
   InputAdornment,
   CircularProgress,
   Select,
-  MenuItem,
   Button,
-  SelectChangeEvent,
   useTheme,
   styled,
   Drawer,
-  Dialog,
-  DialogTitle,
-  DialogContent,
+  Grid2,
 } from "@mui/material";
 import SearchIcon from "@mui/icons-material/Search";
 import { COLORS, Course } from "../Colors";
 import React, { useState, useCallback, useMemo } from "react";
 import { useMediaQuery } from "@mui/material";
 import MenuIcon from "@mui/icons-material/Menu";
-import CloseIcon from "@mui/icons-material/Close";
+import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import { useQuery } from "@tanstack/react-query";
 import { useCourseData } from "./GetGEData";
 import { CourseCard } from "./CourseCard";
 import SentimentDissatisfiedIcon from "@mui/icons-material/SentimentDissatisfied";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import ExpandLessIcon from "@mui/icons-material/ExpandLess";
-import { Sort } from "@mui/icons-material";
-import FilterAltIcon from "@mui/icons-material/FilterAlt";
 import { CategorySidebar } from "./CategorySideBar";
 import { fetchLastUpdate } from "./FetchLastUpdate";
+import FilterDropdown from "./FilterDropdown";
 
 const Root = styled("div")(({ theme }) => ({
   display: "flex",
@@ -216,22 +211,9 @@ const ExpandButton = styled(Button)(({ theme }) => ({
     flex: 1,
     minWidth: "120px",
     marginLeft: theme.spacing(1),
-    marginRight: theme.spacing(2),
+    marginRight: theme.spacing(1),
   },
 }));
-
-const StyledSelect = styled(Select<string>)(({ theme }) => ({
-  minWidth: "120px",
-  backgroundColor: COLORS.GRAY_50,
-  "& .MuiOutlinedInput-input": {
-    paddingTop: 8,
-    paddingBottom: 8,
-  },
-  "& .MuiSelect-select:focus": {
-    backgroundColor: "transparent",
-  },
-}));
-
 const CenterContent = styled("div")({
   display: "flex",
   justifyContent: "center",
@@ -260,23 +242,25 @@ const filterCourses = (courses: Course[], search: string) => {
 
 const filterBySort = (
   sortBy: string,
-  filterBy: string,
+  selectedClassTypes: string[],
+  selectedEnrollmentStatuses: string[],
   currentCourses: Course[]
 ): Course[] => {
   if (!currentCourses) return [];
 
-  const filteredCourses =
-    filterBy === "All"
-      ? currentCourses
-      : currentCourses.filter((course) => {
-          if (filterBy === "Open") {
-            return course.class_status.toLowerCase() === "open";
-          } else if (filterBy === "Closed") {
-            return course.class_status.toLowerCase() === "closed";
-          } else {
-            return course.class_type.toLowerCase() === filterBy.toLowerCase();
-          }
-        });
+  let filteredCourses = currentCourses;
+
+  if (selectedClassTypes.length > 0) {
+    filteredCourses = filteredCourses.filter((course) =>
+      selectedClassTypes.includes(course.class_type)
+    );
+  }
+
+  if (selectedEnrollmentStatuses.length > 0) {
+    filteredCourses = filteredCourses.filter((course) =>
+      selectedEnrollmentStatuses.includes(course.class_status)
+    );
+  }
 
   const sortedCourses = [...filteredCourses];
 
@@ -306,17 +290,17 @@ const GeSearch = () => {
   const [selectedGE, setSelectedGE] = useState("CC");
   const [search, setSearch] = useState("");
   const [sortBy, setSortBy] = useState("GPA");
-  const [filterBy, setFilterBy] = useState("All");
+  const [selectedClassTypes, setSelectedClassTypes] = useState<string[]>([]);
+  const [selectedEnrollmentStatuses, setSelectedEnrollmentStatuses] = useState<
+    string[]
+  >(["Open"]);
   const [expandedCodesMap, setExpandedCodesMap] = useState<
     Map<string, boolean>
   >(new Map());
   const isAllExpanded = React.useRef(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [mobileFilterOpen, setMobileFilterOpen] = useState(false);
-
   const isSmallScreen = useMediaQuery(theme.breakpoints.down("sm"));
   const isMediumScreen = useMediaQuery(theme.breakpoints.down("md"));
-
   const { data: courses, isLoading: isFetchLoading } = useCourseData();
 
   const currentCourses = useMemo(
@@ -338,8 +322,19 @@ const GeSearch = () => {
 
   const filteredCourses = useMemo(() => {
     const searchFiltered = filterCourses(currentCourses, search);
-    return filterBySort(sortBy, filterBy, searchFiltered);
-  }, [currentCourses, search, sortBy, filterBy]);
+    return filterBySort(
+      sortBy,
+      selectedClassTypes,
+      selectedEnrollmentStatuses,
+      searchFiltered
+    );
+  }, [
+    currentCourses,
+    search,
+    sortBy,
+    selectedClassTypes,
+    selectedEnrollmentStatuses,
+  ]);
 
   const handleSearchChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -347,6 +342,11 @@ const GeSearch = () => {
     },
     []
   );
+  const handleClearFilters = () => {
+    setSelectedEnrollmentStatuses(["Open"]);
+    setSearch("");
+    setSelectedClassTypes([]);
+  };
 
   const handleCategorySelect = useCallback((categoryId: string) => {
     setSelectedGE(categoryId);
@@ -415,7 +415,7 @@ const GeSearch = () => {
               Categories
             </Typography>
             <IconButton onClick={() => setMobileMenuOpen(false)}>
-              <CloseIcon />
+              <ArrowBackIcon />
             </IconButton>
           </DrawerHeader>
           <CategoryContainer>
@@ -436,59 +436,6 @@ const GeSearch = () => {
         </GeContainer>
       )}
 
-      <Dialog
-        open={mobileFilterOpen}
-        onClose={() => setMobileFilterOpen(false)}
-        fullWidth
-        maxWidth="xs"
-      >
-        <DialogTitle>
-          Filter and Sort
-          <IconButton
-            aria-label="close"
-            onClick={() => setMobileFilterOpen(false)}
-            sx={{ position: "absolute", right: 8, top: 8 }}
-          >
-            <CloseIcon />
-          </IconButton>
-        </DialogTitle>
-        <DialogContent>
-          <ControlsContainer sx={{ flexDirection: "column", gap: 2 }}>
-            <StyledSelect
-              fullWidth
-              value={sortBy}
-              onChange={(e: SelectChangeEvent) => {
-                setSortBy(e.target.value);
-                setMobileFilterOpen(false);
-              }}
-              startAdornment={<Sort />}
-            >
-              <MenuItem value="GPA">GPA (High to Low)</MenuItem>
-              <MenuItem value="NAME">Title (A-Z)</MenuItem>
-              <MenuItem value="CODE">Code (A-Z)</MenuItem>
-            </StyledSelect>
-            <StyledSelect
-              fullWidth
-              value={filterBy}
-              onChange={(e: SelectChangeEvent) => {
-                setFilterBy(e.target.value);
-                setMobileFilterOpen(false);
-              }}
-              startAdornment={<FilterAltIcon />}
-            >
-              <MenuItem value="All">All</MenuItem>
-              <MenuItem value="In Person">In Person</MenuItem>
-              <MenuItem value="Hybrid">Hybrid</MenuItem>
-              <MenuItem value="Synchronous Online">Synchronous Online</MenuItem>
-              <MenuItem value="Asynchronous Online">
-                Asynchronous Online
-              </MenuItem>
-              <MenuItem value="Open">Open</MenuItem>
-              <MenuItem value="Closed">Closed</MenuItem>
-            </StyledSelect>
-          </ControlsContainer>
-        </DialogContent>
-      </Dialog>
       <CourseContainer>
         <HeaderContainer>
           <SearchSection>
@@ -523,20 +470,8 @@ const GeSearch = () => {
           <ControlsContainer>
             {isSmallScreen ? (
               <>
-                <Button
-                  variant="outlined"
-                  color="primary"
-                  onClick={() => setMobileFilterOpen(true)}
-                  startIcon={<FilterAltIcon />}
-                  sx={{
-                    marginLeft: theme.spacing(1),
-                    marginRight: theme.spacing(2),
-                  }}
-                  fullWidth
-                >
-                  Filter & Sort
-                </Button>
                 <ExpandButton
+                  disableRipple
                   variant="outlined"
                   color="primary"
                   onClick={handleExpandAll}
@@ -551,6 +486,14 @@ const GeSearch = () => {
                 >
                   {isAllExpanded.current ? "Collapse" : "Expand"}
                 </ExpandButton>
+                <FilterDropdown
+                  sortBy={sortBy}
+                  selectedClassTypes={selectedClassTypes}
+                  selectedEnrollmentStatuses={selectedEnrollmentStatuses}
+                  onSortChange={setSortBy}
+                  onClassTypesChange={setSelectedClassTypes}
+                  onEnrollmentStatusesChange={setSelectedEnrollmentStatuses}
+                />
               </>
             ) : (
               <>
@@ -558,7 +501,7 @@ const GeSearch = () => {
                   variant="outlined"
                   color="primary"
                   onClick={handleExpandAll}
-                  startIcon={
+                  endIcon={
                     isAllExpanded.current ? (
                       <ExpandLessIcon />
                     ) : (
@@ -569,34 +512,14 @@ const GeSearch = () => {
                   {isAllExpanded.current ? "Collapse" : "Expand"}{" "}
                   {isMediumScreen ? "" : "All"}
                 </ExpandButton>
-                <StyledSelect
-                  value={sortBy}
-                  onChange={(e: SelectChangeEvent) => setSortBy(e.target.value)}
-                  startAdornment={<Sort />}
-                >
-                  <MenuItem value="GPA">GPA (High to Low)</MenuItem>
-                  <MenuItem value="NAME">Title (A-Z)</MenuItem>
-                  <MenuItem value="CODE">Code (A-Z)</MenuItem>
-                </StyledSelect>
-                <StyledSelect
-                  value={filterBy}
-                  onChange={(e: SelectChangeEvent) =>
-                    setFilterBy(e.target.value)
-                  }
-                  startAdornment={<FilterAltIcon />}
-                >
-                  <MenuItem value="All">All</MenuItem>
-                  <MenuItem value="In Person">In Person</MenuItem>
-                  <MenuItem value="Hybrid">Hybrid</MenuItem>
-                  <MenuItem value="Synchronous Online">
-                    Synchronous Online
-                  </MenuItem>
-                  <MenuItem value="Asynchronous Online">
-                    Asynchronous Online
-                  </MenuItem>
-                  <MenuItem value="Open">Open</MenuItem>
-                  <MenuItem value="Closed">Closed</MenuItem>
-                </StyledSelect>
+                <FilterDropdown
+                  sortBy={sortBy}
+                  selectedClassTypes={selectedClassTypes}
+                  selectedEnrollmentStatuses={selectedEnrollmentStatuses}
+                  onSortChange={setSortBy}
+                  onClassTypesChange={setSelectedClassTypes}
+                  onEnrollmentStatusesChange={setSelectedEnrollmentStatuses}
+                />
               </>
             )}
           </ControlsContainer>
@@ -609,10 +532,33 @@ const GeSearch = () => {
         ) : filteredCourses?.length === 0 ? (
           <CenterContent>
             <NoResults color="textSecondary">
-              {search ? "No matching courses found " : "No courses available "}
-              <SentimentDissatisfiedIcon
-                sx={{ ml: 1, color: COLORS.GRAY_400 }}
-              />
+              <Grid2 container flexDirection="column" alignItems="center">
+                <Typography
+                  sx={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    color: COLORS.GRAY_400,
+                  }}
+                >
+                  {search
+                    ? "No matching courses found "
+                    : "No courses available "}
+                  <SentimentDissatisfiedIcon
+                    sx={{ ml: 1, color: COLORS.GRAY_400 }}
+                  />
+                </Typography>
+                <Typography
+                  onClick={handleClearFilters}
+                  sx={{
+                    textDecoration: "underline",
+                    color: theme.palette.primary.dark,
+                    cursor: "pointer",
+                    mt: 1,
+                  }}
+                >
+                  Clear Filters
+                </Typography>
+              </Grid2>
             </NoResults>
           </CenterContent>
         ) : (
