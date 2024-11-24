@@ -20,6 +20,7 @@ import { fetchLastUpdate } from "./FetchLastUpdate";
 import FilterDropdown from "./FilterDropdown";
 import GlobalSearch from "./GlobalSearchDropdownList";
 import DynamicCourseList from "./VirtualizedCourseList";
+import { useQuery } from "@tanstack/react-query";
 
 const Root = styled("div")(({ theme }) => ({
   display: "flex",
@@ -227,6 +228,14 @@ const GeSearch = () => {
   const [selectedEnrollmentStatuses, setSelectedEnrollmentStatuses] = useState<
     string[]
   >([]);
+  const { data: lastUpdated } = useQuery({
+    queryKey: ["lastUpdate"],
+    queryFn: fetchLastUpdate,
+    refetchInterval: 300000,
+    refetchIntervalInBackground: true,
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
+  });
   const [selectedSubjects, setSelectedSubjects] = useState<string[]>([]);
   const [scrollToCourseId, setScrollToCourseId] = useState<
     string | undefined
@@ -240,7 +249,6 @@ const GeSearch = () => {
   const isSmallScreen = useMediaQuery(theme.breakpoints.down("sm"));
   const isMediumScreen = useMediaQuery(theme.breakpoints.down("md"));
   const { data: courses, isLoading: isFetchLoading } = useCourseData();
-  console.log(courses);
 
   const currentCourses = courses?.[selectedGE];
   const handleGlobalCourseSelect = (category: string, courseId: string) => {
@@ -357,6 +365,7 @@ const GeSearch = () => {
               courses={courses}
               onCourseSelect={handleGlobalCourseSelect}
               selectedGE={selectedGE}
+              lastUpdated={lastUpdated ?? "None"}
             />
           </SearchSection>
 

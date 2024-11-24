@@ -28,7 +28,21 @@ const StyledPopper = styled(Popper)(({ theme }) => ({
     maxWidth: "calc(100vw - 32px)",
   },
 }));
+const SearchContainer = styled("div")(({ theme }) => ({
+  display: "flex",
+  alignItems: "center",
+  gap: theme.spacing(2),
+  width: "100%",
+}));
 
+const LastUpdatedText = styled(Typography)(({ theme }) => ({
+  padding: theme.spacing(1, 2),
+  borderTop: `1px solid ${theme.palette.divider}`,
+  backgroundColor: theme.palette.grey[50],
+  fontSize: '0.75rem',
+  color: theme.palette.text.secondary,
+  textAlign: 'right'
+}));
 const SearchWrapper = styled("div")({
   position: "relative",
   width: "100%",
@@ -81,9 +95,15 @@ interface Props {
   courses: Record<string, Course[]>;
   onCourseSelect: (category: string, courseId: string) => void;
   selectedGE: string;
+  lastUpdated: string;
 }
 
-const GlobalSearch = ({ courses, onCourseSelect, selectedGE }: Props) => {
+const GlobalSearch = ({
+  courses,
+  onCourseSelect,
+  selectedGE,
+  lastUpdated,
+}: Props) => {
   const [search, setSearch] = useState("");
   const [isSearching, setIsSearching] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
@@ -191,7 +211,6 @@ const GlobalSearch = ({ courses, onCourseSelect, selectedGE }: Props) => {
       />
     </StyledListItem>
   );
-
   return (
     <SearchWrapper>
       <ClickAwayListener onClickAway={() => setIsOpen(false)}>
@@ -219,11 +238,18 @@ const GlobalSearch = ({ courses, onCourseSelect, selectedGE }: Props) => {
                 "& .MuiOutlinedInput-root": {
                   backgroundColor: COLORS.GRAY_50,
                   transition: "background-color 0.2s",
+                  height: "40px",
                   "&:hover": {
                     backgroundColor: COLORS.WHITE,
                   },
                   "&.Mui-focused": {
                     backgroundColor: COLORS.WHITE,
+                  },
+                },
+                "& .MuiInputLabel-root": {
+                  transform: "translate(14px, 8px) scale(1)",
+                  "&.MuiInputLabel-shrink": {
+                    transform: "translate(14px, -9px) scale(0.75)",
                   },
                 },
               }}
@@ -278,7 +304,7 @@ const GlobalSearch = ({ courses, onCourseSelect, selectedGE }: Props) => {
 
                   {otherCourses.length > 0 && (
                     <>
-                      {selectedGECourses.length > 0}
+                      {selectedGECourses.length > 0 && <SectionDivider />}
                       <SearchMetrics color="textSecondary">
                         Found {otherCourses.length} courses in other categories
                       </SearchMetrics>
@@ -292,6 +318,9 @@ const GlobalSearch = ({ courses, onCourseSelect, selectedGE }: Props) => {
                       </List>
                     </>
                   )}
+                  <LastUpdatedText>
+                    {lastUpdated}
+                  </LastUpdatedText>
                 </>
               )}
             </StyledPaper>
