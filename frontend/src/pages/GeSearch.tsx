@@ -1,31 +1,25 @@
 import {
   Typography,
   IconButton,
-  TextField,
-  InputAdornment,
   CircularProgress,
-  Select,
   Button,
   useTheme,
   styled,
   Drawer,
   Grid2,
 } from "@mui/material";
-import SearchIcon from "@mui/icons-material/Search";
 import { COLORS, Course, StyledExpandIcon } from "../Colors";
 import React, { useState, useCallback, useMemo } from "react";
 import { useMediaQuery } from "@mui/material";
 import MenuIcon from "@mui/icons-material/Menu";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
-import { useQuery } from "@tanstack/react-query";
 import { useCourseData } from "./GetGEData";
-import { CourseCard } from "./CourseCard";
 import SentimentDissatisfiedIcon from "@mui/icons-material/SentimentDissatisfied";
-import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
-import ExpandLessIcon from "@mui/icons-material/ExpandLess";
 import { CategorySidebar } from "./CategorySideBar";
 import { fetchLastUpdate } from "./FetchLastUpdate";
 import FilterDropdown from "./FilterDropdown";
+import GlobalSearch from "./GlobalSearchDropdownList";
+import DynamicCourseList from "./VirtualizedCourseList";
 
 const Root = styled("div")(({ theme }) => ({
   display: "flex",
@@ -131,35 +125,6 @@ const HeaderContainer = styled("div")(({ theme }) => ({
   },
 }));
 
-const CourseListWrapper = styled("div")(({ theme }) => ({
-  flex: 1,
-  overflowY: "auto",
-  width: "100%",
-  minHeight: 0,
-  "&::-webkit-scrollbar": {
-    width: "8px",
-  },
-  "&::-webkit-scrollbar-track": {
-    background: COLORS.GRAY_50,
-  },
-  "&::-webkit-scrollbar-thumb": {
-    background: COLORS.GRAY_400,
-    borderRadius: "4px",
-  },
-  "&::-webkit-scrollbar-thumb:hover": {
-    background: COLORS.GRAY_400,
-  },
-}));
-
-const CourseList = styled("div")(({ theme }) => ({
-  padding: theme.spacing(2),
-  display: "flex",
-  flexDirection: "column",
-  gap: theme.spacing(2),
-  width: "100%",
-  maxWidth: "100%",
-  boxSizing: "border-box",
-}));
 const SearchSection = styled("div")(({ theme }) => ({
   display: "flex",
   flexDirection: "column",
@@ -168,24 +133,6 @@ const SearchSection = styled("div")(({ theme }) => ({
   [theme.breakpoints.down("sm")]: {
     width: "auto",
     marginLeft: "12%",
-  },
-}));
-
-const StyledTextField = styled(TextField)(({ theme }) => ({
-  width: "100%",
-  maxWidth: 400,
-  "& .MuiOutlinedInput-root": {
-    backgroundColor: COLORS.GRAY_50,
-    transition: "background-color 0.2s",
-    "&:hover": {
-      backgroundColor: COLORS.WHITE,
-    },
-    "&.Mui-focused": {
-      backgroundColor: COLORS.WHITE,
-    },
-  },
-  [theme.breakpoints.down("sm")]: {
-    maxWidth: "none",
   },
 }));
 
@@ -202,7 +149,7 @@ const ControlsContainer = styled("div")(({ theme }) => ({
 }));
 
 const ExpandButton = styled(Button)(({ theme }) => ({
-  height: 36,
+  height: "36px",
   backgroundColor: COLORS.GRAY_50,
   "&:hover": {
     backgroundColor: COLORS.WHITE,
@@ -235,13 +182,15 @@ const filterCourses = (courses: Course[], search: string) => {
   return courses.filter(
     (course: Course) =>
       course.name.toLowerCase().includes(searchLower) ||
-      course.code.toLowerCase().includes(searchLower) ||
+      (course.subject + " " + course.catalog_num)
+        .toLowerCase()
+        .includes(searchLower) ||
       course.instructor.toLowerCase().includes(searchLower)
   );
 };
 
 const filterBySort = (
-  sortBy: string,
+  selectedSubjects: string[],
   selectedClassTypes: string[],
   selectedEnrollmentStatuses: string[],
   currentCourses: Course[]
@@ -249,45 +198,40 @@ const filterBySort = (
   if (!currentCourses || currentCourses.length === 0) return [];
 
   const filteredCourses = currentCourses.filter((course) => {
+    const matchSubject =
+      selectedSubjects.length === 0 ||
+      selectedSubjects.includes(course.subject);
+
     const matchType =
       selectedClassTypes.length === 0 ||
       selectedClassTypes.includes(course.class_type);
+
     const matchStatus =
       selectedEnrollmentStatuses.length === 0 ||
       selectedEnrollmentStatuses.includes(course.class_status);
-    return matchType && matchStatus;
+
+    return matchSubject && matchType && matchStatus;
   });
 
-  switch (sortBy) {
-    case "GPA":
-      return filteredCourses.sort((a, b) => {
-        const gpaA = a.gpa === "N/A" ? -Infinity : parseFloat(a.gpa);
-        const gpaB = b.gpa === "N/A" ? -Infinity : parseFloat(b.gpa);
-        return gpaB - gpaA;
-      });
-
-    case "NAME":
-      return filteredCourses.sort((a, b) => a.name.localeCompare(b.name));
-
-    case "CODE":
-      return filteredCourses.sort((a, b) =>
-        a.code.localeCompare(b.code, undefined, { numeric: true })
-      );
-
-    default:
-      return filteredCourses;
-  }
+  return filteredCourses.sort((a, b) => {
+    const gpaA = a.gpa === "N/A" ? -Infinity : parseFloat(a.gpa);
+    const gpaB = b.gpa === "N/A" ? -Infinity : parseFloat(b.gpa);
+    return gpaB - gpaA;
+  });
 };
-
 const GeSearch = () => {
   const theme = useTheme();
-  const [selectedGE, setSelectedGE] = useState("CC");
+  const [selectedGE, setSelectedGE] = useState("AnyGE");
   const [search, setSearch] = useState("");
-  const [sortBy, setSortBy] = useState("GPA");
   const [selectedClassTypes, setSelectedClassTypes] = useState<string[]>([]);
   const [selectedEnrollmentStatuses, setSelectedEnrollmentStatuses] = useState<
     string[]
-  >(["Open"]);
+  >([]);
+  const [selectedSubjects, setSelectedSubjects] = useState<string[]>([]);
+  const [scrollToCourseId, setScrollToCourseId] = useState<
+    string | undefined
+  >();
+
   const [expandedCodesMap, setExpandedCodesMap] = useState<
     Map<string, boolean>
   >(new Map());
@@ -296,28 +240,19 @@ const GeSearch = () => {
   const isSmallScreen = useMediaQuery(theme.breakpoints.down("sm"));
   const isMediumScreen = useMediaQuery(theme.breakpoints.down("md"));
   const { data: courses, isLoading: isFetchLoading } = useCourseData();
+  console.log(courses);
 
-  const currentCourses = useMemo(
-    () =>
-      selectedGE !== "AnyGE"
-        ? courses?.[selectedGE] || []
-        : Object.values(courses || {}).flat(),
-    [selectedGE, courses]
-  );
-
-  const { data: lastUpdated } = useQuery({
-    queryKey: ["lastUpdate"],
-    queryFn: fetchLastUpdate,
-    refetchInterval: 300000,
-    refetchIntervalInBackground: true,
-    refetchOnWindowFocus: false,
-    refetchOnMount: false,
-  });
-
+  const currentCourses = courses?.[selectedGE];
+  const handleGlobalCourseSelect = (category: string, courseId: string) => {
+    handleClearFilters();
+    setSelectedGE(category);
+    setScrollToCourseId(courseId);
+    handleExpandCard(courseId, true);
+  };
   const filteredCourses = useMemo(() => {
     const searchFiltered = filterCourses(currentCourses, search);
     return filterBySort(
-      sortBy,
+      selectedSubjects,
       selectedClassTypes,
       selectedEnrollmentStatuses,
       searchFiltered
@@ -325,20 +260,14 @@ const GeSearch = () => {
   }, [
     currentCourses,
     search,
-    sortBy,
+    selectedSubjects,
     selectedClassTypes,
     selectedEnrollmentStatuses,
   ]);
 
-  const handleSearchChange = useCallback(
-    (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-      setSearch(e.target.value);
-    },
-    []
-  );
   const handleClearFilters = () => {
-    setSelectedEnrollmentStatuses(["Open"]);
-    setSearch("");
+    setSelectedEnrollmentStatuses([]);
+    setSelectedSubjects([]);
     setSelectedClassTypes([]);
   };
 
@@ -348,40 +277,31 @@ const GeSearch = () => {
     isAllExpanded.current = false;
   }, []);
 
-  const handleExpandCard = useCallback((courseCode: string) => {
-    setExpandedCodesMap((prevMap) => {
-      const newMap = new Map(prevMap);
-      newMap.set(courseCode, !prevMap.get(courseCode));
-      return newMap;
-    });
-  }, []);
+  const handleExpandCard = useCallback(
+    (courseCode: string, state?: boolean) => {
+      setExpandedCodesMap((prevMap) => {
+        const newMap = new Map(prevMap);
+        newMap.set(courseCode, state ?? !prevMap.get(courseCode));
+        return newMap;
+      });
+    },
+    []
+  );
 
   const handleExpandAll = useCallback(() => {
     isAllExpanded.current = !isAllExpanded.current;
     setExpandedCodesMap(
       new Map(
-        currentCourses?.map((course) => [course.id, isAllExpanded.current]) ||
-          []
+        currentCourses?.map((course) => [
+          course.unique_id,
+          isAllExpanded.current,
+        ]) || []
       )
     );
   }, [currentCourses]);
-
-  const courseList = useMemo(
-    () => (
-      <CourseList>
-        {filteredCourses?.map((course) => (
-          <CourseCard
-            key={`${course.id}`}
-            course={course}
-            isSmallScreen={isSmallScreen}
-            expanded={!!expandedCodesMap.get(course.id)}
-            onExpandChange={() => handleExpandCard(course.id)}
-          />
-        ))}
-      </CourseList>
-    ),
-    [filteredCourses, isSmallScreen, expandedCodesMap, handleExpandCard]
-  );
+  const codes = [
+    ...new Set(currentCourses?.map((course) => course.subject)),
+  ].sort();
 
   return (
     <Root>
@@ -433,32 +353,11 @@ const GeSearch = () => {
       <CourseContainer>
         <HeaderContainer>
           <SearchSection>
-            <StyledTextField
-              onChange={(e) => handleSearchChange(e)}
-              value={search}
-              label="Search anything..."
-              placeholder="THEA 151A, Keiko Yukawa"
-              variant="outlined"
-              size="small"
-              InputProps={{
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <SearchIcon color="action" />
-                  </InputAdornment>
-                ),
-              }}
+            <GlobalSearch
+              courses={courses}
+              onCourseSelect={handleGlobalCourseSelect}
+              selectedGE={selectedGE}
             />
-            <Typography
-              variant="caption"
-              sx={{
-                color: "text.secondary",
-                mt: 0.5,
-                fontSize: "0.75rem",
-                display: isSmallScreen ? "none" : "block",
-              }}
-            >
-              {lastUpdated ?? "Loading..."}
-            </Typography>
           </SearchSection>
 
           <ControlsContainer>
@@ -477,11 +376,12 @@ const GeSearch = () => {
                   {isAllExpanded.current ? "Collapse" : "Expand"}
                 </ExpandButton>
                 <FilterDropdown
-                  sortBy={sortBy}
+                  codes={codes}
+                  selectedSubjects={selectedSubjects}
                   selectedClassTypes={selectedClassTypes}
                   selectedEnrollmentStatuses={selectedEnrollmentStatuses}
-                  onSortChange={setSortBy}
                   onClassTypesChange={setSelectedClassTypes}
+                  onSelectedSubjectsChange={setSelectedSubjects}
                   onEnrollmentStatusesChange={setSelectedEnrollmentStatuses}
                 />
               </>
@@ -499,10 +399,11 @@ const GeSearch = () => {
                   {isMediumScreen ? "" : "All"}
                 </ExpandButton>
                 <FilterDropdown
-                  sortBy={sortBy}
+                  codes={codes}
+                  selectedSubjects={selectedSubjects}
                   selectedClassTypes={selectedClassTypes}
                   selectedEnrollmentStatuses={selectedEnrollmentStatuses}
-                  onSortChange={setSortBy}
+                  onSelectedSubjectsChange={setSelectedSubjects}
                   onClassTypesChange={setSelectedClassTypes}
                   onEnrollmentStatusesChange={setSelectedEnrollmentStatuses}
                 />
@@ -542,13 +443,19 @@ const GeSearch = () => {
                     mt: 1,
                   }}
                 >
-                  Clear Filters
+                  {"Clear Filters"}
                 </Typography>
               </Grid2>
             </NoResults>
           </CenterContent>
         ) : (
-          <CourseListWrapper>{courseList}</CourseListWrapper>
+          <DynamicCourseList
+            filteredCourses={filteredCourses}
+            isSmallScreen={isSmallScreen}
+            expandedCodesMap={expandedCodesMap}
+            handleExpandCard={handleExpandCard}
+            scrollToCourseId={scrollToCourseId}
+          />
         )}
       </CourseContainer>
     </Root>

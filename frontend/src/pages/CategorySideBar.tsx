@@ -1,5 +1,6 @@
 import React, { useCallback, memo } from "react";
 import {
+  Divider,
   List,
   ListItem,
   ListItemIcon,
@@ -113,13 +114,15 @@ export const CategorySidebar: React.FC<CategorySidebarProps> = memo(
             overflowX: isSmallScreen ? "auto" : "visible",
           }}
         >
-          {categories.map((category) => (
-            <CategoryItem
-              key={category.id}
-              category={category}
-              isSelected={selectedCategory === category.id}
-              onSelect={onCategorySelect}
-            />
+          {categories.map((category, index) => (
+            <React.Fragment key={category.id}>
+              <CategoryItem
+                category={category}
+                isSelected={selectedCategory === category.id}
+                onSelect={onCategorySelect}
+              />
+              {index === 0 && <Divider />} 
+            </React.Fragment>
           ))}
         </List>
       </Sidebar>

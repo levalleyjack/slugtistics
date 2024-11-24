@@ -5,18 +5,13 @@ import { Course } from "../Colors";
 
 export const local = "https://api.slugtistics.com/api/pyback";
 
-//constants
-export const CONFIG = {
-  local: "https://api.slugtistics.com/api/pyback",
-  gpaRoute: "https://api.slugtistics.com/api/",
-  schoolId: 1078,
+const CONFIG = {
   staleTime: 5 * 60 * 1000, // 5 minutes
   gcTime: 30 * 60 * 1000, // 30 minutes
 } as const;
 
-const API_URL = `${CONFIG.local}/api/courses`;
+const API_URL = `${local}/api/courses`;
 
-//exporting all course info like instructor, average gpa, etc.
 export const useCourseData = () => {
   const courseQuery = useQuery({
     queryKey: ["courses"],
@@ -29,7 +24,7 @@ export const useCourseData = () => {
     staleTime: CONFIG.staleTime,
     refetchInterval: CONFIG.staleTime,
     refetchOnWindowFocus: false,
-    refetchOnMount: false, //prevent refetching on component mount
+    refetchOnMount: false,
     gcTime: CONFIG.gcTime,
   });
 
@@ -37,8 +32,8 @@ export const useCourseData = () => {
     if (!courseQuery.data) return [];
     return [
       ...new Set(
-        Object.values(courseQuery.data).flatMap((courses) =>
-          courses.map((course) => course.code)
+        Object.values(courseQuery?.data).flatMap((courses) =>
+          courses.map((course) => course.subject + " " + course.catalog_num)
         )
       ),
     ];
@@ -86,17 +81,25 @@ export const useCourseData = () => {
   const enhancedData = React.useMemo<Record<string, Course[]>>(() => {
     if (!courseQuery.data) return {};
 
-    return Object.fromEntries(
+    const baseEnhancedData = Object.fromEntries(
       Object.entries(courseQuery.data).map(([category, courses]) => [
         category,
         courses.map(
           (course): Course => ({
             ...course,
-            class_count: enrollmentQuery.data?.[course.code] ?? course.class_count,
+            ge_category: category,
+            class_count:
+              enrollmentQuery.data?.[
+                course.subject + " " + course.catalog_num
+              ] ?? course.class_count,
           })
         ),
       ])
     );
+
+    return {
+      ...baseEnhancedData,
+    };
   }, [courseQuery.data, enrollmentQuery.data]);
 
   return {
