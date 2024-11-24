@@ -1,5 +1,4 @@
-import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { forwardRef, useState } from "react";
 import { styled } from "@mui/material/styles";
 import {
   Card,
@@ -12,6 +11,10 @@ import {
   Tooltip,
   Paper,
   Chip,
+  Menu,
+  MenuItem,
+  ListItemIcon,
+  ListItemText,
 } from "@mui/material";
 import RateReviewIcon from "@mui/icons-material/RateReview";
 import CancelIcon from "@mui/icons-material/Cancel";
@@ -28,7 +31,10 @@ import {
   Grade as GradeIcon,
   Star as StarIcon,
   RadioButtonChecked,
+  MoreVert as MoreVertIcon,
+  OpenInNew as OpenInNewIcon,
 } from "@mui/icons-material";
+import KeyboardArrowRightIcon from "@mui/icons-material/KeyboardArrowRight";
 import { useTheme } from "@mui/material/styles";
 import {
   COLORS,
@@ -36,9 +42,9 @@ import {
   DifficultyChipProps,
   getLetterGrade,
   GradeChipProps,
-  StyledExpandIcon,
 } from "../Colors";
 import { RatingsModal } from "./RatingsModal";
+import StatusIcon from "./StatusIcon";
 
 interface CourseCardProps {
   course: Course;
@@ -47,170 +53,190 @@ interface CourseCardProps {
   onExpandChange: (courseCode: string) => void;
 }
 
-export const CourseCard = ({
-  course,
-  isSmallScreen,
-  expanded,
-  onExpandChange,
-}: CourseCardProps) => {
-  const [copied, setCopied] = useState(false);
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const theme = useTheme();
-  const {
-    instructor: fullInstructorName,
-    gpa: avgGPA,
-    instructor_ratings: rmpData,
-  } = course;
+export const CourseCard = forwardRef<HTMLDivElement, CourseCardProps>(
+  (
+    { course, isSmallScreen, expanded, onExpandChange }: CourseCardProps,
+    ref
+  ) => {
+    const [copied, setCopied] = useState(false);
+    const [isModalOpen, setIsModalOpen] = useState(false);
+    const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
+    const theme = useTheme();
+    const {
+      instructor: fullInstructorName,
+      gpa: avgGPA,
+      instructor_ratings: rmpData,
+    } = course;
+    const course_code = `${course.subject} ${course.catalog_num}`
 
-  const handleExpandClick = () => onExpandChange(course.code);
-  const handleOpenModal = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    setIsModalOpen(true);
-  };
+    const handleExpandClick = () => onExpandChange(course_code);
+    const handleOpenModal = (e: React.MouseEvent) => {
+      e.stopPropagation();
+      setIsModalOpen(true);
+    };
 
-  const handleCopyClick = async () => {
-    try {
-      await navigator.clipboard.writeText(course.enroll_num);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    } catch (err) {
-      console.error("Failed to copy enrollment number:", err);
-    }
-  };
+    const handleCopyClick = async () => {
+      try {
+        await navigator.clipboard.writeText(course.enroll_num);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+        handleMenuClose();
+      } catch (err) {
+        console.error("Failed to copy enrollment number:", err);
+      }
+    };
 
-  const searchName =
-    fullInstructorName?.split(" ")[0].indexOf(".") === -1
-      ? `${fullInstructorName.split(" ")[0]} ${
-          fullInstructorName.split(" ")[
-            fullInstructorName.split(" ").length - 1
-          ]
-        }`
-      : fullInstructorName?.split(" ").slice(1).join(" ") || "";
+    const handleMenuClick = (event: React.MouseEvent<HTMLElement>) => {
+      event.stopPropagation();
+      setAnchorEl(event.currentTarget);
+    };
 
-  const isStaffOrLoading = fullInstructorName === "Staff";
+    const handleMenuClose = () => {
+      setAnchorEl(null);
+    };
 
-  const RenderRMPContent = () => {
-    if (isStaffOrLoading) return null;
+    const searchName =
+      fullInstructorName?.split(" ")[0].indexOf(".") === -1
+        ? `${fullInstructorName.split(" ")[0]} ${
+            fullInstructorName.split(" ")[
+              fullInstructorName.split(" ").length - 1
+            ]
+          }`
+        : fullInstructorName?.split(" ").slice(1).join(" ") || "";
 
-    if (!rmpData) {
+    const isStaffOrLoading = fullInstructorName === "Staff";
+
+    const RenderRMPContent = () => {
+      if (!rmpData || isStaffOrLoading) {
+        return (
+          <Box sx={{ display: "flex", gap: 1, alignItems: "center", mt: 1 }}>
+            <RatingChip
+              icon={<StarIcon color="inherit" />}
+              label="No rating found"
+              size="small"
+              sx={{
+                backgroundColor: theme.palette.grey.A700,
+                color: "white",
+                fontWeight: "bold",
+              }}
+            />
+          </Box>
+        );
+      }
+
       return (
         <Box sx={{ display: "flex", gap: 1, alignItems: "center", mt: 1 }}>
           <RatingChip
             icon={<StarIcon color="inherit" />}
-            label="No rating found"
+            label={`${rmpData.avg_rating?.toFixed(1) || "N/A"}/5`}
             size="small"
             sx={{
-              backgroundColor: theme.palette.grey.A700,
+              backgroundColor:
+                rmpData.avg_rating >= 4
+                  ? theme.palette.success.dark
+                  : rmpData.avg_rating >= 3
+                  ? theme.palette.warning.dark
+                  : theme.palette.error.dark,
               color: "white",
               fontWeight: "bold",
             }}
           />
-        </Box>
-      );
-    }
-
-    return (
-      <Box sx={{ display: "flex", gap: 1, alignItems: "center", mt: 1 }}>
-        <RatingChip
-          icon={<StarIcon color="inherit" />}
-          label={`${rmpData.avg_rating?.toFixed(1) || "N/A"}/5`}
-          size="small"
-          sx={{
-            backgroundColor:
-              rmpData.avg_rating >= 4
-                ? theme.palette.success.dark
-                : rmpData.avg_rating >= 3
-                ? theme.palette.warning.dark
-                : theme.palette.error.dark,
-            color: "white",
-            fontWeight: "bold",
-          }}
-        />
-        <DifficultyChip
-          label={`${
-            rmpData.difficulty_level?.toFixed(1) || "N/A"
-          }/5 difficulty`}
-          size="small"
-          variant="outlined"
-          difficulty={rmpData.difficulty_level}
-        />
-        {isSmallScreen && rmpData?.num_ratings != undefined && (
-          <ReviewCountChip
-            disableRipple
-            icon={<RateReviewIcon color="inherit" />}
-            label={`${rmpData?.num_ratings} ${
-              rmpData?.num_ratings > 1 ? "reviews" : "review"
-            }`}
-            onClick={handleOpenModal}
+          <DifficultyChip
+            label={`${
+              rmpData.difficulty_level?.toFixed(1) || "N/A"
+            }/5 difficulty`}
             size="small"
-            sx={{
-              height: "24px",
-              background: (theme) => `linear-gradient(135deg,
+            variant="outlined"
+            difficulty={rmpData.difficulty_level}
+          />
+          {isSmallScreen && rmpData?.num_ratings != undefined && (
+            <ReviewCountChip
+              disableRipple
+              icon={<RateReviewIcon color="inherit" />}
+              label={`${rmpData?.num_ratings} ${
+                rmpData?.num_ratings > 1 ? "reviews" : "review"
+              }`}
+              onClick={handleOpenModal}
+              size="small"
+              sx={{
+                height: "24px",
+                background: (theme) => `linear-gradient(135deg,
                             rgba(255, 255, 255, 0.9) 0%,
                             rgba(255, 255, 255, 0.7) 100%)`,
-              backdropFilter: "blur(8px)",
-              "&:hover": {
-                background: (theme) => `linear-gradient(135deg,
+                backdropFilter: "blur(8px)",
+                "&:hover": {
+                  background: (theme) => `linear-gradient(135deg,
                               ${theme.palette.primary.light} 0%,
                               ${theme.palette.primary.main} 100%)`,
-                color: "white",
-                transform: "translateY(-2px)",
-                boxShadow: "0 4px 12px rgba(0, 0, 0, 0.1)",
-              },
-            }}
-          />
-        )}
-      </Box>
-    );
-  };
-  return (
-    <StyledCard elevation={2}>
-      <RatingsModal
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        professorName={rmpData?.name || fullInstructorName}
-        ratings={rmpData?.all_ratings}
-        currentClass={course.code.replace(" ", "")}
-      />
-      <CardContent sx={{ pb: 1, "&:last-child": { pb: 1 } }}>
-        <HeaderContent>
-          <CourseInfo>
-            <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 1 }}>
-              <Link
-                href={course.link}
-                target="_blank"
-                rel="noopener noreferrer"
-                onClick={(e) => e.stopPropagation()}
-                sx={{
-                  textDecoration: "none",
-                  "&:hover": {
-                    textDecoration: "none",
-                  },
-                }}
+                  color: "white",
+                  transform: "translateY(-2px)",
+                  boxShadow: "0 4px 12px rgba(0, 0, 0, 0.1)",
+                },
+              }}
+            />
+          )}
+        </Box>
+      );
+    };
+
+    return (
+      <StyledCard elevation={expanded ? 4 : 2} ref={ref}>
+        <RatingsModal
+          isOpen={isModalOpen}
+          onClose={() => setIsModalOpen(false)}
+          professorName={rmpData?.name || fullInstructorName}
+          ratings={rmpData?.all_ratings}
+          currentClass={course_code.replace(" ", "")}
+        />
+        <CardContent sx={{ pb: 1, "&:last-child": { pb: 1 } }}>
+          <HeaderContent>
+            <CourseInfo>
+              <Box
+                sx={{ display: "flex", alignItems: "center", gap: 1, mb: 1 }}
               >
-                <CourseCodeChip
-                  label={course.code}
-                  size="small"
-                  onClick={(e) => e.stopPropagation()}
-                  sx={{
-                    zIndex: 2,
-                    height: "28px",
-                    background: (theme) => `linear-gradient(135deg, 
-                      ${theme.palette.primary.dark} 0%, 
-                      ${theme.palette.primary.main} 100%)`,
-                    boxShadow: "0 2px 8px rgba(0, 0, 0, 0.15)",
-                    fontWeight: 600,
-                    letterSpacing: "0.5px",
-                    "&:hover": {
-                      transform: "translateY(-2px)",
-                      boxShadow: "0 4px 12px rgba(0, 0, 0, 0.2)",
-                      background: (theme) => `linear-gradient(135deg, 
-                        ${theme.palette.primary.main} 0%, 
-                        ${theme.palette.primary.light} 100%)`,
-                    },
-                  }}
-                />
-              </Link>
+                <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                  <Link
+                    href={course.link}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={(e) => e.stopPropagation()}
+                    sx={{
+                      textDecoration: "none",
+                      "&:hover": {
+                        textDecoration: "none",
+                      },
+                    }}
+                  >
+                    <CourseCodeChip
+                      label={course_code}
+                      size="small"
+                      onClick={(e) => e.stopPropagation()}
+                      sx={{
+                        zIndex: 2,
+                        height: "28px",
+                        background: (theme) => `linear-gradient(135deg, 
+              ${theme.palette.primary.dark} 0%, 
+              ${theme.palette.primary.main} 100%)`,
+                        boxShadow: "0 2px 8px rgba(0, 0, 0, 0.15)",
+                        fontWeight: 600,
+                        letterSpacing: "0.5px",
+                        "&:hover": {
+                          transform: "translateY(-2px)",
+                          boxShadow: "0 4px 12px rgba(0, 0, 0, 0.2)",
+                          background: (theme) => `linear-gradient(135deg, 
+                ${theme.palette.primary.main} 0%, 
+                ${theme.palette.primary.light} 100%)`,
+                        },
+                      }}
+                    />
+                  </Link>
+                  {course.ge && (
+                    <GECategoryChip label={course.ge} size="small" />
+                  )}
+                  <StatusIcon status={course.class_status} />
+                </Box>
+              </Box>
+
               <Box
                 onClick={handleExpandClick}
                 sx={{
@@ -219,103 +245,122 @@ export const CourseCard = ({
                   "&:hover": {
                     opacity: 0.8,
                   },
+                  mb: 1,
                 }}
               >
                 <Typography variant="h6" noWrap>
                   {course.name}
                 </Typography>
               </Box>
-            </Box>
 
-            <Box
-              onClick={handleExpandClick}
-              sx={{
-                display: "flex",
-                alignItems: "center",
-                gap: 0.5,
-                cursor: "pointer",
-                "&:hover": {
-                  opacity: 0.8,
-                },
-              }}
-            >
-              <PersonIcon sx={{ fontSize: 18 }} />
-              {fullInstructorName !== "Staff" ? (
-                <Grid
-                  container
-                  spacing={1}
-                  style={{ flexDirection: "row", alignItems: "center" }}
-                >
-                  <Grid item>
-                    <Link
-                      href={`https://www.ratemyprofessors.com/search/professors/1078?q=${searchName}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      onClick={(e) => e.stopPropagation()}
-                      variant="body2"
-                      noWrap
-                      sx={{
-                        textDecoration: "none",
-                        "&:hover": {
-                          textDecoration: "underline",
-                        },
-                      }}
-                    >
-                      {fullInstructorName}
-                    </Link>
-                  </Grid>
-                  <Grid item>
-                    {!isSmallScreen && rmpData?.num_ratings != undefined && (
-                      <ReviewCountChip
-                        disableRipple
-                        icon={<RateReviewIcon color="inherit" />}
-                        label={`${rmpData?.num_ratings} ${
-                          rmpData?.num_ratings > 1 ? "reviews" : "review"
-                        }`}
-                        onClick={handleOpenModal}
-                        size="small"
+              <Box
+                onClick={handleExpandClick}
+                sx={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 0.5,
+                  cursor: "pointer",
+                  "&:hover": {
+                    opacity: 0.8,
+                  },
+                }}
+              >
+                <PersonIcon sx={{ fontSize: 18 }} />
+                {fullInstructorName !== "Staff" ? (
+                  <Grid
+                    container
+                    spacing={1}
+                    style={{ flexDirection: "row", alignItems: "center" }}
+                  >
+                    <Grid item>
+                      <Link
+                        href={`https://www.ratemyprofessors.com/search/professors/1078?q=${searchName}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        onClick={(e) => e.stopPropagation()}
+                        variant="body2"
+                        noWrap
                         sx={{
-                          height: "24px",
-                          background: (theme) => `linear-gradient(135deg,
-                            rgba(255, 255, 255, 0.9) 0%,
-                            rgba(255, 255, 255, 0.7) 100%)`,
-                          backdropFilter: "blur(8px)",
+                          textDecoration: "none",
                           "&:hover": {
-                            background: (theme) => `linear-gradient(135deg,
-                              ${theme.palette.primary.light} 0%,
-                              ${theme.palette.primary.main} 100%)`,
-                            color: "white",
-                            transform: "translateY(-2px)",
-                            boxShadow: "0 4px 12px rgba(0, 0, 0, 0.1)",
+                            textDecoration: "underline",
                           },
                         }}
-                      />
-                    )}
+                      >
+                        {fullInstructorName}
+                      </Link>
+                    </Grid>
+                    <Grid item>
+                      {!isSmallScreen && rmpData?.num_ratings != undefined && (
+                        <ReviewCountChip
+                          disableRipple
+                          icon={<RateReviewIcon color="inherit" />}
+                          label={`${rmpData?.num_ratings} ${
+                            rmpData?.num_ratings > 1 ? "reviews" : "review"
+                          }`}
+                          onClick={handleOpenModal}
+                          size="small"
+                          sx={{
+                            height: "24px",
+                            background: (theme) => `linear-gradient(135deg,
+                            rgba(255, 255, 255, 0.9) 0%,
+                            rgba(255, 255, 255, 0.7) 100%)`,
+                            backdropFilter: "blur(8px)",
+                            "&:hover": {
+                              background: (theme) => `linear-gradient(135deg,
+                              ${theme.palette.primary.light} 0%,
+                              ${theme.palette.primary.main} 100%)`,
+                              color: "white",
+                              transform: "translateY(-2px)",
+                              boxShadow: "0 4px 12px rgba(0, 0, 0, 0.1)",
+                            },
+                          }}
+                        />
+                      )}
+                    </Grid>
                   </Grid>
-                </Grid>
+                ) : (
+                  <Typography variant="body2">{"Staff"}</Typography>
+                )}
+              </Box>
+
+              <>
+                <RenderRMPContent />
+              </>
+            </CourseInfo>
+
+            <ActionContainer>
+              {avgGPA !== "N/A" ? (
+                <Tooltip
+                  title={`${!isSmallScreen ? "Average GPA:" : ""} ${avgGPA}`}
+                >
+                  <GradeChip
+                    grade={Number(avgGPA)}
+                    icon={
+                      <EqualizerIcon
+                        sx={{ fontSize: 16, color: COLORS.WHITE }}
+                      />
+                    }
+                    label={`${
+                      !isSmallScreen ? "Average Grade:" : ""
+                    } ${getLetterGrade(avgGPA)}`}
+                    size="small"
+                    sx={{
+                      height: "28px",
+                      fontWeight: 600,
+                      boxShadow: "0 2px 8px rgba(0, 0, 0, 0.15)",
+                      "&:hover": {
+                        boxShadow: "0 4px 12px rgba(0, 0, 0, 0.2)",
+                      },
+                    }}
+                  />
+                </Tooltip>
               ) : (
-                <Typography variant="body2">{"Staff"}</Typography>
-              )}
-            </Box>
-
-            <>
-              <RenderRMPContent />
-            </>
-          </CourseInfo>
-
-          <ActionContainer>
-            {avgGPA !== "N/A" ? (
-              <Tooltip
-                title={`${!isSmallScreen ? "Average GPA:" : ""} ${avgGPA}`}
-              >
-                <GradeChip
-                  grade={Number(avgGPA)}
+                <StyledChip
                   icon={
-                    <EqualizerIcon sx={{ fontSize: 16, color: COLORS.WHITE }} />
+                    <CancelIcon sx={{ fontSize: 16, color: COLORS.WHITE }} />
                   }
-                  label={`${
-                    !isSmallScreen ? "Average Grade:" : ""
-                  } ${getLetterGrade(avgGPA)}`}
+                  label={isSmallScreen ? "No GPA" : "No GPA information"}
                   size="small"
                   sx={{
                     height: "28px",
@@ -326,109 +371,132 @@ export const CourseCard = ({
                     },
                   }}
                 />
-              </Tooltip>
-            ) : (
-              <StyledChip
-                icon={<CancelIcon sx={{ fontSize: 16, color: COLORS.WHITE }} />}
-                label={isSmallScreen ? "No GPA" : "No GPA information"}
-                size="small"
-                sx={{
-                  height: "28px",
-                  fontWeight: 600,
-                  boxShadow: "0 2px 8px rgba(0, 0, 0, 0.15)",
-                  "&:hover": {
-                    boxShadow: "0 4px 12px rgba(0, 0, 0, 0.2)",
-                  },
-                }}
-              />
-            )}
-            <Tooltip title={`${course.enroll_num}`} placement="bottom">
+              )}
+
               <IconButton
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleCopyClick();
-                }}
+                onClick={handleMenuClick}
                 size="small"
                 sx={{
                   p: 0.5,
                   borderRadius: "8px",
-                  "& .MuiTouchRipple-root .MuiTouchRipple-child": {
-                    borderRadius: "8px",
+                  "&:hover": {
+                    backgroundColor: theme.palette.action.hover,
                   },
                 }}
               >
-                {copied ? (
-                  <CheckCircleOutlineIcon color="success" fontSize="small" />
-                ) : (
-                  <ContentCopyIcon fontSize="small" />
-                )}
+                <MoreVertIcon fontSize="small" />
               </IconButton>
-            </Tooltip>
 
-            <IconButton
-              onClick={(e) => {
-                e.stopPropagation();
-                handleExpandClick();
-              }}
-              size="small"
-              sx={{ p: 0.5 }}
-            >
-              <StyledExpandIcon expanded={expanded} fontSize="small" />
-            </IconButton>
-          </ActionContainer>
-        </HeaderContent>
-      </CardContent>
+              <Menu
+                anchorEl={anchorEl}
+                open={Boolean(anchorEl)}
+                onClose={handleMenuClose}
+                onClick={(e) => e.stopPropagation()}
+                PaperProps={{
+                  elevation: 3,
+                  sx: {
+                    minWidth: 200,
+                    mt: 1,
+                  },
+                }}
+              >
+                <MenuItem onClick={handleCopyClick}>
+                  <ListItemIcon>
+                    {copied ? (
+                      <CheckCircleOutlineIcon
+                        fontSize="small"
+                        color="success"
+                      />
+                    ) : (
+                      <ContentCopyIcon fontSize="small" />
+                    )}
+                  </ListItemIcon>
+                  <ListItemText>
+                    {copied ? "Copied!" : "Copy Enrollment Number"}
+                  </ListItemText>
+                </MenuItem>
 
-      <Collapse in={expanded} timeout="auto" unmountOnExit>
-        <CardContent sx={{ pt: 0, pb: "8px !important" }}>
-          <Paper variant="outlined" sx={{ p: 1.5, mt: 1 }}>
-            <Grid container spacing={2}>
-              <Grid item xs={6}>
-                <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                  <SchoolIcon sx={{ fontSize: 18 }} />
-                  <Typography variant="body2" noWrap>
-                    {course.location}
-                  </Typography>
-                </Box>
-              </Grid>
-              <Grid item xs={6}>
-                <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                  <AccessTimeIcon sx={{ fontSize: 18 }} />
-                  <Typography variant="body2" noWrap>
-                    {course.schedule}
-                  </Typography>
-                </Box>
-              </Grid>
-              <Grid item xs={6}>
-                <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                  <GroupsIcon sx={{ fontSize: 18 }} />
-                  <Typography variant="body2" noWrap>
-                    {course.class_count} enrolled
-                  </Typography>
-                  <Tooltip title="Updated every 5 minutes">
-                    <RadioButtonChecked sx={{ fontSize: 18 }} color="error" />
-                  </Tooltip>
-                </Box>
-              </Grid>
-              <Grid item xs={6}>
-                <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                  <CategoryIcon sx={{ fontSize: 18 }} />
-                  <Typography variant="body2" noWrap>
-                    {course.class_type}
-                  </Typography>
-                </Box>
-              </Grid>
-            </Grid>
-          </Paper>
+                <MenuItem
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    window.open(course.link, "_blank");
+                    handleMenuClose();
+                  }}
+                >
+                  <ListItemIcon>
+                    <OpenInNewIcon fontSize="small" />
+                  </ListItemIcon>
+                  <ListItemText>Open Course Page</ListItemText>
+                </MenuItem>
+              </Menu>
+
+              <IconButton
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleExpandClick();
+                }}
+                size="small"
+                sx={{ p: 0.5 }}
+              >
+                <StyledExpandIcon expanded={expanded} fontSize="small" />
+              </IconButton>
+            </ActionContainer>
+          </HeaderContent>
         </CardContent>
-      </Collapse>
-    </StyledCard>
-  );
-};
+
+        <Collapse in={expanded} timeout="auto" unmountOnExit>
+          <CardContent sx={{ pt: 0, pb: "8px !important" }}>
+            <Paper variant="outlined" sx={{ p: 1.5, mt: 1 }}>
+              <Grid container spacing={2}>
+                <Grid item xs={6}>
+                  <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                    <SchoolIcon sx={{ fontSize: 18 }} />
+                    <Typography variant="body2" noWrap>
+                      {course.location}
+                    </Typography>
+                  </Box>
+                </Grid>
+                <Grid item xs={6}>
+                  <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                    <AccessTimeIcon sx={{ fontSize: 18 }} />
+                    <Typography variant="body2" noWrap>
+                      {course.schedule}
+                    </Typography>
+                  </Box>
+                </Grid>
+                <Grid item xs={6}>
+                  <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                    <GroupsIcon sx={{ fontSize: 18 }} />
+                    <Typography variant="body2" noWrap>
+                      {course.class_count} enrolled
+                    </Typography>
+                    <Tooltip title="Updated every 5 minutes">
+                      <RadioButtonChecked sx={{ fontSize: 18 }} color="error" />
+                    </Tooltip>
+                  </Box>
+                </Grid>
+                <Grid item xs={6}>
+                  <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                    <CategoryIcon sx={{ fontSize: 18 }} />
+                    <Typography variant="body2" noWrap>
+                      {course.class_type}
+                    </Typography>
+                  </Box>
+                </Grid>
+              </Grid>
+            </Paper>
+          </CardContent>
+        </Collapse>
+      </StyledCard>
+    );
+  }
+);
 
 //styles
 
 const StyledCard = styled(Card)(({ theme }) => ({
+  border: `1px solid ${theme.palette.divider}`,
+  borderRadius: "8px",
   position: "relative",
   transition: "transform 0.2s ease-in-out",
   paddingBottom: theme.spacing(2),
@@ -478,7 +546,7 @@ const GradeChip = styled(Chip)<GradeChipProps>(({ theme, grade }) => {
     fontWeight: 500,
     transition: "all 0.3s ease",
     boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
-    borderRadius: "4px",
+    borderRadius: "8px",
     "&:hover": {
       boxShadow: "0 4px 8px rgba(0,0,0,0.2)",
     },
@@ -490,9 +558,27 @@ const GradeChip = styled(Chip)<GradeChipProps>(({ theme, grade }) => {
     },
   };
 });
-
+const GECategoryChip = styled(Chip)(({ theme }) => ({
+  borderRadius: "8px",
+  background: `linear-gradient(135deg, 
+    ${theme.palette.secondary.dark} 0%, 
+    ${theme.palette.secondary.main} 100%)`,
+  color: "white",
+  fontWeight: 600,
+  letterSpacing: "0.5px",
+  padding: "0 4px",
+  height: "28px",
+  boxShadow: "0 2px 8px rgba(0, 0, 0, 0.15)",
+  transition: "all 0.2s ease-in-out",
+  "&:hover": {
+    boxShadow: "0 4px 12px rgba(0, 0, 0, 0.2)",
+    background: `linear-gradient(135deg, 
+      ${theme.palette.secondary.main} 0%, 
+      ${theme.palette.secondary.light} 100%)`,
+  },
+}));
 const StyledChip = styled(Chip)(({ theme }) => ({
-  borderRadius: "6px",
+  borderRadius: "8px",
   "&.MuiChip-outlined": {
     background: "linear-gradient(135deg, #ffffff 0%, #f5f5f5 100%)",
     borderColor: theme.palette.grey[300],
@@ -512,7 +598,7 @@ const StyledChip = styled(Chip)(({ theme }) => ({
 }));
 
 const CourseCodeChip = styled(Chip)(({ theme }) => ({
-  borderRadius: "6px",
+  borderRadius: "8px",
   background: `linear-gradient(135deg, 
     ${theme.palette.primary.dark} 0%, 
     ${theme.palette.primary.main} 100%)`,
@@ -531,8 +617,17 @@ const CourseCodeChip = styled(Chip)(({ theme }) => ({
   },
 }));
 
+const StyledExpandIcon = styled(KeyboardArrowRightIcon)<{ expanded: boolean }>(
+  ({ theme, expanded }) => ({
+    transform: expanded ? "rotate(90deg)" : "rotate(0deg)",
+    transition: theme.transitions.create("transform", {
+      duration: theme.transitions.duration.shortest,
+    }),
+  })
+);
+
 const RatingChip = styled(Chip)(({ theme }) => ({
-  borderRadius: "6px",
+  borderRadius: "8px",
   backgroundSize: "200% 200%",
   color: "white",
   fontWeight: 600,
@@ -550,7 +645,7 @@ const RatingChip = styled(Chip)(({ theme }) => ({
 }));
 
 const ReviewCountChip = styled(Chip)(({ theme }) => ({
-  borderRadius: "6px",
+  borderRadius: "8px",
   background: `linear-gradient(135deg,
     rgba(255, 255, 255, 0.9) 0%,
     rgba(255, 255, 255, 0.7) 100%)`,
@@ -571,7 +666,7 @@ const ReviewCountChip = styled(Chip)(({ theme }) => ({
 
 const DifficultyChip = styled(Chip)<DifficultyChipProps>(
   ({ theme, difficulty }) => ({
-    borderRadius: "6px",
+    borderRadius: "8px",
     background: "transparent",
     border: `1.5px solid ${
       difficulty >= 4
@@ -620,4 +715,3 @@ const ActionContainer = styled(Box)(({ theme }) => ({
   gap: theme.spacing(1),
   flexShrink: 0,
 }));
-

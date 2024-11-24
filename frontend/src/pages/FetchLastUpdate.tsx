@@ -1,6 +1,6 @@
 //seperate file because auto refresh doesnt work on vite
 import axios from "axios";
-import { CONFIG } from "./GetGEData";
+import { local } from "./GetGEData";
 const getTimeAgo = (lastUpdate?: Date): string => {
     const now = new Date();
     const secondsAgo = Math.floor(
@@ -16,7 +16,7 @@ const getTimeAgo = (lastUpdate?: Date): string => {
   
 export const fetchLastUpdate = async (): Promise<string> => {
   try {
-    const response = await axios.get(`${CONFIG.local}/api/courses`);
+    const response = await axios.get(`${local}/api/courses`);
     const lastUpdate = response.data?.last_update;
 
     if (!lastUpdate) {

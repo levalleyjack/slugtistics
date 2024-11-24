@@ -60,9 +60,16 @@ export const StyledExpandIcon = styled(KeyboardArrowDownIcon)<{ expanded: boolea
     }),
   })
 );
+export enum ClassStatusEnum {
+  OPEN = "Open",
+  CLOSED = "Closed",
+  WAITLIST = "Wait List",
+} 
 export interface Course {
   id: any;
-  code: string;
+  unique_id:any;
+  subject:string;
+  catalog_num:string;
   link: string;
   enroll_num: string;
   name: string;
@@ -74,7 +81,9 @@ export interface Course {
   location: string;
   gpa: string;
   instructor_ratings: any;
-  class_status:string;
+  class_status:ClassStatusEnum;
+  ge_category: string; // Add this line
+
 }
 
 export interface RMPResponse {
@@ -132,6 +141,7 @@ export const getLetterGrade = (gpa: string) => {
 };
 
 export const categories = [
+  { id: "AnyGE", name: "All Courses", icon: <AppsIcon /> },
   { id: "CC", name: "Cross-Cultural Analysis", icon: <PeopleIcon /> },
   { id: "ER", name: "Ethnicity and Race", icon: <PeopleIcon /> },
   { id: "IM", name: "Interpreting Arts and Media", icon: <MenuBookIcon /> },
@@ -171,5 +181,4 @@ export const categories = [
   },
   { id: "C", name: "Composition", icon: <CreateIcon /> },
 
-  { id: "AnyGE", name: "All Courses", icon: <AppsIcon /> },
 ];

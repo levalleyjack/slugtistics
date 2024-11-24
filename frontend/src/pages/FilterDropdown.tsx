@@ -91,8 +91,6 @@ const MenuProps: SelectProps["MenuProps"] = {
   },
 };
 
-
-
 const classTypeOptions = [
   "In Person",
   "Hybrid",
@@ -100,22 +98,25 @@ const classTypeOptions = [
   "Asynchronous Online",
 ];
 
-const enrollmentStatusOptions = ["Open", "Waitlisted", "Closed"];
+const enrollmentStatusOptions = ["Open", "Wait List", "Closed"];
 
 interface FilterDropdownProps {
-  sortBy: string;
+  codes: string[];
+  selectedSubjects: string[];
+
   selectedClassTypes: string[];
   selectedEnrollmentStatuses: string[];
-  onSortChange: (value: string) => void;
+  onSelectedSubjectsChange: (value: string[]) => void;
   onClassTypesChange: (value: string[]) => void;
   onEnrollmentStatusesChange: (value: string[]) => void;
 }
 
 const FilterDropdown: React.FC<FilterDropdownProps> = ({
-  sortBy,
+  codes,
+  selectedSubjects,
   selectedClassTypes,
   selectedEnrollmentStatuses,
-  onSortChange,
+  onSelectedSubjectsChange,
   onClassTypesChange,
   onEnrollmentStatusesChange,
 }) => {
@@ -131,6 +132,16 @@ const FilterDropdown: React.FC<FilterDropdownProps> = ({
 
   const open = Boolean(anchorEl);
   const id = open ? "filter-popover" : undefined;
+  const handleChipDelete = (
+    selectedItems: string[],
+    setSeletedItems: any,
+    event: React.MouseEvent,
+    value: string
+  ) => {
+    event.stopPropagation();
+    const updatedSelection = selectedItems.filter((item) => item !== value);
+    setSeletedItems(updatedSelection);
+  };
 
   const getButtonLabel = () => {
     const activeFilters =
@@ -178,17 +189,67 @@ const FilterDropdown: React.FC<FilterDropdownProps> = ({
               gutterBottom
               sx={{ fontWeight: 600, color: "text.primary" }}
             >
-              Sort by
+              Enrollment Status
             </Typography>
             <Select
+              multiple
               size="small"
-              value={sortBy}
-              onChange={(e) => onSortChange(e.target.value)}
+              value={selectedEnrollmentStatuses}
+              onChange={(e) =>
+                onEnrollmentStatusesChange(e.target.value as string[])
+              }
+              input={<OutlinedInput />}
+              displayEmpty
+              renderValue={(selected) => {
+                if ((selected as string[]).length === 0) {
+                  return <Typography color="text.secondary">All</Typography>;
+                }
+                return (
+                  <Box
+                    sx={{
+                      display: "flex",
+                      flexWrap: "wrap",
+                      gap: 0.5,
+                      alignItems: "center",
+                    }}
+                  >
+                    {(selected as string[]).map((value) => (
+                      <StyledChip
+                        key={value}
+                        onMouseDown={(e) => e.stopPropagation()} 
+                        label={value}
+                        onClick={(event) =>
+                          handleChipDelete(
+                            selectedEnrollmentStatuses,
+                            onEnrollmentStatusesChange,
+                            event,
+                            value
+                          )
+                        }
+                        onDelete={(event) =>
+                          handleChipDelete(
+                            selectedEnrollmentStatuses,
+                            onEnrollmentStatusesChange,
+                            event,
+                            value
+                          )
+                        }
+                      />
+                    ))}
+                  </Box>
+                );
+              }}
               MenuProps={MenuProps}
             >
-              <MenuItem value="GPA">GPA (High to Low)</MenuItem>
-              <MenuItem value="NAME">Title (A-Z)</MenuItem>
-              <MenuItem value="CODE">Code (A-Z)</MenuItem>
+              {enrollmentStatusOptions.map((option) => (
+                <MenuItem key={option} value={option}>
+                  <Checkbox
+                    checked={selectedEnrollmentStatuses.indexOf(option) > -1}
+                    sx={{ padding: 0.5 }}
+                  />
+                  <ListItemText primary={option} sx={{ ml: 1 }} />
+                </MenuItem>
+              ))}
             </Select>
           </StyledFormControl>
 
@@ -214,7 +275,27 @@ const FilterDropdown: React.FC<FilterDropdownProps> = ({
                 return (
                   <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.5 }}>
                     {(selected as string[]).map((value) => (
-                      <StyledChip key={value} label={value} />
+                      <StyledChip
+                        key={value}
+                        label={value}
+                        onMouseDown={(e) => e.stopPropagation()}
+                        onClick={(event) =>
+                          handleChipDelete(
+                            selectedClassTypes,
+                            onClassTypesChange,
+                            event,
+                            value
+                          )
+                        }
+                        onDelete={(event) =>
+                          handleChipDelete(
+                            selectedClassTypes,
+                            onClassTypesChange,
+                            event,
+                            value
+                          )
+                        }
+                      />
                     ))}
                   </Box>
                 );
@@ -239,14 +320,14 @@ const FilterDropdown: React.FC<FilterDropdownProps> = ({
               gutterBottom
               sx={{ fontWeight: 600, color: "text.primary" }}
             >
-              Enrollment Status
+              Subjects
             </Typography>
             <Select
               multiple
               size="small"
-              value={selectedEnrollmentStatuses}
+              value={selectedSubjects}
               onChange={(e) =>
-                onEnrollmentStatusesChange(e.target.value as string[])
+                onSelectedSubjectsChange(e.target.value as string[])
               }
               input={<OutlinedInput />}
               displayEmpty
@@ -257,17 +338,37 @@ const FilterDropdown: React.FC<FilterDropdownProps> = ({
                 return (
                   <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.5 }}>
                     {(selected as string[]).map((value) => (
-                      <StyledChip key={value} label={value} />
+                      <StyledChip
+                        key={value}
+                        label={value}
+                        onMouseDown={(e) => e.stopPropagation()}
+                        onClick={(event) =>
+                          handleChipDelete(
+                            selectedSubjects,
+                            onSelectedSubjectsChange,
+                            event,
+                            value
+                          )
+                        }
+                        onDelete={(event) =>
+                          handleChipDelete(
+                            selectedSubjects,
+                            onSelectedSubjectsChange,
+                            event,
+                            value
+                          )
+                        }
+                      />
                     ))}
                   </Box>
                 );
               }}
               MenuProps={MenuProps}
             >
-              {enrollmentStatusOptions.map((option) => (
+              {codes?.map((option) => (
                 <MenuItem key={option} value={option}>
                   <Checkbox
-                    checked={selectedEnrollmentStatuses.indexOf(option) > -1}
+                    checked={selectedSubjects?.indexOf(option) > -1}
                     sx={{ padding: 0.5 }}
                   />
                   <ListItemText primary={option} sx={{ ml: 1 }} />

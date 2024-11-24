@@ -79,7 +79,6 @@ def process_page(driver, class_list,ge):
                 status_element = row.find_element(By.XPATH, ".//span[@class='sr-only']")
                 class_status = status_element.text if status_element else "Unknown"
                 enroll_num = get_text_safely(row, 'div.col-xs-6.col-sm-3', "Class Number: ")
-                print(class_status)
                 teacher_name = get_text_safely(row, 'div.col-xs-6.col-sm-3', "Instructor: ", 1)
                 teacher_name = teacher_name.split(": ")[1]
                 names = teacher_name.split(",")
@@ -117,7 +116,7 @@ def process_page(driver, class_list,ge):
                     class_type=class_type,
                     schedule=schedule,
                     location=location,
-                    class_status=class_status.lower()
+                    class_status=class_status
                 ))
 
             except Exception as e:
