@@ -128,7 +128,7 @@ const DynamicCourseList: React.FC<DynamicCourseListProps> = ({
         style={{ height: "100%" }}
         totalCount={filteredCourses.length}
         itemContent={itemContent}
-        overscan={100}
+        overscan={30}
         computeItemKey={useCallback(
           (index) => filteredCourses[index].unique_id,
           [filteredCourses]

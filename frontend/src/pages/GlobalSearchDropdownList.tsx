@@ -10,24 +10,35 @@ import {
   List,
   ListItem,
   ListItemText,
-  ListItemSecondaryAction,
   Chip,
   useTheme,
   alpha,
+  useMediaQuery,
 } from "@mui/material";
 import SearchIcon from "@mui/icons-material/Search";
 import React, { useState, useMemo, useRef } from "react";
 import { COLORS, Course } from "../Colors";
+
+interface Props {
+  courses: Record<string, Course[]>;
+  onCourseSelect: (category: string, courseId: string) => void;
+  selectedGE: string;
+  lastUpdated: string;
+  isSmallScreen: boolean;
+}
 
 const StyledPopper = styled(Popper)(({ theme }) => ({
   width: 400,
   zIndex: 1301,
   marginTop: theme.spacing(1),
   [theme.breakpoints.down("sm")]: {
-    width: "100%",
-    maxWidth: "calc(100vw - 32px)",
+    width: "calc(100% - 32px) !important", // Account for padding
+    left: "16px !important",
+    right: "16px !important",
+    position: "absolute !important",
   },
 }));
+
 const SearchContainer = styled("div")(({ theme }) => ({
   display: "flex",
   alignItems: "center",
@@ -43,10 +54,14 @@ const LastUpdatedText = styled(Typography)(({ theme }) => ({
   color: theme.palette.text.secondary,
   textAlign: 'right'
 }));
-const SearchWrapper = styled("div")({
+
+const SearchWrapper = styled("div")(({ theme }) => ({
   position: "relative",
   width: "100%",
-});
+  [theme.breakpoints.down("sm")]: {
+    padding: "0 16px", // Add padding on mobile
+  },
+}));
 
 const StyledPaper = styled(Paper)(({ theme }) => ({
   maxHeight: "calc(100vh - 200px)",
@@ -54,6 +69,10 @@ const StyledPaper = styled(Paper)(({ theme }) => ({
   boxShadow: theme.shadows[8],
   border: `1px solid ${theme.palette.divider}`,
   borderRadius: theme.shape.borderRadius,
+  [theme.breakpoints.down("sm")]: {
+    maxHeight: "60vh",
+    borderRadius: theme.shape.borderRadius,
+  },
 }));
 
 const StyledListItem = styled(ListItem)(({ theme }) => ({
@@ -91,24 +110,19 @@ const SectionDivider = styled("div")(({ theme }) => ({
   borderBottom: `1px solid ${theme.palette.divider}`,
 }));
 
-interface Props {
-  courses: Record<string, Course[]>;
-  onCourseSelect: (category: string, courseId: string) => void;
-  selectedGE: string;
-  lastUpdated: string;
-}
-
 const GlobalSearch = ({
   courses,
   onCourseSelect,
   selectedGE,
   lastUpdated,
+  isSmallScreen,
 }: Props) => {
   const [search, setSearch] = useState("");
   const [isSearching, setIsSearching] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
   const anchorRef = useRef<HTMLDivElement>(null);
   const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
 
   const allCourses = useMemo(() => {
     if (!courses) return [];
@@ -145,7 +159,10 @@ const GlobalSearch = ({
         }
         return acc;
       },
-      { selectedGECourses: [], otherCourses: [] }
+      { selectedGECourses: [], otherCourses: [] } as {
+        selectedGECourses: any[];
+        otherCourses: any[];
+      }
     );
   }, [searchResults, selectedGE]);
 
@@ -175,6 +192,7 @@ const GlobalSearch = ({
         return theme.palette.text.secondary;
     }
   };
+
   const CourseListItem = ({ course }: { course: Course }) => (
     <StyledListItem
       onClick={() => handleCourseClick(course.ge_category, course.unique_id)}
@@ -211,6 +229,7 @@ const GlobalSearch = ({
       />
     </StyledListItem>
   );
+
   return (
     <SearchWrapper>
       <ClickAwayListener onClickAway={() => setIsOpen(false)}>
@@ -275,9 +294,13 @@ const GlobalSearch = ({
                   padding: 8,
                 },
               },
+              {
+                name: "flip",
+                enabled: true,
+              },
             ]}
           >
-            <StyledPaper elevation={8}>
+            <StyledPaper elevation={1}>
               {searchResults.length === 0 ? (
                 <NoResults>
                   <Typography color="textSecondary">
