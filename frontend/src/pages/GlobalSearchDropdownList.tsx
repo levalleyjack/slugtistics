@@ -59,7 +59,6 @@ const SearchWrapper = styled("div")(({ theme }) => ({
   position: "relative",
   width: "100%",
   [theme.breakpoints.down("sm")]: {
-    padding: "0 16px", // Add padding on mobile
   },
 }));
 
@@ -257,7 +256,7 @@ const GlobalSearch = ({
                 "& .MuiOutlinedInput-root": {
                   backgroundColor: COLORS.GRAY_50,
                   transition: "background-color 0.2s",
-                  height: "40px",
+                  height: 36,
                   "&:hover": {
                     backgroundColor: COLORS.WHITE,
                   },
