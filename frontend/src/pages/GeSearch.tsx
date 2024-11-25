@@ -19,7 +19,7 @@ import { CategorySidebar } from "./CategorySideBar";
 import { fetchLastUpdate } from "./FetchLastUpdate";
 import FilterDropdown from "./FilterDropdown";
 import GlobalSearch from "./GlobalSearchDropdownList";
-import DynamicCourseList from "./VirtualizedCourseList";
+import {DynamicCourseList} from "./VirtualizedCourseList";
 import { useQuery } from "@tanstack/react-query";
 
 const Root = styled("div")(({ theme }) => ({
@@ -43,7 +43,7 @@ const DrawerHeader = styled("div")(({ theme }) => ({
 
 const MenuButton = styled(IconButton)(({ theme }) => ({
   position: "fixed",
-  top: theme.spacing(9),
+  top: theme.spacing(8.5),
   left: theme.spacing(1),
   zIndex: 1100,
   backgroundColor: COLORS.WHITE,
@@ -194,7 +194,8 @@ const filterBySort = (
   selectedSubjects: string[],
   selectedClassTypes: string[],
   selectedEnrollmentStatuses: string[],
-  currentCourses: Course[]
+  currentCourses: Course[],
+  selectedGEs: string[]
 ): Course[] => {
   if (!currentCourses || currentCourses.length === 0) return [];
 
@@ -211,7 +212,10 @@ const filterBySort = (
       selectedEnrollmentStatuses.length === 0 ||
       selectedEnrollmentStatuses.includes(course.class_status);
 
-    return matchSubject && matchType && matchStatus;
+    const matchGEs =
+      selectedGEs.length === 0 || selectedGEs.includes(course.ge);
+
+    return matchSubject && matchType && matchStatus && matchGEs;
   });
 
   return filteredCourses.sort((a, b) => {
@@ -228,6 +232,8 @@ const GeSearch = () => {
   const [selectedEnrollmentStatuses, setSelectedEnrollmentStatuses] = useState<
     string[]
   >([]);
+  const [selectedGEs, setSelectedGEs] = useState<string[]>([]);
+
   const { data: lastUpdated } = useQuery({
     queryKey: ["lastUpdate"],
     queryFn: fetchLastUpdate,
@@ -263,7 +269,8 @@ const GeSearch = () => {
       selectedSubjects,
       selectedClassTypes,
       selectedEnrollmentStatuses,
-      searchFiltered
+      searchFiltered,
+      selectedGEs
     );
   }, [
     currentCourses,
@@ -271,6 +278,7 @@ const GeSearch = () => {
     selectedSubjects,
     selectedClassTypes,
     selectedEnrollmentStatuses,
+    selectedGEs,
   ]);
 
   const handleClearFilters = () => {
@@ -310,6 +318,7 @@ const GeSearch = () => {
   const codes = [
     ...new Set(currentCourses?.map((course) => course.subject)),
   ].sort();
+  const GEs = [...new Set(currentCourses?.map((course) => course.ge))].sort();
 
   return (
     <Root>
@@ -366,6 +375,7 @@ const GeSearch = () => {
               onCourseSelect={handleGlobalCourseSelect}
               selectedGE={selectedGE}
               lastUpdated={lastUpdated ?? "None"}
+              isSmallScreen={isSmallScreen}
             />
           </SearchSection>
 
@@ -386,12 +396,15 @@ const GeSearch = () => {
                 </ExpandButton>
                 <FilterDropdown
                   codes={codes}
+                  GEs={GEs}
+                  selectedGEs={selectedGEs}
                   selectedSubjects={selectedSubjects}
                   selectedClassTypes={selectedClassTypes}
                   selectedEnrollmentStatuses={selectedEnrollmentStatuses}
                   onClassTypesChange={setSelectedClassTypes}
                   onSelectedSubjectsChange={setSelectedSubjects}
                   onEnrollmentStatusesChange={setSelectedEnrollmentStatuses}
+                  onSelectedGEs={setSelectedGEs}
                 />
               </>
             ) : (
@@ -409,12 +422,15 @@ const GeSearch = () => {
                 </ExpandButton>
                 <FilterDropdown
                   codes={codes}
+                  GEs={GEs}
+                  selectedGEs={selectedGEs}
                   selectedSubjects={selectedSubjects}
                   selectedClassTypes={selectedClassTypes}
                   selectedEnrollmentStatuses={selectedEnrollmentStatuses}
-                  onSelectedSubjectsChange={setSelectedSubjects}
                   onClassTypesChange={setSelectedClassTypes}
+                  onSelectedSubjectsChange={setSelectedSubjects}
                   onEnrollmentStatusesChange={setSelectedEnrollmentStatuses}
+                  onSelectedGEs={setSelectedGEs}
                 />
               </>
             )}
@@ -464,6 +480,7 @@ const GeSearch = () => {
             expandedCodesMap={expandedCodesMap}
             handleExpandCard={handleExpandCard}
             scrollToCourseId={scrollToCourseId}
+            setSelectedGE={setSelectedGE}
           />
         )}
       </CourseContainer>

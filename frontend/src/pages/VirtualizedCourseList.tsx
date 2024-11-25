@@ -14,6 +14,8 @@ interface DynamicCourseListProps {
   expandedCodesMap: Map<string, boolean>;
   handleExpandCard: (courseId: string) => void;
   scrollToCourseId?: string;
+  setSelectedGE:(courseId: string) => void;
+
 }
 
 const ListWrapper = styled("div")({
@@ -29,12 +31,13 @@ const ItemWrapper = styled("div")<{ isLastItem?: boolean }>(
   })
 );
 
-const DynamicCourseList: React.FC<DynamicCourseListProps> = ({
+export const DynamicCourseList: React.FC<DynamicCourseListProps> = ({
   filteredCourses,
   isSmallScreen,
   expandedCodesMap,
   handleExpandCard,
-  scrollToCourseId
+  scrollToCourseId,
+  setSelectedGE,
 }) => {
   const cardRefs = useRef<CardRefs>({});
   const virtuosoRef = useRef<any>(null);
@@ -114,6 +117,7 @@ const DynamicCourseList: React.FC<DynamicCourseListProps> = ({
             isSmallScreen={isSmallScreen}
             expanded={!!isExpanded}
             onExpandChange={() => handleExpandCard(course.unique_id)}
+            setSelectedGE={setSelectedGE}
           />
         </ItemWrapper>
       );
@@ -137,13 +141,3 @@ const DynamicCourseList: React.FC<DynamicCourseListProps> = ({
     </ListWrapper>
   );
 };
-
-export default React.memo(DynamicCourseList, (prevProps, nextProps) => {
-  return (
-    prevProps.filteredCourses === nextProps.filteredCourses &&
-    prevProps.isSmallScreen === nextProps.isSmallScreen &&
-    prevProps.expandedCodesMap === nextProps.expandedCodesMap &&
-    prevProps.handleExpandCard === nextProps.handleExpandCard &&
-    prevProps.scrollToCourseId === nextProps.scrollToCourseId
-  );
-});

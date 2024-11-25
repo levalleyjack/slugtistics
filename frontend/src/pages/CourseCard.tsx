@@ -20,6 +20,7 @@ import RateReviewIcon from "@mui/icons-material/RateReview";
 import CancelIcon from "@mui/icons-material/Cancel";
 import EqualizerIcon from "@mui/icons-material/Equalizer";
 import Grid from "@mui/material/Grid";
+import ShoppingCartIcon from "@mui/icons-material/ShoppingCart";
 import {
   ContentCopy as ContentCopyIcon,
   CheckCircleOutline as CheckCircleOutlineIcon,
@@ -28,13 +29,11 @@ import {
   AccessTime as AccessTimeIcon,
   Groups as GroupsIcon,
   Category as CategoryIcon,
-  Grade as GradeIcon,
   Star as StarIcon,
   RadioButtonChecked,
   MoreVert as MoreVertIcon,
   OpenInNew as OpenInNewIcon,
 } from "@mui/icons-material";
-import KeyboardArrowRightIcon from "@mui/icons-material/KeyboardArrowRight";
 import { useTheme } from "@mui/material/styles";
 import {
   COLORS,
@@ -42,6 +41,7 @@ import {
   DifficultyChipProps,
   getLetterGrade,
   GradeChipProps,
+  StyledExpandIcon,
 } from "../Colors";
 import { RatingsModal } from "./RatingsModal";
 import StatusIcon from "./StatusIcon";
@@ -51,11 +51,18 @@ interface CourseCardProps {
   isSmallScreen: boolean;
   expanded: boolean;
   onExpandChange: (courseCode: string) => void;
+  setSelectedGE: (courseCode: string) => void;
 }
 
 export const CourseCard = forwardRef<HTMLDivElement, CourseCardProps>(
   (
-    { course, isSmallScreen, expanded, onExpandChange }: CourseCardProps,
+    {
+      course,
+      isSmallScreen,
+      expanded,
+      onExpandChange,
+      setSelectedGE,
+    }: CourseCardProps,
     ref
   ) => {
     const [copied, setCopied] = useState(false);
@@ -67,7 +74,7 @@ export const CourseCard = forwardRef<HTMLDivElement, CourseCardProps>(
       gpa: avgGPA,
       instructor_ratings: rmpData,
     } = course;
-    const course_code = `${course.subject} ${course.catalog_num}`
+    const course_code = `${course.subject} ${course.catalog_num}`;
 
     const handleExpandClick = () => onExpandChange(course_code);
     const handleOpenModal = (e: React.MouseEvent) => {
@@ -131,13 +138,19 @@ export const CourseCard = forwardRef<HTMLDivElement, CourseCardProps>(
             label={`${rmpData.avg_rating?.toFixed(1) || "N/A"}/5`}
             size="small"
             sx={{
-              backgroundColor:
-                rmpData.avg_rating >= 4
+              border:
+                `1px solid ${rmpData.avg_rating >= 4
                   ? theme.palette.success.dark
                   : rmpData.avg_rating >= 3
                   ? theme.palette.warning.dark
-                  : theme.palette.error.dark,
-              color: "white",
+                  : theme.palette.error.dark}`,
+              color:
+                rmpData.avg_rating >= 4
+                  ? theme.palette.success.main
+                  : rmpData.avg_rating >= 3
+                  ? theme.palette.warning.main
+                  : theme.palette.error.main,
+              backgroundColor: "white",
               fontWeight: "bold",
             }}
           />
@@ -158,21 +171,6 @@ export const CourseCard = forwardRef<HTMLDivElement, CourseCardProps>(
               }`}
               onClick={handleOpenModal}
               size="small"
-              sx={{
-                height: "24px",
-                background: (theme) => `linear-gradient(135deg,
-                            rgba(255, 255, 255, 0.9) 0%,
-                            rgba(255, 255, 255, 0.7) 100%)`,
-                backdropFilter: "blur(8px)",
-                "&:hover": {
-                  background: (theme) => `linear-gradient(135deg,
-                              ${theme.palette.primary.light} 0%,
-                              ${theme.palette.primary.main} 100%)`,
-                  color: "white",
-                  transform: "translateY(-2px)",
-                  boxShadow: "0 4px 12px rgba(0, 0, 0, 0.1)",
-                },
-              }}
             />
           )}
         </Box>
@@ -208,30 +206,19 @@ export const CourseCard = forwardRef<HTMLDivElement, CourseCardProps>(
                     }}
                   >
                     <CourseCodeChip
+                      disableRipple
                       label={course_code}
                       size="small"
                       onClick={(e) => e.stopPropagation()}
-                      sx={{
-                        zIndex: 2,
-                        height: "28px",
-                        background: (theme) => `linear-gradient(135deg, 
-              ${theme.palette.primary.dark} 0%, 
-              ${theme.palette.primary.main} 100%)`,
-                        boxShadow: "0 2px 8px rgba(0, 0, 0, 0.15)",
-                        fontWeight: 600,
-                        letterSpacing: "0.5px",
-                        "&:hover": {
-                          transform: "translateY(-2px)",
-                          boxShadow: "0 4px 12px rgba(0, 0, 0, 0.2)",
-                          background: (theme) => `linear-gradient(135deg, 
-                ${theme.palette.primary.main} 0%, 
-                ${theme.palette.primary.light} 100%)`,
-                        },
-                      }}
                     />
                   </Link>
                   {course.ge && (
-                    <GECategoryChip label={course.ge} size="small" />
+                    <GECategoryChip
+                      label={course.ge}
+                      size="small"
+                      disableRipple
+                      onClick={() => setSelectedGE(course.ge)}
+                    />
                   )}
                   <StatusIcon status={course.class_status} />
                 </Box>
@@ -300,21 +287,6 @@ export const CourseCard = forwardRef<HTMLDivElement, CourseCardProps>(
                           }`}
                           onClick={handleOpenModal}
                           size="small"
-                          sx={{
-                            height: "24px",
-                            background: (theme) => `linear-gradient(135deg,
-                            rgba(255, 255, 255, 0.9) 0%,
-                            rgba(255, 255, 255, 0.7) 100%)`,
-                            backdropFilter: "blur(8px)",
-                            "&:hover": {
-                              background: (theme) => `linear-gradient(135deg,
-                              ${theme.palette.primary.light} 0%,
-                              ${theme.palette.primary.main} 100%)`,
-                              color: "white",
-                              transform: "translateY(-2px)",
-                              boxShadow: "0 4px 12px rgba(0, 0, 0, 0.1)",
-                            },
-                          }}
                         />
                       )}
                     </Grid>
@@ -428,6 +400,21 @@ export const CourseCard = forwardRef<HTMLDivElement, CourseCardProps>(
                   </ListItemIcon>
                   <ListItemText>Open Course Page</ListItemText>
                 </MenuItem>
+                <MenuItem
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    window.open(
+                      "https://my.ucsc.edu/psp/csprd/EMPLOYEE/SA/c/SA_LEARNER_SERVICES.SSR_SSENRL_CART.GBL?PORTALPARAM_PTCNAV=HC_SSR_SSENRL_CART_GBL&EOPP.SCNode=SA&EOPP.SCPortal=EMPLOYEE&EOPP.SCName=UCSC_MOBILE_ENROLL&EOPP.SCLabel=&EOPP.SCPTcname=PT_PTPP_SCFNAV_BASEPAGE_SCR&FolderPath=PORTAL_ROOT_OBJECT.PORTAL_BASE_DATA.CO_NAVIGATION_COLLECTIONS.UCSC_MOBILE_ENROLL.ADMN_S201704121458063536484878&IsFolder=false%22&PortalKeyStruct=yes",
+                      "_blank"
+                    );
+                    handleMenuClose();
+                  }}
+                >
+                  <ListItemIcon>
+                    <ShoppingCartIcon fontSize="small" />
+                  </ListItemIcon>
+                  <ListItemText>Open Shopping Cart</ListItemText>
+                </MenuItem>
               </Menu>
 
               <IconButton
@@ -502,7 +489,8 @@ const StyledCard = styled(Card)(({ theme }) => ({
   paddingBottom: theme.spacing(2),
   "&:hover": {
     "& .MuiChip-clickable": {
-      transform: "scale(1.05)",
+      transform: "translateY(-1px)",
+      boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
     },
   },
   ".MuiCardActionArea-focusHighlight": {
@@ -562,7 +550,9 @@ const GECategoryChip = styled(Chip)(({ theme }) => ({
   borderRadius: "8px",
   background: `linear-gradient(135deg, 
     ${theme.palette.secondary.dark} 0%, 
-    ${theme.palette.secondary.main} 100%)`,
+    ${theme.palette.secondary.light} 100%)`,
+  border: `1px solid ${theme.palette.secondary.dark}`,
+
   color: "white",
   fontWeight: 600,
   letterSpacing: "0.5px",
@@ -573,7 +563,7 @@ const GECategoryChip = styled(Chip)(({ theme }) => ({
   "&:hover": {
     boxShadow: "0 4px 12px rgba(0, 0, 0, 0.2)",
     background: `linear-gradient(135deg, 
-      ${theme.palette.secondary.main} 0%, 
+      ${theme.palette.secondary.light} 0%, 
       ${theme.palette.secondary.light} 100%)`,
   },
 }));
@@ -589,43 +579,52 @@ const StyledChip = styled(Chip)(({ theme }) => ({
       boxShadow: "0 2px 4px rgba(0,0,0,0.05)",
     },
   },
-  "&.MuiChip-clickable": {
-    cursor: "pointer",
-    "&:hover": {
-      transform: "translateY(-1px)",
-    },
-  },
 }));
 
 const CourseCodeChip = styled(Chip)(({ theme }) => ({
   borderRadius: "8px",
-  background: `linear-gradient(135deg, 
-    ${theme.palette.primary.dark} 0%, 
-    ${theme.palette.primary.main} 100%)`,
+  background: `linear-gradient(135deg,
+    ${theme.palette.primary.dark} 0%,
+    ${theme.palette.primary.light} 100%)`,
+  backdropFilter: "blur(8px)",
+  border: `1px solid ${theme.palette.primary.dark}`,
   color: "white",
   fontWeight: 600,
-  letterSpacing: "0.5px",
-  padding: "0 4px",
   height: "28px",
-  boxShadow: "0 2px 8px rgba(0, 0, 0, 0.15)",
+  animation: "gradient 3s ease infinite",
   transition: "all 0.2s ease-in-out",
   "&:hover": {
-    boxShadow: "0 4px 12px rgba(0, 0, 0, 0.2)",
-    background: `linear-gradient(135deg, 
-      ${theme.palette.primary.main} 0%, 
+    background: `linear-gradient(135deg,
+      ${theme.palette.primary.light} 0%,
       ${theme.palette.primary.light} 100%)`,
+    boxShadow: "0 4px 12px rgba(0, 0, 0, 0.1)",
   },
 }));
 
-const StyledExpandIcon = styled(KeyboardArrowRightIcon)<{ expanded: boolean }>(
-  ({ theme, expanded }) => ({
-    transform: expanded ? "rotate(90deg)" : "rotate(0deg)",
-    transition: theme.transitions.create("transform", {
-      duration: theme.transitions.duration.shortest,
-    }),
+const DifficultyChip = styled(Chip)<DifficultyChipProps>(
+  ({ theme, difficulty }) => ({
+    borderRadius: "8px",
+    borderColor:
+      difficulty >= 4
+        ? theme.palette.error.dark
+        : difficulty >= 3
+        ? theme.palette.warning.dark
+        : theme.palette.success.dark,
+    color:
+      difficulty >= 4
+        ? theme.palette.error.main
+        : difficulty >= 3
+        ? theme.palette.warning.main
+        : theme.palette.success.main,
+    background: "white",
+    fontWeight: 500,
+    height: "24px",
+
+    "&:hover": {
+      boxShadow: "0 4px 12px rgba(0, 0, 0, 0.2)",
+    },
   })
 );
-
 const RatingChip = styled(Chip)(({ theme }) => ({
   borderRadius: "8px",
   backgroundSize: "200% 200%",
@@ -634,11 +633,6 @@ const RatingChip = styled(Chip)(({ theme }) => ({
   height: "28px",
   animation: "gradient 3s ease infinite",
   transition: "all 0.2s ease-in-out",
-  "@keyframes gradient": {
-    "0%": { backgroundPosition: "0% 50%" },
-    "50%": { backgroundPosition: "100% 50%" },
-    "100%": { backgroundPosition: "0% 50%" },
-  },
   "&:hover": {
     boxShadow: "0 4px 12px rgba(0, 0, 0, 0.2)",
   },
@@ -647,13 +641,14 @@ const RatingChip = styled(Chip)(({ theme }) => ({
 const ReviewCountChip = styled(Chip)(({ theme }) => ({
   borderRadius: "8px",
   background: `linear-gradient(135deg,
-    rgba(255, 255, 255, 0.9) 0%,
-    rgba(255, 255, 255, 0.7) 100%)`,
+    ${theme.palette.primary.light} 0%,
+    ${theme.palette.primary.main} 100%)`,
   backdropFilter: "blur(8px)",
-  border: `1.5px solid ${theme.palette.primary.dark}`,
-  color: theme.palette.primary.main,
+  border: `1px solid ${theme.palette.primary.dark}`,
+  color: "white",
   fontWeight: 500,
   height: "24px",
+  animation: "gradient 3s ease infinite",
   transition: "all 0.2s ease-in-out",
   "&:hover": {
     background: `linear-gradient(135deg,
@@ -663,38 +658,6 @@ const ReviewCountChip = styled(Chip)(({ theme }) => ({
     boxShadow: "0 4px 12px rgba(0, 0, 0, 0.1)",
   },
 }));
-
-const DifficultyChip = styled(Chip)<DifficultyChipProps>(
-  ({ theme, difficulty }) => ({
-    borderRadius: "8px",
-    background: "transparent",
-    border: `1.5px solid ${
-      difficulty >= 4
-        ? theme.palette.error.main
-        : difficulty >= 3
-        ? theme.palette.warning.main
-        : theme.palette.success.main
-    }`,
-    color:
-      difficulty >= 4
-        ? theme.palette.error.main
-        : difficulty >= 3
-        ? theme.palette.warning.main
-        : theme.palette.success.main,
-    fontWeight: 500,
-    height: "24px",
-    transition: "all 0.2s ease-in-out",
-    "&:hover": {
-      background:
-        difficulty >= 4
-          ? theme.palette.error.light
-          : difficulty >= 3
-          ? theme.palette.warning.light
-          : theme.palette.success.light,
-      color: "white",
-    },
-  })
-);
 
 const HeaderContent = styled(Box)(({ theme }) => ({
   display: "flex",

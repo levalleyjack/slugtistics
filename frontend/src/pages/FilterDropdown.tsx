@@ -103,22 +103,28 @@ const enrollmentStatusOptions = ["Open", "Wait List", "Closed"];
 interface FilterDropdownProps {
   codes: string[];
   selectedSubjects: string[];
+  GEs: string[];
+  selectedGEs: string[];
 
   selectedClassTypes: string[];
   selectedEnrollmentStatuses: string[];
   onSelectedSubjectsChange: (value: string[]) => void;
   onClassTypesChange: (value: string[]) => void;
   onEnrollmentStatusesChange: (value: string[]) => void;
+  onSelectedGEs: (value: string[]) => void;
 }
 
 const FilterDropdown: React.FC<FilterDropdownProps> = ({
   codes,
+  GEs,
+  selectedGEs,
   selectedSubjects,
   selectedClassTypes,
   selectedEnrollmentStatuses,
   onSelectedSubjectsChange,
   onClassTypesChange,
   onEnrollmentStatusesChange,
+  onSelectedGEs,
 }) => {
   const [anchorEl, setAnchorEl] = useState<HTMLButtonElement | null>(null);
 
@@ -216,7 +222,7 @@ const FilterDropdown: React.FC<FilterDropdownProps> = ({
                     {(selected as string[]).map((value) => (
                       <StyledChip
                         key={value}
-                        onMouseDown={(e) => e.stopPropagation()} 
+                        onMouseDown={(e) => e.stopPropagation()}
                         label={value}
                         onClick={(event) =>
                           handleChipDelete(
@@ -376,6 +382,68 @@ const FilterDropdown: React.FC<FilterDropdownProps> = ({
               ))}
             </Select>
           </StyledFormControl>
+          {GEs?.length > 1 && (
+            <StyledFormControl>
+              <Typography
+                variant="subtitle2"
+                gutterBottom
+                sx={{ fontWeight: 600, color: "text.primary" }}
+              >
+                GEs
+              </Typography>
+              <Select
+                multiple
+                size="small"
+                value={selectedGEs}
+                onChange={(e) => onSelectedGEs(e.target.value as string[])}
+                input={<OutlinedInput />}
+                displayEmpty
+                renderValue={(selected) => {
+                  if ((selected as string[]).length === 0) {
+                    return <Typography color="text.secondary">All</Typography>;
+                  }
+                  return (
+                    <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.5 }}>
+                      {(selected as string[]).map((value) => (
+                        <StyledChip
+                          key={value}
+                          label={value}
+                          onMouseDown={(e) => e.stopPropagation()}
+                          onClick={(event) =>
+                            handleChipDelete(
+                              selectedGEs,
+                              onSelectedGEs,
+                              event,
+                              value
+                            )
+                          }
+                          onDelete={(event) =>
+                            handleChipDelete(
+                              selectedGEs,
+                              onSelectedGEs,
+                              event,
+                              value
+                            )
+                          }
+                        />
+                      ))}
+                    </Box>
+                  );
+                }}
+                MenuProps={MenuProps}
+              >
+                {GEs?.map((option) => (
+                  <MenuItem key={option} value={option}>
+                    <Checkbox
+                      checked={selectedGEs?.indexOf(option) > -1}
+                      sx={{ padding: 0.5 }}
+                    />
+                    <ListItemText primary={option} sx={{ ml: 1 }} />
+                  </MenuItem>
+                ))}
+              </Select>
+            </StyledFormControl>
+          )}
         </StyledPopoverContent>
       </Popover>
     </>
