@@ -30,7 +30,7 @@ const Root = styled("div")(({ theme }) => ({
   overflow: "hidden",
   [theme.breakpoints.down("sm")]: {
     flexDirection: "column",
-    height: "calc(100vh - 64px)",
+    height: "calc(100dvh - 64px)",
   },
 }));
 const DrawerHeader = styled("div")(({ theme }) => ({

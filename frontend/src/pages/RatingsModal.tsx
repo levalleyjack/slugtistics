@@ -290,11 +290,16 @@ export const RatingsModal: React.FC<RatingsModalProps> = ({
               <Grid item xs={12} md={6}>
                 <TextField
                   fullWidth
-                  placeholder="Search reviews..."
+                  placeholder={"Search reviews..."}
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   slotProps={{
                     input: {
+                      sx: {
+                        "&::placeholder": {
+                          ...theme.typography.body1, 
+                        },
+                      },
                       startAdornment: (
                         <SearchIcon sx={{ mr: 1, color: "text.secondary" }} />
                       ),
@@ -309,25 +314,33 @@ export const RatingsModal: React.FC<RatingsModalProps> = ({
                   spacing={2}
                 >
                   <FormControl fullWidth>
-                    <InputLabel>Sort By</InputLabel>
+                    <InputLabel>
+                      <Typography>Sort By</Typography>
+                    </InputLabel>
                     <Select
                       value={sortBy}
                       onChange={handleSortChange}
                       label="Sort By"
                       sx={{ borderRadius: "8px" }}
                     >
-                      <MenuItem value="date">Most Recent</MenuItem>
-                      <MenuItem value="helpful_rating">Most Helpful</MenuItem>
+                      <MenuItem value="date">
+                        <Typography>Most Recent</Typography>
+                      </MenuItem>
+                      <MenuItem value="helpful_rating">
+                        <Typography>Most Helpful</Typography>
+                      </MenuItem>
                       <MenuItem value="clarity_rating">
-                        Highest Clarity
+                        <Typography>Highest Clarity</Typography>
                       </MenuItem>
                       <MenuItem value="difficulty_rating">
-                        Most Difficult
+                        <Typography>Most Difficult</Typography>
                       </MenuItem>
                     </Select>
                   </FormControl>
                   <FormControl fullWidth>
-                    <InputLabel>Filter By</InputLabel>
+                    <InputLabel>
+                      <Typography>Filter By</Typography>
+                    </InputLabel>
                     <Select
                       value={filterBy}
                       onChange={handleFilterChange}
