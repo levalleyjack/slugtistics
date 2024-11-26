@@ -142,7 +142,7 @@ def store_courses_in_db():
                         class_type=course.class_type,
                         schedule=course.schedule,
                         location=course.location,
-                        gpa=get_course_gpa(cursor, course.code),
+                        gpa=get_course_gpa(cursor, course.code,matched_instructor),
                         instructor_ratings=instructor_ratings,
                         class_status=course.class_status
                     )

@@ -32,34 +32,27 @@ const StyledPopper = styled(Popper)(({ theme }) => ({
   zIndex: 1301,
   marginTop: theme.spacing(1),
   [theme.breakpoints.down("sm")]: {
-    width: "calc(100% - 32px) !important", // Account for padding
+    width: "calc(100% - 32px) !important",
     left: "16px !important",
     right: "16px !important",
     position: "absolute !important",
   },
 }));
 
-const SearchContainer = styled("div")(({ theme }) => ({
-  display: "flex",
-  alignItems: "center",
-  gap: theme.spacing(2),
-  width: "100%",
-}));
-
 const LastUpdatedText = styled(Typography)(({ theme }) => ({
   padding: theme.spacing(1, 2),
   borderTop: `1px solid ${theme.palette.divider}`,
   backgroundColor: theme.palette.grey[50],
-  fontSize: '0.75rem',
+  fontSize: "0.75rem",
   color: theme.palette.text.secondary,
-  textAlign: 'right'
+  textAlign: "right",
 }));
 
 const SearchWrapper = styled("div")(({ theme }) => ({
   position: "relative",
+
   width: "100%",
-  [theme.breakpoints.down("sm")]: {
-  },
+  [theme.breakpoints.down("sm")]: {},
 }));
 
 const StyledPaper = styled(Paper)(({ theme }) => ({
@@ -67,10 +60,9 @@ const StyledPaper = styled(Paper)(({ theme }) => ({
   overflowY: "auto",
   boxShadow: theme.shadows[8],
   border: `1px solid ${theme.palette.divider}`,
-  borderRadius: theme.shape.borderRadius,
+  borderRadius: "8px",
   [theme.breakpoints.down("sm")]: {
     maxHeight: "60vh",
-    borderRadius: theme.shape.borderRadius,
   },
 }));
 
@@ -241,18 +233,24 @@ const GlobalSearch = ({
               onFocus={() => setIsOpen(true)}
               label="Search courses across all categories..."
               placeholder="THEA 151A, Keiko Yukawa"
-              InputProps={{
-                startAdornment: (
-                  <InputAdornment position="start">
-                    {isSearching ? (
-                      <CircularProgress size={20} color="inherit" />
-                    ) : (
-                      <SearchIcon color="action" />
-                    )}
-                  </InputAdornment>
-                ),
+              slotProps={{
+                input: {
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      {isSearching ? (
+                        <CircularProgress size={20} color="inherit" />
+                      ) : (
+                        <SearchIcon color="action" />
+                      )}
+                    </InputAdornment>
+                  ),
+                  style: {
+                    borderRadius: "8px",
+                  },
+                },
               }}
               sx={{
+                borderRadius: "8px",
                 "& .MuiOutlinedInput-root": {
                   backgroundColor: COLORS.GRAY_50,
                   transition: "background-color 0.2s",
@@ -340,9 +338,7 @@ const GlobalSearch = ({
                       </List>
                     </>
                   )}
-                  <LastUpdatedText>
-                    {lastUpdated}
-                  </LastUpdatedText>
+                  <LastUpdatedText>{lastUpdated}</LastUpdatedText>
                 </>
               )}
             </StyledPaper>
