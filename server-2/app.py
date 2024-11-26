@@ -218,7 +218,6 @@ def get_courses_data():
             current_id += 1
             anyge_course["id"] = current_id
             anyge_course["unique_id"] = str(uuid.uuid4()) 
-            anyge_course[""]
             data["AnyGE"].append(anyge_course)
         
         return jsonify({
