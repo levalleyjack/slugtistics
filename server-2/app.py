@@ -142,7 +142,7 @@ def store_courses_in_db():
                         class_type=course.class_type,
                         schedule=course.schedule,
                         location=course.location,
-                        gpa=get_course_gpa(cursor, course.code),
+                        gpa=get_course_gpa(cursor, course.code,matched_instructor),
                         instructor_ratings=instructor_ratings,
                         class_status=course.class_status
                     )
@@ -218,6 +218,7 @@ def get_courses_data():
             current_id += 1
             anyge_course["id"] = current_id
             anyge_course["unique_id"] = str(uuid.uuid4()) 
+            anyge_course[""]
             data["AnyGE"].append(anyge_course)
         
         return jsonify({

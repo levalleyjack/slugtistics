@@ -46,11 +46,19 @@ def calculate_gpa(grade_distribution):
     gpa = total_points / total_students
     return f"{gpa:.2f}"
 
-def get_course_gpa(cursor, course_code):
+def get_course_gpa(cursor, course_code: str, instructor: str = None) -> float:
     """
-    Retrieve GPA for a specific course
+    Retrieve GPA for a specific course, trying instructor-specific first then falling back to overall course GPA
+    
+    Args:
+        cursor: Database cursor
+        course_code: Course code (e.g., "MATH 19A")
+        instructor: Instructor name to filter by (optional)
+    
+    Returns:
+        float: Calculated GPA based on grade distribution
     """
-    query = '''
+    base_query = '''
         SELECT 
             COALESCE(SUM("A+"), 0) as "A+", COALESCE(SUM("A"), 0) as "A", COALESCE(SUM("A-"), 0) as "A-",
             COALESCE(SUM("B+"), 0) as "B+", COALESCE(SUM("B"), 0) as "B", COALESCE(SUM("B-"), 0) as "B-",
@@ -60,13 +68,30 @@ def get_course_gpa(cursor, course_code):
         FROM GradeData 
         WHERE "SubjectCatalogNbr" = ?
     '''
-    cursor.execute(query, (course_code,))
     
-    result = cursor.fetchone()
-    
-    grade_distribution = {k: v for k, v in dict(result).items() if v > 0}
-    
-    return calculate_gpa(grade_distribution)
+    try:
+        if instructor and instructor.lower() != 'staff' and "." not in instructor:
+            instructor_query = base_query + ' AND "Instructors" = ?'
+            cursor.execute(instructor_query, (course_code, instructor))
+            result = cursor.fetchone()
+            
+            if result:
+                grade_distribution = {k: v for k, v in dict(result).items() if v > 0}
+                if grade_distribution:  
+                    return calculate_gpa(grade_distribution)
+        
+        cursor.execute(base_query, (course_code,))
+        result = cursor.fetchone()
+        
+        if result:
+            grade_distribution = {k: v for k, v in dict(result).items() if v > 0}
+            if grade_distribution:
+                return calculate_gpa(grade_distribution)
+        
+        return None
+        
+    except Exception as e:
+        return None
 
 def find_matching_instructor(instructor: str, historical_instructors: list) -> str:
 

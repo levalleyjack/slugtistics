@@ -21,7 +21,7 @@ import { StyledExpandIcon } from "../Colors";
 const StyledFormControl = styled(FormControl)(({ theme }) => ({
   width: "100%",
 
-  marginBottom: theme.spacing(2.5),
+  marginBottom: theme.spacing(2),
   "& .MuiOutlinedInput-root": {
     transition: "all 0.2s ease-in-out",
     "&:hover": {
@@ -34,9 +34,9 @@ const StyledFormControl = styled(FormControl)(({ theme }) => ({
 }));
 
 const StyledFilterButton = styled(Button)(({ theme }) => ({
-  borderRadius: theme.shape.borderRadius,
+  borderRadius: "8px",
   padding: "6px 16px",
-  height: 36,
+  height: "36px",
   textTransform: "none",
   borderColor: theme.palette.divider,
   marginRight: theme.spacing(2),
@@ -53,7 +53,7 @@ const StyledFilterButton = styled(Button)(({ theme }) => ({
 
 const StyledChip = styled(Chip)(({ theme }) => ({
   height: 24,
-  borderRadius: 12,
+  borderRadius: 4,
   "& .MuiChip-label": {
     fontSize: "0.75rem",
     padding: "0 8px",
@@ -62,6 +62,8 @@ const StyledChip = styled(Chip)(({ theme }) => ({
 
 const StyledPopoverContent = styled(Box)(({ theme }) => ({
   padding: theme.spacing(3),
+  borderRadius: "8px",
+
   width: 320,
   maxHeight: "80vh",
   overflow: "auto",
@@ -77,6 +79,7 @@ const StyledPopoverContent = styled(Box)(({ theme }) => ({
 const MenuProps: SelectProps["MenuProps"] = {
   PaperProps: {
     style: {
+      borderRadius: "8px",
       maxHeight: 250,
     },
     elevation: 2,
@@ -184,7 +187,7 @@ const FilterDropdown: React.FC<FilterDropdownProps> = ({
         slotProps={{
           paper: {
             elevation: 2,
-            sx: { mt: 1 },
+            sx: { mt: 1, borderRadius: "8px" },
           },
         }}
       >
@@ -206,6 +209,7 @@ const FilterDropdown: React.FC<FilterDropdownProps> = ({
               }
               input={<OutlinedInput />}
               displayEmpty
+              sx={{ borderRadius: "8px" }}
               renderValue={(selected) => {
                 if ((selected as string[]).length === 0) {
                   return <Typography color="text.secondary">All</Typography>;
@@ -251,7 +255,7 @@ const FilterDropdown: React.FC<FilterDropdownProps> = ({
                 <MenuItem key={option} value={option}>
                   <Checkbox
                     checked={selectedEnrollmentStatuses.indexOf(option) > -1}
-                    sx={{ padding: 0.5 }}
+                    sx={{ padding: 0.5, borderRadius: "8px" }}
                   />
                   <ListItemText primary={option} sx={{ ml: 1 }} />
                 </MenuItem>
@@ -271,6 +275,7 @@ const FilterDropdown: React.FC<FilterDropdownProps> = ({
               multiple
               size="small"
               value={selectedClassTypes}
+              sx={{ borderRadius: "8px" }}
               onChange={(e) => onClassTypesChange(e.target.value as string[])}
               input={<OutlinedInput />}
               displayEmpty
@@ -335,6 +340,7 @@ const FilterDropdown: React.FC<FilterDropdownProps> = ({
               onChange={(e) =>
                 onSelectedSubjectsChange(e.target.value as string[])
               }
+              sx={{ borderRadius: "8px" }}
               input={<OutlinedInput />}
               displayEmpty
               renderValue={(selected) => {
@@ -394,6 +400,7 @@ const FilterDropdown: React.FC<FilterDropdownProps> = ({
               <Select
                 multiple
                 size="small"
+                sx={{ borderRadius: "8px" }}
                 value={selectedGEs}
                 onChange={(e) => onSelectedGEs(e.target.value as string[])}
                 input={<OutlinedInput />}

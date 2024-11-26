@@ -19,18 +19,18 @@ import { CategorySidebar } from "./CategorySideBar";
 import { fetchLastUpdate } from "./FetchLastUpdate";
 import FilterDropdown from "./FilterDropdown";
 import GlobalSearch from "./GlobalSearchDropdownList";
-import {DynamicCourseList} from "./VirtualizedCourseList";
+import { DynamicCourseList } from "./VirtualizedCourseList";
 import { useQuery } from "@tanstack/react-query";
 
 const Root = styled("div")(({ theme }) => ({
   display: "flex",
   backgroundColor: COLORS.GRAY_50,
-  height: "93vh",
-  position: "relative",
+  height: "calc(100dvh - 64px)",
+
   overflow: "hidden",
   [theme.breakpoints.down("sm")]: {
     flexDirection: "column",
-    height: "90vh",
+    height: "calc(100vh - 64px)",
   },
 }));
 const DrawerHeader = styled("div")(({ theme }) => ({
@@ -128,6 +128,7 @@ const HeaderContainer = styled("div")(({ theme }) => ({
 
 const SearchSection = styled("div")(({ theme }) => ({
   display: "flex",
+
   flexDirection: "column",
   flex: 1,
   marginRight: theme.spacing(2),
@@ -151,6 +152,7 @@ const ControlsContainer = styled("div")(({ theme }) => ({
 
 const ExpandButton = styled(Button)(({ theme }) => ({
   height: "36px",
+  borderRadius: "8px",
   backgroundColor: COLORS.GRAY_50,
   "&:hover": {
     backgroundColor: COLORS.WHITE,
@@ -159,7 +161,6 @@ const ExpandButton = styled(Button)(({ theme }) => ({
     flex: 1,
     minWidth: "120px",
     marginLeft: theme.spacing(1),
-    marginRight: theme.spacing(1),
   },
 }));
 const CenterContent = styled("div")({
@@ -219,8 +220,8 @@ const filterBySort = (
   });
 
   return filteredCourses.sort((a, b) => {
-    const gpaA = a.gpa === "N/A" ? -Infinity : parseFloat(a.gpa);
-    const gpaB = b.gpa === "N/A" ? -Infinity : parseFloat(b.gpa);
+    const gpaA = a.gpa === null ? -Infinity : parseFloat(a.gpa);
+    const gpaB = b.gpa === null ? -Infinity : parseFloat(b.gpa);
     return gpaB - gpaA;
   });
 };

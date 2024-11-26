@@ -3,11 +3,11 @@ import axios from "axios";
 import React from "react";
 import { Course } from "../Colors";
 
-export const local = "https://api.slugtistics.com/api/pyback";
+export const local = "http://127.0.0.1:5001";
 
 const CONFIG = {
-  staleTime: 5 * 60 * 1000, // 5 minutes
-  gcTime: 30 * 60 * 1000, // 30 minutes
+  staleTime: 5 * 60 * 1000,
+  gcTime: 30 * 60 * 1000,
 } as const;
 
 const API_URL = `${local}/api/courses`;
@@ -28,56 +28,6 @@ export const useCourseData = () => {
     gcTime: CONFIG.gcTime,
   });
 
-  const courseCodes = React.useMemo(() => {
-    if (!courseQuery.data) return [];
-    return [
-      ...new Set(
-        Object.values(courseQuery?.data).flatMap((courses) =>
-          courses.map((course) => course.subject + " " + course.catalog_num)
-        )
-      ),
-    ];
-  }, [courseQuery.data]);
-
-  const enrollmentQuery = useQuery({
-    queryKey: ["enrollment-batch", courseCodes],
-    queryFn: async () => {
-      const enrollmentMap: Record<string, string> = {};
-      await Promise.all(
-        courseCodes.map(async (code) => {
-          try {
-            const [subject, catalogNbr] = code.split(" ");
-            const response = await fetch(
-              `https://my.ucsc.edu/PSIGW/RESTListeningConnector/PSFT_CSPRD/SCX_CLASS_LIST.v1/2250?subject=${subject}&catalog_nbr=${catalogNbr}`
-            );
-            const data = await response.json();
-            const classInfo = data.classes?.[0];
-
-            if (classInfo) {
-              enrollmentMap[
-                code
-              ] = `${classInfo.enrl_total}/${classInfo.enrl_capacity}`;
-            } else {
-              enrollmentMap[code] = "N/A";
-            }
-          } catch (error) {
-            console.error(
-              `Error fetching enrollment for course ${code}:`,
-              error
-            );
-            enrollmentMap[code] = "N/A";
-          }
-        })
-      );
-      return enrollmentMap;
-    },
-    enabled: courseQuery.isSuccess && courseCodes.length > 0,
-    refetchOnMount: false,
-    staleTime: CONFIG.staleTime,
-    gcTime: CONFIG.gcTime,
-    refetchOnWindowFocus: false,
-  });
-
   const enhancedData = React.useMemo<Record<string, Course[]>>(() => {
     if (!courseQuery.data) return {};
 
@@ -88,10 +38,6 @@ export const useCourseData = () => {
           (course): Course => ({
             ...course,
             ge_category: category,
-            class_count:
-              enrollmentQuery.data?.[
-                course.subject + " " + course.catalog_num
-              ] ?? course.class_count,
           })
         ),
       ])
@@ -100,7 +46,7 @@ export const useCourseData = () => {
     return {
       ...baseEnhancedData,
     };
-  }, [courseQuery.data, enrollmentQuery.data]);
+  }, [courseQuery.data]);
 
   return {
     data: enhancedData,

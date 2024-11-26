@@ -57,6 +57,7 @@ const StyledModal = styled(Modal)(({ theme }) => ({
 }));
 
 const ModalContent = styled(Paper)(({ theme }) => ({
+  borderRadius: "8px",
   position: "relative",
   width: "100%",
   maxWidth: "64rem",
@@ -72,6 +73,7 @@ const ModalContent = styled(Paper)(({ theme }) => ({
 }));
 
 const StatCard = styled(Card)(({ theme }) => ({
+  borderRadius: "8px",
   height: "100%",
   "& .MuiCardContent-root": {
     height: "100%",
@@ -218,7 +220,7 @@ export const RatingsModal: React.FC<RatingsModalProps> = ({
         <Box sx={{ flexGrow: 1, overflow: "auto", p: isSmallScreen ? 1 : 2 }}>
           <Grid container spacing={isSmallScreen ? 1 : 2}>
             <Grid item xs={6} md={3}>
-              <StatCard>
+              <StatCard elevation={2}>
                 <CardContent>
                   <Typography
                     variant={isSmallScreen ? "h5" : "h4"}
@@ -234,7 +236,7 @@ export const RatingsModal: React.FC<RatingsModalProps> = ({
               </StatCard>
             </Grid>
             <Grid item xs={6} md={3}>
-              <StatCard>
+              <StatCard elevation={2}>
                 <CardContent>
                   <Typography
                     variant={isSmallScreen ? "h5" : "h4"}
@@ -250,7 +252,7 @@ export const RatingsModal: React.FC<RatingsModalProps> = ({
               </StatCard>
             </Grid>
             <Grid item xs={6} md={3}>
-              <StatCard>
+              <StatCard elevation={2}>
                 <CardContent>
                   <Typography
                     variant={isSmallScreen ? "h5" : "h4"}
@@ -266,7 +268,7 @@ export const RatingsModal: React.FC<RatingsModalProps> = ({
               </StatCard>
             </Grid>
             <Grid item xs={6} md={3}>
-              <StatCard>
+              <StatCard elevation={2}>
                 <CardContent>
                   <Typography
                     variant={isSmallScreen ? "h5" : "h4"}
@@ -283,7 +285,6 @@ export const RatingsModal: React.FC<RatingsModalProps> = ({
             </Grid>
           </Grid>
 
-          {/* Filters */}
           <Paper sx={{ p: isSmallScreen ? 1 : 2, mb: isSmallScreen ? 2 : 3 }}>
             <Grid container spacing={isSmallScreen ? 1 : 2}>
               <Grid item xs={12} md={6}>
@@ -292,10 +293,13 @@ export const RatingsModal: React.FC<RatingsModalProps> = ({
                   placeholder="Search reviews..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  InputProps={{
-                    startAdornment: (
-                      <SearchIcon sx={{ mr: 1, color: "text.secondary" }} />
-                    ),
+                  slotProps={{
+                    input: {
+                      startAdornment: (
+                        <SearchIcon sx={{ mr: 1, color: "text.secondary" }} />
+                      ),
+                      style: { borderRadius: "8px" },
+                    },
                   }}
                 />
               </Grid>
@@ -310,6 +314,7 @@ export const RatingsModal: React.FC<RatingsModalProps> = ({
                       value={sortBy}
                       onChange={handleSortChange}
                       label="Sort By"
+                      sx={{ borderRadius: "8px" }}
                     >
                       <MenuItem value="date">Most Recent</MenuItem>
                       <MenuItem value="helpful_rating">Most Helpful</MenuItem>
@@ -327,6 +332,7 @@ export const RatingsModal: React.FC<RatingsModalProps> = ({
                       value={filterBy}
                       onChange={handleFilterChange}
                       label="Filter By"
+                      sx={{ borderRadius: "8px" }}
                     >
                       <MenuItem value="all">All Courses</MenuItem>
                       {ratings
@@ -348,7 +354,10 @@ export const RatingsModal: React.FC<RatingsModalProps> = ({
 
           <Stack spacing={isSmallScreen ? 1 : 2}>
             {processedRatings?.map((rating, index) => (
-              <Paper key={index} sx={{ p: isSmallScreen ? 2 : 3 }}>
+              <Paper
+                key={index}
+                sx={{ p: isSmallScreen ? 2 : 3, borderRadius: "8px" }}
+              >
                 <Grid
                   container
                   spacing={isSmallScreen ? 1 : 2}
@@ -410,13 +419,19 @@ export const RatingsModal: React.FC<RatingsModalProps> = ({
 
                 <Box sx={{ mb: 2, display: "flex", flexWrap: "wrap", gap: 1 }}>
                   {rating.is_online && (
-                    <Chip label="Online" color="primary" variant="outlined" />
+                    <Chip
+                      label="Online"
+                      color="primary"
+                      variant="outlined"
+                      sx={{ borderRadius: "4px" }}
+                    />
                   )}
                   {rating.attendance_mandatory === "mandatory" && (
                     <Chip
                       label="Attendance Required"
                       color="secondary"
                       variant="outlined"
+                      sx={{ borderRadius: "4px" }}
                     />
                   )}
                   {rating.textbook_use > 0 && (
@@ -424,6 +439,7 @@ export const RatingsModal: React.FC<RatingsModalProps> = ({
                       label="Textbooks Used"
                       color="success"
                       variant="outlined"
+                      sx={{ borderRadius: "4px" }}
                     />
                   )}
                   {!(rating?.tags === "") &&
@@ -434,6 +450,8 @@ export const RatingsModal: React.FC<RatingsModalProps> = ({
                         size="small"
                         icon={<TagIcon />}
                         sx={{
+                          borderRadius: "4px",
+
                           "& .MuiChip-icon": {
                             fontSize: "0.8rem",
                           },
@@ -480,7 +498,7 @@ export const RatingsModal: React.FC<RatingsModalProps> = ({
               </Paper>
             ))}
             {processedRatings?.length === 0 && (
-              <Paper sx={{ p: 3, textAlign: "center" }}>
+              <Paper sx={{ p: 3, textAlign: "center", borderRadius: "8px" }}>
                 <Typography color="text.secondary">
                   No ratings found matching your criteria
                 </Typography>

@@ -19,7 +19,7 @@ interface DynamicCourseListProps {
 }
 
 const ListWrapper = styled("div")({
-  height: "calc(100vh - 120px)",
+  height: "100%",
   width: "100%",
 });
 

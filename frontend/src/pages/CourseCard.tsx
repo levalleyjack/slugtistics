@@ -15,6 +15,7 @@ import {
   MenuItem,
   ListItemIcon,
   ListItemText,
+  Stack,
 } from "@mui/material";
 import RateReviewIcon from "@mui/icons-material/RateReview";
 import CancelIcon from "@mui/icons-material/Cancel";
@@ -30,7 +31,6 @@ import {
   Groups as GroupsIcon,
   Category as CategoryIcon,
   Star as StarIcon,
-  RadioButtonChecked,
   MoreVert as MoreVertIcon,
   OpenInNew as OpenInNewIcon,
 } from "@mui/icons-material";
@@ -45,6 +45,8 @@ import {
 } from "../Colors";
 import { RatingsModal } from "./RatingsModal";
 import StatusIcon from "./StatusIcon";
+import { useQuery } from "@tanstack/react-query";
+import RefreshIcon from "@mui/icons-material/Refresh";
 
 interface CourseCardProps {
   course: Course;
@@ -76,6 +78,64 @@ export const CourseCard = forwardRef<HTMLDivElement, CourseCardProps>(
     } = course;
     const course_code = `${course.subject} ${course.catalog_num}`;
 
+    const enrollmentQuery = useQuery({
+      queryKey: [
+        "enrollment",
+        course.subject,
+        course.catalog_num,
+        course.instructor,
+      ],
+      queryFn: async () => {
+        try {
+          const response = await fetch(
+            `https://my.ucsc.edu/PSIGW/RESTListeningConnector/PSFT_CSPRD/SCX_CLASS_LIST.v1/2250?subject=${course.subject}&catalog_nbr=${course.catalog_num}`
+          );
+          const data = await response.json();
+
+          if (!data.classes?.length)
+            return { enrollment: course.class_count, waitlist: null };
+
+          const matchingClass = data.classes.find((classInfo: any) => {
+            const apiInstructor = classInfo.instructors[0]?.name || "Staff";
+
+            if (course.instructor === "Staff" && apiInstructor === "Staff") {
+              return true;
+            }
+
+            if (apiInstructor.includes(",")) {
+              const [apiLastName] = apiInstructor.split(",");
+              const courseLastName = course.instructor.split(" ").pop() || "";
+              const courseMiddleName = course.instructor.split(" ")[1] || "";
+
+              const isMatch =
+                apiLastName.toLowerCase() === courseLastName.toLowerCase() ||
+                courseMiddleName.toLowerCase() ===
+                  apiLastName.toLowerCase().split(" ")[0];
+
+              return isMatch;
+            }
+
+            return false;
+          });
+
+          if (matchingClass) {
+            return {
+              enrollment: `${matchingClass.enrl_total}/${matchingClass.enrl_capacity}`,
+              waitlist: parseInt(matchingClass.waitlist_total),
+            };
+          }
+
+          return { enrollment: course.class_count, waitlist: null };
+        } catch (error) {
+          console.error(`Error fetching enrollment:`, error);
+          return { enrollment: course.class_count, waitlist: null };
+        }
+      },
+      staleTime: 5 * 60 * 1000,
+      gcTime: 10 * 60 * 1000,
+      refetchOnWindowFocus: false,
+    });
+
     const handleExpandClick = () => onExpandChange(course_code);
     const handleOpenModal = (e: React.MouseEvent) => {
       e.stopPropagation();
@@ -96,6 +156,10 @@ export const CourseCard = forwardRef<HTMLDivElement, CourseCardProps>(
     const handleMenuClick = (event: React.MouseEvent<HTMLElement>) => {
       event.stopPropagation();
       setAnchorEl(event.currentTarget);
+    };
+    const handleRefreshEnrollment = (e: React.MouseEvent) => {
+      e.stopPropagation();
+      enrollmentQuery.refetch();
     };
 
     const handleMenuClose = () => {
@@ -138,12 +202,13 @@ export const CourseCard = forwardRef<HTMLDivElement, CourseCardProps>(
             label={`${rmpData.avg_rating?.toFixed(1) || "N/A"}/5`}
             size="small"
             sx={{
-              border:
-                `1px solid ${rmpData.avg_rating >= 4
+              border: `1px solid ${
+                rmpData.avg_rating >= 4
                   ? theme.palette.success.dark
                   : rmpData.avg_rating >= 3
                   ? theme.palette.warning.dark
-                  : theme.palette.error.dark}`,
+                  : theme.palette.error.dark
+              }`,
               color:
                 rmpData.avg_rating >= 4
                   ? theme.palette.success.main
@@ -235,9 +300,7 @@ export const CourseCard = forwardRef<HTMLDivElement, CourseCardProps>(
                   mb: 1,
                 }}
               >
-                <Typography variant="h6" noWrap>
-                  {course.name}
-                </Typography>
+                <Typography variant="h6">{course.name}</Typography>
               </Box>
 
               <Box
@@ -302,7 +365,7 @@ export const CourseCard = forwardRef<HTMLDivElement, CourseCardProps>(
             </CourseInfo>
 
             <ActionContainer>
-              {avgGPA !== "N/A" ? (
+              {avgGPA !== null && !Number.isNaN(avgGPA) ? (
                 <Tooltip
                   title={`${!isSmallScreen ? "Average GPA:" : ""} ${avgGPA}`}
                 >
@@ -433,34 +496,60 @@ export const CourseCard = forwardRef<HTMLDivElement, CourseCardProps>(
 
         <Collapse in={expanded} timeout="auto" unmountOnExit>
           <CardContent sx={{ pt: 0, pb: "8px !important" }}>
-            <Paper variant="outlined" sx={{ p: 1.5, mt: 1 }}>
+            <Paper
+              variant="outlined"
+              sx={{ p: 1.5, mt: 1, borderRadius: "8px" }}
+            >
               <Grid container spacing={2}>
                 <Grid item xs={6}>
                   <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
                     <SchoolIcon sx={{ fontSize: 18 }} />
-                    <Typography variant="body2" noWrap>
-                      {course.location}
-                    </Typography>
+                    <Typography variant="body2">{course.location}</Typography>
                   </Box>
                 </Grid>
                 <Grid item xs={6}>
                   <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
                     <AccessTimeIcon sx={{ fontSize: 18 }} />
-                    <Typography variant="body2" noWrap>
-                      {course.schedule}
-                    </Typography>
+                    <Typography variant="body2">{course.schedule}</Typography>
                   </Box>
                 </Grid>
                 <Grid item xs={6}>
-                  <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                  <Stack direction="row" spacing={1} alignItems="center">
                     <GroupsIcon sx={{ fontSize: 18 }} />
-                    <Typography variant="body2" noWrap>
-                      {course.class_count} enrolled
-                    </Typography>
-                    <Tooltip title="Updated every 5 minutes">
-                      <RadioButtonChecked sx={{ fontSize: 18 }} color="error" />
+                    <Stack direction="row" spacing={1} alignItems="center">
+                      <Typography variant="body2">
+                        {enrollmentQuery.data?.enrollment || "Loading..."}
+                        {!isSmallScreen && " enrolled"}
+                      </Typography>
+                      {course.class_status === "Wait List" &&
+                        enrollmentQuery.data?.waitlist !== null &&
+                        enrollmentQuery.data?.waitlist !== undefined &&
+                        enrollmentQuery.data.waitlist > 0 && (
+                          <Typography variant="body2" color="warning.main">
+                            ({enrollmentQuery.data?.waitlist}
+                            {!isSmallScreen && " waitlisted"})
+                          </Typography>
+                        )}
+                    </Stack>
+                    <Tooltip title="Refresh enrollment data">
+                      <IconButton
+                        size="small"
+                        onClick={handleRefreshEnrollment}
+                        sx={{
+                          p: 0.5,
+                          animation: enrollmentQuery.isFetching
+                            ? "spin 1s linear infinite"
+                            : "none",
+                          "@keyframes spin": {
+                            "0%": { transform: "rotate(0deg)" },
+                            "100%": { transform: "rotate(360deg)" },
+                          },
+                        }}
+                      >
+                        <RefreshIcon sx={{ fontSize: 18 }} color="primary" />
+                      </IconButton>
                     </Tooltip>
-                  </Box>
+                  </Stack>
                 </Grid>
                 <Grid item xs={6}>
                   <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
@@ -586,13 +675,20 @@ const CourseCodeChip = styled(Chip)(({ theme }) => ({
   background: `linear-gradient(135deg,
     ${theme.palette.primary.dark} 0%,
     ${theme.palette.primary.light} 100%)`,
-  backdropFilter: "blur(8px)",
   border: `1px solid ${theme.palette.primary.dark}`,
   color: "white",
-  fontWeight: 600,
-  height: "28px",
+  fontWeight: 700,
+  fontSize: "0.875rem",
+  letterSpacing: "0.03em",
+  height: "32px",
   animation: "gradient 3s ease infinite",
   transition: "all 0.2s ease-in-out",
+  "& .MuiChip-label": {
+    padding: "0 12px",
+    textTransform: "uppercase",
+    textShadow: "0 1px 2px rgba(0, 0, 0, 0.2)",
+    lineHeight: 1.2,
+  },
   "&:hover": {
     background: `linear-gradient(135deg,
       ${theme.palette.primary.light} 0%,
@@ -643,7 +739,6 @@ const ReviewCountChip = styled(Chip)(({ theme }) => ({
   background: `linear-gradient(135deg,
     ${theme.palette.primary.light} 0%,
     ${theme.palette.primary.main} 100%)`,
-  backdropFilter: "blur(8px)",
   border: `1px solid ${theme.palette.primary.dark}`,
   color: "white",
   fontWeight: 500,
@@ -653,7 +748,7 @@ const ReviewCountChip = styled(Chip)(({ theme }) => ({
   "&:hover": {
     background: `linear-gradient(135deg,
       ${theme.palette.primary.light} 0%,
-      ${theme.palette.primary.main} 100%)`,
+      ${theme.palette.primary.light} 100%)`,
     color: "white",
     boxShadow: "0 4px 12px rgba(0, 0, 0, 0.1)",
   },
