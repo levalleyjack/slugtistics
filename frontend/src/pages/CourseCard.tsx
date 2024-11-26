@@ -519,7 +519,7 @@ export const CourseCard = forwardRef<HTMLDivElement, CourseCardProps>(
                     <GroupsIcon sx={{ fontSize: 18 }} />
                     <Stack direction="row" spacing={1} alignItems="center">
                       <Typography variant="body2">
-                        {enrollmentQuery.data?.enrollment || "Loading..."}
+                        {enrollmentQuery.data?.enrollment || `${course.class_count}...`}
                         {!isSmallScreen && " enrolled"}
                       </Typography>
                       {course.class_status === "Wait List" &&
