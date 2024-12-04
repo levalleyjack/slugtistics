@@ -25,8 +25,7 @@ import { StyledExpandIcon } from "../Constants";
 import DeleteForeverIcon from "@mui/icons-material/DeleteForever";
 import SelectAllIcon from "@mui/icons-material/SelectAll";
 import SortByAlphaIcon from "@mui/icons-material/SortByAlpha";
-import FormatListNumberedIcon from "@mui/icons-material/FormatListNumbered";
-import StarIcon from "@mui/icons-material/Star";
+import TuneIcon from '@mui/icons-material/Tune';import StarIcon from "@mui/icons-material/Star";
 import EqualizerIcon from "@mui/icons-material/Equalizer";
 
 const StyledFormControl = styled(FormControl)(({ theme }) => ({
@@ -259,7 +258,6 @@ const FilterDropdown: React.FC<FilterDropdownProps> = ({
           variant="outlined"
           startIcon={<FilterAltIcon />}
           endIcon={<StyledExpandIcon expanded={open} />}
-          
         >
           {getButtonLabel()}
         </StyledFilterButton>
@@ -299,14 +297,17 @@ const FilterDropdown: React.FC<FilterDropdownProps> = ({
               onChange={handleSortChange}
               aria-label="sort order"
               size="small"
-              
             >
-              <Tooltip title="Default (GPA)">
+              <Tooltip title="Default (GPA and Ratings)">
                 <ToggleButton
-                  value="GPA"
-                  aria-label="default order (gpa)"
-                  
+                  value="DEFAULT"
+                  aria-label="default order (gpa + ratings)"
                 >
+                  <TuneIcon />
+                </ToggleButton>
+              </Tooltip>
+              <Tooltip title="GPA">
+                <ToggleButton value="GPA" aria-label="default order (gpa)">
                   <EqualizerIcon />
                 </ToggleButton>
               </Tooltip>
@@ -314,7 +315,6 @@ const FilterDropdown: React.FC<FilterDropdownProps> = ({
                 <ToggleButton
                   value="INSTRUCTOR"
                   aria-label="order by instructor ratings"
-                  
                 >
                   <StarIcon />
                 </ToggleButton>
@@ -323,7 +323,6 @@ const FilterDropdown: React.FC<FilterDropdownProps> = ({
                 <ToggleButton
                   value="ALPHANUMERIC"
                   aria-label="alphanumeric order"
-                  
                 >
                   <SortByAlphaIcon />
                 </ToggleButton>
@@ -381,7 +380,6 @@ const FilterDropdown: React.FC<FilterDropdownProps> = ({
                   <Checkbox
                     checked={selectedEnrollmentStatuses.indexOf(option) > -1}
                     sx={{ padding: 0.5 }}
-                    
                   />
                   <ListItemText primary={option} sx={{ ml: 1 }} />
                 </MenuItem>
@@ -435,7 +433,6 @@ const FilterDropdown: React.FC<FilterDropdownProps> = ({
                   <Checkbox
                     checked={selectedClassTypes.indexOf(option) > -1}
                     sx={{ padding: 0.5 }}
-                    
                   />
                   <ListItemText primary={option} sx={{ ml: 1 }} />
                 </MenuItem>
@@ -487,11 +484,10 @@ const FilterDropdown: React.FC<FilterDropdownProps> = ({
               MenuProps={MenuProps}
             >
               {codes?.map((option) => (
-                <MenuItem key={option} value={option} >
+                <MenuItem key={option} value={option}>
                   <Checkbox
                     checked={selectedSubjects?.indexOf(option) > -1}
                     sx={{ padding: 0.5 }}
-                    
                   />
                   <ListItemText primary={option} sx={{ ml: 1 }} />
                 </MenuItem>
@@ -541,7 +537,6 @@ const FilterDropdown: React.FC<FilterDropdownProps> = ({
                     <Checkbox
                       checked={selectedGEs?.indexOf(option) > -1}
                       sx={{ padding: 0.5 }}
-                      
                     />
                     <ListItemText primary={option} sx={{ ml: 1 }} />
                   </MenuItem>

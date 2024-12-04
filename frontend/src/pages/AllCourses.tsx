@@ -225,6 +225,24 @@ const filterBySort = (
 
   return filteredCourses.sort((a, b) => {
     switch (sortBy) {
+
+      case "DEFAULT":
+        const getScore = (course: Course) => {
+          //gpa to 5.0
+          const gpa = course.gpa === null ? 0 : parseFloat(course.gpa);
+          const normalizedGPA = (gpa / 4.0) * 5.0;
+
+          const rating = course.instructor_ratings?.avg_rating ?? 0;
+
+          //60 / 40 rmp
+          return normalizedGPA * 0.6 + rating * 0.4;
+        };
+
+        const scoreA = getScore(a);
+        const scoreB = getScore(b);
+
+        return scoreB - scoreA;
+
       case "GPA":
         const gpaA = a.gpa === null ? -Infinity : parseFloat(a.gpa);
         const gpaB = b.gpa === null ? -Infinity : parseFloat(b.gpa);
@@ -253,13 +271,28 @@ const filterBySort = (
 
 const AllCourses = () => {
   const theme = useTheme();
-  const [sortBy, setSortBy] = useState("GPA");
-  const [selectedClassTypes, setSelectedClassTypes] = useState<string[]>([]);
+  const [sortBy, setSortBy] = useState(() => {
+    const stored = localStorage.getItem("sortBy");
+    return stored !== null ? stored : "DEFAULT";
+  });
+  const [selectedClassTypes, setSelectedClassTypes] = useState<string[]>(() => {
+    const stored = localStorage.getItem("selectedClassTypes");
+    return stored ? JSON.parse(stored) : [];
+  });
   const [selectedEnrollmentStatuses, setSelectedEnrollmentStatuses] = useState<
     string[]
-  >([]);
-  const [selectedGEs, setSelectedGEs] = useState<string[]>([]);
-  const [selectedSubjects, setSelectedSubjects] = useState<string[]>([]);
+  >(() => {
+    const stored = localStorage.getItem("selectedEnrollmentStatuses");
+    return stored ? JSON.parse(stored) : [];
+  });
+  const [selectedGEs, setSelectedGEs] = useState<string[]>(() => {
+    const stored = localStorage.getItem("selectedGEs");
+    return stored ? JSON.parse(stored) : [];
+  });
+  const [selectedSubjects, setSelectedSubjects] = useState<string[]>(() => {
+    const stored = localStorage.getItem("selectedSubjects");
+    return stored ? JSON.parse(stored) : [];
+  });
   const [scrollToCourseId, setScrollToCourseId] = useState<
     string | undefined
   >();
@@ -286,18 +319,46 @@ const AllCourses = () => {
   });
 
   const { data: coursesData, isLoading: isFetchLoading } = useAllCourseData();
-
   const currentCourses = useMemo(() => {
     return Array.isArray(coursesData) ? coursesData : [];
   }, [coursesData]);
 
-  const toggleSidebar = useCallback(() => {
+  const handleSortBy = useCallback((sortBy: string) => {
+    setSortBy(() => {
+      localStorage.setItem("sortBy", sortBy);
+      return sortBy;
+    });
+  }, []);
+
+  const handleSidebar = useCallback(() => {
     setIsSidebarVisible((prev) => {
       const newValue = !prev;
       localStorage.setItem("isSidebarVisible", String(newValue));
       return newValue;
     });
   }, []);
+
+  const handleSelectedClassTypes = (newClassTypes: string[]) => {
+    setSelectedClassTypes(newClassTypes);
+    localStorage.setItem("selectedClassTypes", JSON.stringify(newClassTypes));
+  };
+  const handleSelectedGEs = (newGEs: string[]) => {
+    setSelectedGEs(newGEs);
+    localStorage.setItem("selectedGEs", JSON.stringify(newGEs));
+  };
+  const handleSelectedSubjects = (newSubjects: string[]) => {
+    setSelectedSubjects(newSubjects);
+    localStorage.setItem("selectedSubjects", JSON.stringify(newSubjects));
+  };
+  const handleSelectedEnrollmentStatuses = (
+    newEnrollmentStatuses: string[]
+  ) => {
+    setSelectedEnrollmentStatuses(newEnrollmentStatuses);
+    localStorage.setItem(
+      "selectedEnrollmentStatuses",
+      JSON.stringify(newEnrollmentStatuses)
+    );
+  };
 
   const handleGlobalCourseSelect = (courseId: string) => {
     handleClearFilters();
@@ -324,9 +385,10 @@ const AllCourses = () => {
   ]);
 
   const handleClearFilters = () => {
-    setSelectedEnrollmentStatuses([]);
-    setSelectedSubjects([]);
-    setSelectedClassTypes([]);
+    handleSelectedEnrollmentStatuses([]);
+    handleSelectedSubjects([]);
+    handleSelectedClassTypes([]);
+    handleSelectedGEs([]);
   };
 
   const handleExpandCard = useCallback(
@@ -540,7 +602,7 @@ const AllCourses = () => {
               onClick={
                 isSmallScreen || isMediumScreen
                   ? () => setMobileMenuOpen(!mobileMenuOpen)
-                  : toggleSidebar
+                  : handleSidebar
               }
               aria-label="Toggle Statistics"
             >
@@ -580,11 +642,11 @@ const AllCourses = () => {
                   selectedSubjects={selectedSubjects}
                   selectedClassTypes={selectedClassTypes}
                   selectedEnrollmentStatuses={selectedEnrollmentStatuses}
-                  onSortBy={setSortBy}
-                  onClassTypesChange={setSelectedClassTypes}
-                  onSelectedSubjectsChange={setSelectedSubjects}
-                  onEnrollmentStatusesChange={setSelectedEnrollmentStatuses}
-                  onSelectedGEs={setSelectedGEs}
+                  onSortBy={handleSortBy}
+                  onClassTypesChange={handleSelectedClassTypes}
+                  onSelectedSubjectsChange={handleSelectedSubjects}
+                  onEnrollmentStatusesChange={handleSelectedEnrollmentStatuses}
+                  onSelectedGEs={handleSelectedGEs}
                 />
               </>
             ) : (
@@ -607,11 +669,11 @@ const AllCourses = () => {
                   selectedSubjects={selectedSubjects}
                   selectedClassTypes={selectedClassTypes}
                   selectedEnrollmentStatuses={selectedEnrollmentStatuses}
-                  onSortBy={setSortBy}
-                  onClassTypesChange={setSelectedClassTypes}
-                  onSelectedSubjectsChange={setSelectedSubjects}
-                  onEnrollmentStatusesChange={setSelectedEnrollmentStatuses}
-                  onSelectedGEs={setSelectedGEs}
+                  onSortBy={handleSortBy}
+                  onClassTypesChange={handleSelectedClassTypes}
+                  onSelectedSubjectsChange={handleSelectedSubjects}
+                  onEnrollmentStatusesChange={handleSelectedEnrollmentStatuses}
+                  onSelectedGEs={handleSelectedGEs}
                 />
               </>
             )}
