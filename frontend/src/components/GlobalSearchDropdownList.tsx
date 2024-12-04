@@ -170,7 +170,8 @@ const GlobalSearch = ({
       return allCourses
         .filter((course) => {
           const courseName = course.name.toLowerCase();
-          const courseCode = `${course.subject} ${course.catalog_num}`.toLowerCase();
+          const courseCode =
+            `${course.subject} ${course.catalog_num}`.toLowerCase();
 
           return (
             matchesInstructor(course.instructor) ||
@@ -203,7 +204,8 @@ const GlobalSearch = ({
     return allCourses
       .filter((course) => {
         const courseName = course.name.toLowerCase();
-        const courseCode = `${course.subject} ${course.catalog_num}`.toLowerCase();
+        const courseCode =
+          `${course.subject} ${course.catalog_num}`.toLowerCase();
 
         return (
           matchesInstructor(course.instructor) ||
@@ -328,7 +330,11 @@ const GlobalSearch = ({
                         }}
                       >
                         {isSearching ? (
-                          <CircularProgress size={20} thickness={2} color="inherit" />
+                          <CircularProgress
+                            size={20}
+                            thickness={2}
+                            color="inherit"
+                          />
                         ) : (
                           <SearchIcon color="action" />
                         )}
@@ -401,11 +407,12 @@ const GlobalSearch = ({
                     <>
                       <SearchMetrics color="textSecondary">
                         Found {selectedGECourses.length} course
-                        {selectedGECourses.length === 1 ? "" : "s"} in {selectedGE}
+                        {selectedGECourses.length === 1 ? "" : "s"} in{" "}
+                        {selectedGE}
                       </SearchMetrics>
                       <List disablePadding>
                         {selectedGECourses.map((course: Course) => (
-                          <CourseListItem key={`${course.id}-${course.ge || course.ge_category}`} course={course} />
+                          <CourseListItem key={course.id} course={course} />
                         ))}
                       </List>
                     </>
@@ -415,11 +422,13 @@ const GlobalSearch = ({
                     <>
                       <SearchMetrics color="textSecondary">
                         Found {otherCourses.length} course
-                        {`${otherCourses.length === 1 ? "" : "s"} ${selectedGE ? "in other categories" : ""}`}
+                        {`${otherCourses.length === 1 ? "" : "s"} ${
+                          selectedGE ? "in other categories" : ""
+                        }`}
                       </SearchMetrics>
                       <List disablePadding>
                         {otherCourses.map((course: Course) => (
-                          <CourseListItem key={`${course.id}-${course.ge || course.ge_category}`} course={course} />
+                          <CourseListItem key={course.id} course={course} />
                         ))}
                       </List>
                     </>

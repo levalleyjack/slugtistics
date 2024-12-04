@@ -55,7 +55,7 @@ interface CourseCardProps {
   isSmallScreen: boolean;
   expanded: boolean;
   onExpandChange: (courseCode: string) => void;
-  setSelectedGE?: (courseCode: string) => void;
+  setSelectedGE?: (category: string) => void;
 }
 
 export const CourseCard = forwardRef<HTMLDivElement, CourseCardProps>(
