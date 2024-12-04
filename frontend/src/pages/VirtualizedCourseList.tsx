@@ -14,7 +14,7 @@ interface DynamicCourseListProps {
   expandedCodesMap: Map<string, boolean>;
   handleExpandCard: (courseId: string) => void;
   scrollToCourseId?: string;
-  setSelectedGE:(courseId: string) => void;
+  setSelectedGE?:(courseId: string) => void;
 
 }
 

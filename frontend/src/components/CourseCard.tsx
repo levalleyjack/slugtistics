@@ -55,7 +55,7 @@ interface CourseCardProps {
   isSmallScreen: boolean;
   expanded: boolean;
   onExpandChange: (courseCode: string) => void;
-  setSelectedGE: (courseCode: string) => void;
+  setSelectedGE?: (courseCode: string) => void;
 }
 
 export const CourseCard = forwardRef<HTMLDivElement, CourseCardProps>(
@@ -310,7 +310,9 @@ export const CourseCard = forwardRef<HTMLDivElement, CourseCardProps>(
                     <GECategoryChip
                       label={course.ge}
                       size="small"
-                      onClick={() => setSelectedGE(course.ge)}
+                      {...(setSelectedGE && {
+                        onClick: () => setSelectedGE(course.ge),
+                      })}
                     />
                   )}
                   <StatusIcon status={course.class_status} />

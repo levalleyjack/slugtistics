@@ -19,11 +19,12 @@ import {
 import SearchIcon from "@mui/icons-material/Search";
 import React, { useState, useMemo, useRef } from "react";
 import { COLORS, Course } from "../Constants";
+import StatusIcon from "./StatusIcon";
 
 interface Props {
-  courses: Record<string, Course[]>;
-  onCourseSelect: (category: string, courseId: string) => void;
-  selectedGE: string;
+  courses: Course[] | Record<string, Course[]>;
+  onCourseSelect: (courseId: string, category?: string) => void;
+  selectedGE?: string;
   lastUpdated: string;
   isSmallScreen: boolean;
 }
@@ -111,6 +112,10 @@ const GlobalSearch = ({
 
   const allCourses = useMemo(() => {
     if (!courses) return [];
+
+    if (Array.isArray(courses)) {
+      return courses;
+    }
 
     return Object.entries(courses).flatMap(([category, categoryCourses]) =>
       categoryCourses.map((course) => ({
@@ -220,9 +225,17 @@ const GlobalSearch = ({
   }, [search, allCourses]);
 
   const { selectedGECourses, otherCourses } = useMemo(() => {
+    if (!selectedGE) {
+      return {
+        selectedGECourses: [] as Course[],
+        otherCourses: searchResults,
+      };
+    }
+
     return searchResults.reduce(
       (acc, course) => {
-        if (course.category === selectedGE) {
+        const courseCategory = course.ge || course.ge_category;
+        if (courseCategory === selectedGE) {
           acc.selectedGECourses.push(course);
         } else {
           acc.otherCourses.push(course);
@@ -244,8 +257,8 @@ const GlobalSearch = ({
     setTimeout(() => setIsSearching(false), 500);
   };
 
-  const handleCourseClick = (category: string, courseId: string) => {
-    onCourseSelect(category, courseId);
+  const handleCourseClick = (course: Course) => {
+    onCourseSelect(course.id, selectedGE ? course.ge_category : undefined);
     setIsOpen(false);
     setSearch("");
   };
@@ -265,11 +278,13 @@ const GlobalSearch = ({
 
   const CourseListItem = ({ course }: { course: Course }) => (
     <StyledListItem
-      onClick={() => handleCourseClick(course.ge_category, course.id)}
+      onClick={() => handleCourseClick(course)}
       divider
       secondaryAction={
+        (course.ge || course.ge_category) &&
+        course.ge !== "AnyGE" &&
         course.ge_category !== "AnyGE" ? (
-          <CategoryChip label={course.ge_category} size="small" />
+          <CategoryChip label={course.ge || course.ge_category} size="small" />
         ) : null
       }
     >
@@ -279,15 +294,15 @@ const GlobalSearch = ({
             <Typography variant="subtitle2" component="span">
               {`${course.subject} ${course.catalog_num}`}
             </Typography>
+            <StatusIcon status={course.class_status} />
+
             <Typography
               variant="caption"
               sx={{
                 color: getStatusColor(course.class_status),
                 fontWeight: 500,
               }}
-            >
-              • {course.class_status}
-            </Typography>
+            ></Typography>
           </div>
         }
         secondary={
@@ -401,7 +416,7 @@ const GlobalSearch = ({
                 </NoResults>
               ) : (
                 <>
-                  {selectedGECourses.length > 0 && (
+                  {selectedGE && selectedGECourses.length > 0 && (
                     <>
                       <SearchMetrics color="textSecondary">
                         Found {selectedGECourses.length} courses in {selectedGE}
@@ -419,9 +434,9 @@ const GlobalSearch = ({
 
                   {otherCourses.length > 0 && (
                     <>
-                      {selectedGECourses.length > 0}
                       <SearchMetrics color="textSecondary">
-                        Found {otherCourses.length} courses in other categories
+                        Found {otherCourses.length} courses
+                        {selectedGE ? " in other categories" : ""}
                       </SearchMetrics>
                       <List disablePadding>
                         {otherCourses.map((course: Course) => (
