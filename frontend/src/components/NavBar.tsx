@@ -11,8 +11,8 @@ const NavBar = () => {
       setIsMobile(window.innerWidth <= 480);
     };
 
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
   }, []);
 
   return (
@@ -27,7 +27,15 @@ const NavBar = () => {
             isActive ? "navbar-link navbar-link-active" : "navbar-link"
           }
         >
-          <h2 style={{ fontWeight: "700"}}>Slugtistics</h2>
+          <h2 style={{ fontWeight: "700" }}>Slugtistics</h2>
+        </NavLink>
+        <NavLink
+          to="/all"
+          className={({ isActive }) =>
+            isActive ? "navbar-link navbar-link-active" : "navbar-link"
+          }
+        >
+          <h2 style={{ color: "#c9c9ca" }}>All Courses</h2>
         </NavLink>
         <NavLink
           to="/ge"

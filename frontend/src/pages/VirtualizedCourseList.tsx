@@ -1,8 +1,8 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { Virtuoso } from "react-virtuoso";
 import { styled } from "@mui/material";
-import { CourseCard } from "./CourseCard";
-import { Course } from "../Colors";
+import { CourseCard } from "../components/CourseCard";
+import { Course } from "../Constants";
 
 interface CardRefs {
   [key: string]: HTMLDivElement | null;
@@ -14,7 +14,7 @@ interface DynamicCourseListProps {
   expandedCodesMap: Map<string, boolean>;
   handleExpandCard: (courseId: string) => void;
   scrollToCourseId?: string;
-  setSelectedGE:(courseId: string) => void;
+  setSelectedGE?:(courseId: string) => void;
 
 }
 
@@ -23,13 +23,29 @@ const ListWrapper = styled("div")({
   width: "100%",
 });
 
-const ItemWrapper = styled("div")<{ isLastItem?: boolean }>(
-  ({ isLastItem }) => ({
-    padding: "16px",
-    paddingBottom: isLastItem ? "16px" : 0,
-    boxSizing: "border-box",
-  })
-);
+const ItemWrapper = styled("div")<{ isLastItem?: boolean }>(({ theme, isLastItem }) => ({
+  padding: "16px",
+  paddingBottom: isLastItem ? "16px" : 0,
+  boxSizing: "border-box",
+  
+  "&::-webkit-scrollbar": {
+    width: theme.spacing(1),
+    height: theme.spacing(1),
+  },
+  "&::-webkit-scrollbar-track": {
+    backgroundColor: theme.palette.grey[100],
+    borderRadius: theme.shape.borderRadius,
+  },
+  "&::-webkit-scrollbar-thumb": {
+    backgroundColor: theme.palette.grey[400],
+    borderRadius: theme.shape.borderRadius,
+    "&:hover": {
+      backgroundColor: theme.palette.grey[600],
+    },
+  },
+  scrollbarWidth: "thin",
+  scrollbarColor: `${theme.palette.grey[400]} ${theme.palette.grey[100]}`,
+}));
 
 export const DynamicCourseList: React.FC<DynamicCourseListProps> = ({
   filteredCourses,
@@ -51,13 +67,13 @@ export const DynamicCourseList: React.FC<DynamicCourseListProps> = ({
 
   useEffect(() => {
     filteredCourses.forEach((course) => {
-      if (!cardRefs.current[course.unique_id]) {
-        cardRefs.current[course.unique_id] = null;
+      if (!cardRefs.current[course.id]) {
+        cardRefs.current[course.id] = null;
       }
     });
 
     Object.keys(cardRefs.current).forEach((unique_id) => {
-      if (!filteredCourses.find(course => course.unique_id === unique_id)) {
+      if (!filteredCourses.find(course => course.id === unique_id)) {
         delete cardRefs.current[unique_id];
       }
     });
@@ -66,7 +82,7 @@ export const DynamicCourseList: React.FC<DynamicCourseListProps> = ({
   useEffect(() => {
     if (!scrollToCourseId || !virtuosoRef.current) return;
 
-    const courseIndex = filteredCourses.findIndex(course => course.unique_id === scrollToCourseId);
+    const courseIndex = filteredCourses.findIndex(course => course.id === scrollToCourseId);
     
     if (courseIndex === -1) return;
 
@@ -103,20 +119,20 @@ export const DynamicCourseList: React.FC<DynamicCourseListProps> = ({
   const itemContent = useCallback(
     (index: number) => {
       const course = filteredCourses[index];
-      const isExpanded = expandedCodesMap.get(course.unique_id);
+      const isExpanded = expandedCodesMap.get(course.id);
       const isLastItem = index === filteredCourses.length - 1;
 
       return (
         <ItemWrapper 
           isLastItem={isLastItem}
-          ref={(el) => setCardRef(course.unique_id, el as HTMLDivElement)}
-          data-course-id={course.unique_id}
+          ref={(el) => setCardRef(course.id, el as HTMLDivElement)}
+          data-course-id={course.id}
         >
           <CourseCard
             course={course}
             isSmallScreen={isSmallScreen}
             expanded={!!isExpanded}
-            onExpandChange={() => handleExpandCard(course.unique_id)}
+            onExpandChange={() => handleExpandCard(course.id)}
             setSelectedGE={setSelectedGE}
           />
         </ItemWrapper>
@@ -134,7 +150,7 @@ export const DynamicCourseList: React.FC<DynamicCourseListProps> = ({
         itemContent={itemContent}
         overscan={30}
         computeItemKey={useCallback(
-          (index) => filteredCourses[index].unique_id,
+          (index) => filteredCourses[index].id,
           [filteredCourses]
         )}
       />

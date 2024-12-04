@@ -16,7 +16,7 @@ const getTimeAgo = (lastUpdate?: Date): string => {
   
 export const fetchLastUpdate = async (): Promise<string> => {
   try {
-    const response = await axios.get(`${local}/api/courses`);
+    const response = await axios.get(`${local}/ge_courses`);
     const lastUpdate = response.data?.last_update;
 
     if (!lastUpdate) {

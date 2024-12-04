@@ -5,26 +5,19 @@ import {
   Button,
   useTheme,
   styled,
-  Drawer,
   Grid2,
 } from "@mui/material";
-import {
-  AnimatedArrowIcon,
-  COLORS,
-  Course,
-  StyledExpandIcon,
-} from "../Constants";
+import { COLORS, Course, StyledExpandIcon } from "../Constants";
 import React, { useState, useCallback, useMemo } from "react";
 import { useMediaQuery } from "@mui/material";
-import ArrowBackIcon from "@mui/icons-material/ArrowBack";
-import { useGECourseData } from "./GetGEData";
+import { useAllCourseData } from "./GetGEData";
 import SentimentDissatisfiedIcon from "@mui/icons-material/SentimentDissatisfied";
-import { CategorySidebar } from "../components/CategorySideBar";
 import { fetchLastUpdate } from "./FetchLastUpdate";
 import FilterDropdown from "../components/FilterDropdown";
 import GlobalSearch from "../components/GlobalSearchDropdownList";
 import { DynamicCourseList } from "./VirtualizedCourseList";
 import { useQuery } from "@tanstack/react-query";
+
 const Root = styled("div")(({ theme }) => ({
   display: "flex",
   backgroundColor: COLORS.GRAY_50,
@@ -123,6 +116,7 @@ const SearchSection = styled("div")(({ theme }) => ({
   flexDirection: "row",
   flex: 1,
   alignItems: "center",
+  marginLeft: theme.spacing(1),
   marginRight: theme.spacing(2),
 }));
 
@@ -166,8 +160,10 @@ const NoResults = styled(Typography)(({ theme }) => ({
   color: COLORS.GRAY_400,
 }));
 
-const filterCourses = (courses: Course[], search: string) => {
+const filterCourses = (courses: Course[], search: string): Course[] => {
+  if (!courses) return [];
   if (!search) return courses;
+
   const searchLower = search.toLowerCase();
   return courses.filter(
     (course: Course) =>
@@ -185,10 +181,9 @@ const filterBySort = (
   selectedClassTypes: string[],
   selectedEnrollmentStatuses: string[],
   currentCourses: Course[],
-  currentGE: string,
   selectedGEs: string[]
 ): Course[] => {
-  if (!currentCourses || currentCourses.length === 0) return [];
+  if (!Array.isArray(currentCourses) || currentCourses.length === 0) return [];
 
   const filteredCourses = currentCourses.filter((course) => {
     const matchSubject =
@@ -204,9 +199,7 @@ const filterBySort = (
       selectedEnrollmentStatuses.includes(course.class_status);
 
     const matchGEs =
-      currentGE === "AnyGE"
-        ? selectedGEs.length === 0 || selectedGEs.includes(course.ge)
-        : currentCourses;
+      selectedGEs.length === 0 || selectedGEs.includes(course.ge);
 
     return matchSubject && matchType && matchStatus && matchGEs;
   });
@@ -239,9 +232,8 @@ const filterBySort = (
   });
 };
 
-const GeSearch = () => {
+const AllCourses = () => {
   const theme = useTheme();
-  const [selectedGE, setSelectedGE] = useState("AnyGE");
   const [search, setSearch] = useState("");
   const [sortBy, setSortBy] = useState("GPA");
   const [selectedClassTypes, setSelectedClassTypes] = useState<string[]>([]);
@@ -249,7 +241,16 @@ const GeSearch = () => {
     string[]
   >([]);
   const [selectedGEs, setSelectedGEs] = useState<string[]>([]);
-  const [isCategoriesVisible, setIsCategoriesVisible] = useState(true);
+  const [selectedSubjects, setSelectedSubjects] = useState<string[]>([]);
+  const [scrollToCourseId, setScrollToCourseId] = useState<
+    string | undefined
+  >();
+  const [expandedCodesMap, setExpandedCodesMap] = useState<
+    Map<string, boolean>
+  >(new Map());
+  const isAllExpanded = React.useRef(false);
+  const isSmallScreen = useMediaQuery(theme.breakpoints.down("sm"));
+  const isMediumScreen = useMediaQuery(theme.breakpoints.down("md"));
 
   const { data: lastUpdated } = useQuery({
     queryKey: ["lastUpdate"],
@@ -259,32 +260,20 @@ const GeSearch = () => {
     refetchOnWindowFocus: false,
     refetchOnMount: false,
   });
-  const [selectedSubjects, setSelectedSubjects] = useState<string[]>([]);
-  const [scrollToCourseId, setScrollToCourseId] = useState<
-    string | undefined
-  >();
 
-  const [expandedCodesMap, setExpandedCodesMap] = useState<
-    Map<string, boolean>
-  >(new Map());
-  const isAllExpanded = React.useRef(false);
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const isSmallScreen = useMediaQuery(theme.breakpoints.down("sm"));
-  const isMediumScreen = useMediaQuery(theme.breakpoints.down("md"));
+  const { data: coursesData, isLoading: isFetchLoading } = useAllCourseData();
 
-  const { data: courses, isLoading: isFetchLoading } = useGECourseData();
-  console.log(courses);
+  // Ensure we have an array of courses
+  const currentCourses = useMemo(() => {
+    return Array.isArray(coursesData) ? coursesData : [];
+  }, [coursesData]);
 
-  const currentCourses = courses?.[selectedGE];
   const handleGlobalCourseSelect = (courseId: string, category?: string) => {
     handleClearFilters();
-    setSelectedGE(category ?? "AnyGE");
     setScrollToCourseId(courseId);
     handleExpandCard(courseId, true);
   };
-  const toggleCategories = useCallback(() => {
-    setIsCategoriesVisible((prev) => !prev);
-  }, []);
+
   const filteredCourses = useMemo(() => {
     const searchFiltered = filterCourses(currentCourses, search);
     return filterBySort(
@@ -293,7 +282,6 @@ const GeSearch = () => {
       selectedClassTypes,
       selectedEnrollmentStatuses,
       searchFiltered,
-      selectedGE,
       selectedGEs
     );
   }, [
@@ -303,7 +291,6 @@ const GeSearch = () => {
     selectedSubjects,
     selectedClassTypes,
     selectedEnrollmentStatuses,
-    selectedGE,
     selectedGEs,
   ]);
 
@@ -312,12 +299,6 @@ const GeSearch = () => {
     setSelectedSubjects([]);
     setSelectedClassTypes([]);
   };
-
-  const handleCategorySelect = useCallback((categoryId: string) => {
-    setSelectedGE(categoryId);
-    setExpandedCodesMap(new Map());
-    isAllExpanded.current = false;
-  }, []);
 
   const handleExpandCard = useCallback(
     (courseCode: string, state?: boolean) => {
@@ -339,79 +320,27 @@ const GeSearch = () => {
       )
     );
   }, [currentCourses]);
-  const codes = [
-    ...new Set(currentCourses?.map((course) => course.subject)),
-  ].sort();
-  const GEs = [
-    ...new Set(
-      currentCourses?.map((course) => course.ge).filter((ge) => ge != null)
-    ),
-  ].sort();
+
+  const codes = useMemo(() => {
+    return [...new Set(currentCourses?.map((course) => course.subject))].sort();
+  }, [currentCourses]);
+
+  const GEs = useMemo(() => {
+    return [
+      ...new Set(
+        currentCourses?.map((course) => course.ge).filter((ge) => ge != null)
+      ),
+    ].sort();
+  }, [currentCourses]);
 
   return (
     <Root>
-      {isSmallScreen || isMediumScreen ? (
-        <Drawer
-          anchor="left"
-          open={mobileMenuOpen}
-          onClose={() => setMobileMenuOpen(false)}
-          sx={{
-            "& .MuiDrawer-paper": {
-              width: 240,
-              boxSizing: "border-box",
-            },
-          }}
-        >
-          <DrawerHeader>
-            <Typography variant="subtitle1" fontWeight="medium">
-              Categories
-            </Typography>
-            <IconButton
-              onClick={() => setMobileMenuOpen(false)}
-              sx={{ borderRadius: "8px" }}
-            >
-              <ArrowBackIcon />
-            </IconButton>
-          </DrawerHeader>
-          <CategoryContainer>
-            <CategorySidebar
-              selectedCategory={selectedGE}
-              onCategorySelect={handleCategorySelect}
-            />
-          </CategoryContainer>
-        </Drawer>
-      ) : (
-        <GeContainer isVisible={isCategoriesVisible}>
-          <CategoryContainer>
-            <CategorySidebar
-              selectedCategory={selectedGE}
-              onCategorySelect={handleCategorySelect}
-            />
-          </CategoryContainer>
-        </GeContainer>
-      )}
-
       <CourseContainer>
         <HeaderContainer>
           <SearchSection>
-            <MenuButton
-              onClick={
-                isSmallScreen || isMediumScreen
-                  ? () => setMobileMenuOpen(!mobileMenuOpen)
-                  : toggleCategories
-              }
-              aria-label="Toggle Categories"
-            >
-              <AnimatedArrowIcon
-                isVisible={!isMediumScreen ? isCategoriesVisible : true}
-                isSmallScreen={isMediumScreen}
-              />
-            </MenuButton>
-
             <GlobalSearch
-              courses={courses}
+              courses={currentCourses}
               onCourseSelect={handleGlobalCourseSelect}
-              selectedGE={selectedGE}
               lastUpdated={lastUpdated ?? "None"}
               isSmallScreen={isSmallScreen}
             />
@@ -520,7 +449,6 @@ const GeSearch = () => {
             expandedCodesMap={expandedCodesMap}
             handleExpandCard={handleExpandCard}
             scrollToCourseId={scrollToCourseId}
-            setSelectedGE={setSelectedGE}
           />
         )}
       </CourseContainer>
@@ -528,4 +456,4 @@ const GeSearch = () => {
   );
 };
 
-export default GeSearch;
+export default AllCourses;

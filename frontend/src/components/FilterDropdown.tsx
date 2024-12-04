@@ -14,13 +14,23 @@ import {
   styled,
   alpha,
   SelectProps,
+  IconButton,
+  Tooltip,
+  Divider,
+  ToggleButtonGroup,
+  ToggleButton,
 } from "@mui/material";
 import FilterAltIcon from "@mui/icons-material/FilterAlt";
-import { StyledExpandIcon } from "../Colors";
+import { StyledExpandIcon } from "../Constants";
+import DeleteForeverIcon from "@mui/icons-material/DeleteForever";
+import SelectAllIcon from "@mui/icons-material/SelectAll";
+import SortByAlphaIcon from "@mui/icons-material/SortByAlpha";
+import FormatListNumberedIcon from "@mui/icons-material/FormatListNumbered";
+import StarIcon from "@mui/icons-material/Star";
+import EqualizerIcon from "@mui/icons-material/Equalizer";
 
 const StyledFormControl = styled(FormControl)(({ theme }) => ({
   width: "100%",
-
   marginBottom: theme.spacing(2),
   "& .MuiOutlinedInput-root": {
     transition: "all 0.2s ease-in-out",
@@ -40,7 +50,6 @@ const StyledFilterButton = styled(Button)(({ theme }) => ({
   textTransform: "none",
   borderColor: theme.palette.divider,
   marginRight: theme.spacing(2),
-
   backgroundColor: theme.palette.background.paper,
   "&:hover": {
     backgroundColor: alpha(theme.palette.primary.main, 0.04),
@@ -63,9 +72,7 @@ const StyledChip = styled(Chip)(({ theme }) => ({
 const StyledPopoverContent = styled(Box)(({ theme }) => ({
   padding: theme.spacing(3),
   borderRadius: "8px",
-
   width: 320,
-  maxHeight: "80vh",
   overflow: "auto",
   "&::-webkit-scrollbar": {
     width: 6,
@@ -73,6 +80,27 @@ const StyledPopoverContent = styled(Box)(({ theme }) => ({
   "&::-webkit-scrollbar-thumb": {
     backgroundColor: theme.palette.divider,
     borderRadius: 3,
+  },
+}));
+
+const StyledToggleButtonGroup = styled(ToggleButtonGroup)(({ theme }) => ({
+  width: "100%",
+  "& .MuiToggleButtonGroup-grouped": {
+    borderRadius: "8px",
+    flex: 1,
+    border: `1px solid ${theme.palette.divider}`,
+    "&.Mui-selected": {
+      backgroundColor: theme.palette.primary.main,
+      color: theme.palette.primary.contrastText,
+      "&:hover": {
+        backgroundColor: theme.palette.primary.dark,
+      },
+    },
+    "&:not(:first-of-type)": {
+      marginLeft: theme.spacing(1),
+      borderLeft: `1px solid ${theme.palette.divider}`,
+    },
+    "&:first-of-type": {},
   },
 }));
 
@@ -107,23 +135,27 @@ interface FilterDropdownProps {
   codes: string[];
   selectedSubjects: string[];
   GEs: string[];
+  sortBy: string;
   selectedGEs: string[];
-
   selectedClassTypes: string[];
   selectedEnrollmentStatuses: string[];
+  onSortBy: (value: string) => void;
   onSelectedSubjectsChange: (value: string[]) => void;
   onClassTypesChange: (value: string[]) => void;
   onEnrollmentStatusesChange: (value: string[]) => void;
   onSelectedGEs: (value: string[]) => void;
+  currentSort?: string;
 }
 
 const FilterDropdown: React.FC<FilterDropdownProps> = ({
   codes,
   GEs,
+  sortBy,
   selectedGEs,
   selectedSubjects,
   selectedClassTypes,
   selectedEnrollmentStatuses,
+  onSortBy,
   onSelectedSubjectsChange,
   onClassTypesChange,
   onEnrollmentStatusesChange,
@@ -141,6 +173,7 @@ const FilterDropdown: React.FC<FilterDropdownProps> = ({
 
   const open = Boolean(anchorEl);
   const id = open ? "filter-popover" : undefined;
+
   const handleChipDelete = (
     selectedItems: string[],
     setSeletedItems: any,
@@ -153,23 +186,84 @@ const FilterDropdown: React.FC<FilterDropdownProps> = ({
   };
 
   const getButtonLabel = () => {
-    const activeFilters =
-      selectedClassTypes.length + selectedEnrollmentStatuses.length;
-    return `Filters ${activeFilters > 0 ? `(${activeFilters})` : ""}`;
+    const totalFilters =
+      selectedSubjects.length +
+      selectedClassTypes.length +
+      selectedEnrollmentStatuses.length +
+      (GEs.length > 1 ? selectedGEs.length : 0);
+    return `Filters ${totalFilters > 0 ? `(${totalFilters})` : ""}`;
   };
+
+  const handleSortChange = (
+    event: React.MouseEvent<HTMLElement>,
+    newSort: string | null
+  ) => {
+    if (newSort !== null && onSortBy) {
+      onSortBy(newSort);
+    }
+  };
+
+  const renderFilterHeader = (
+    title: string,
+    selectedItems: string[],
+    onSelectedItems: (value: string[]) => void,
+    allItems: string[]
+  ) => (
+    <Box
+      sx={{
+        display: "flex",
+        justifyContent: "space-between",
+        alignItems: "center",
+        mb: 1,
+      }}
+    >
+      <Typography
+        variant="subtitle2"
+        sx={{ fontWeight: 600, color: "text.primary" }}
+      >
+        {title}
+      </Typography>
+
+      <Box sx={{ display: "flex" }}>
+        <Tooltip title="Select All">
+          <IconButton
+            size="small"
+            onClick={() => onSelectedItems(allItems)}
+            sx={{ p: 0.5, borderRadius: "8px" }}
+          >
+            <SelectAllIcon fontSize="small" />
+          </IconButton>
+        </Tooltip>
+
+        {selectedItems.length > 0 && (
+          <Tooltip title="Clear">
+            <IconButton
+              size="small"
+              onClick={() => onSelectedItems([])}
+              sx={{ p: 0.5, borderRadius: "8px" }}
+            >
+              <DeleteForeverIcon fontSize="small" />
+            </IconButton>
+          </Tooltip>
+        )}
+      </Box>
+    </Box>
+  );
 
   return (
     <>
-      <StyledFilterButton
-        aria-describedby={id}
-        onClick={handleClick}
-        variant="outlined"
-        startIcon={<FilterAltIcon />}
-        endIcon={<StyledExpandIcon expanded={open} />}
-        disableRipple
-      >
-        {getButtonLabel()}
-      </StyledFilterButton>
+      <Box sx={{ display: "flex", alignItems: "center" }}>
+        <StyledFilterButton
+          aria-describedby={id}
+          onClick={handleClick}
+          variant="outlined"
+          startIcon={<FilterAltIcon />}
+          endIcon={<StyledExpandIcon expanded={open} />}
+          
+        >
+          {getButtonLabel()}
+        </StyledFilterButton>
+      </Box>
 
       <Popover
         id={id}
@@ -192,14 +286,60 @@ const FilterDropdown: React.FC<FilterDropdownProps> = ({
         }}
       >
         <StyledPopoverContent>
-          <StyledFormControl>
+          <Box sx={{ mb: 2 }}>
             <Typography
               variant="subtitle2"
-              gutterBottom
-              sx={{ fontWeight: 600, color: "text.primary" }}
+              sx={{ fontWeight: 600, color: "text.primary", mb: 1 }}
             >
-              Enrollment Status
+              Sort By
             </Typography>
+            <StyledToggleButtonGroup
+              value={sortBy}
+              exclusive
+              onChange={handleSortChange}
+              aria-label="sort order"
+              size="small"
+              
+            >
+              <Tooltip title="Default (GPA)">
+                <ToggleButton
+                  value="GPA"
+                  aria-label="default order (gpa)"
+                  
+                >
+                  <EqualizerIcon />
+                </ToggleButton>
+              </Tooltip>
+              <Tooltip title="Instructor Ratings">
+                <ToggleButton
+                  value="INSTRUCTOR"
+                  aria-label="order by instructor ratings"
+                  
+                >
+                  <StarIcon />
+                </ToggleButton>
+              </Tooltip>
+              <Tooltip title="Alphabetical">
+                <ToggleButton
+                  value="ALPHANUMERIC"
+                  aria-label="alphanumeric order"
+                  
+                >
+                  <SortByAlphaIcon />
+                </ToggleButton>
+              </Tooltip>
+            </StyledToggleButtonGroup>
+          </Box>
+
+          <Divider sx={{ my: 2 }} />
+
+          <StyledFormControl>
+            {renderFilterHeader(
+              "Enrollment Status",
+              selectedEnrollmentStatuses,
+              onEnrollmentStatusesChange,
+              enrollmentStatusOptions
+            )}
             <Select
               multiple
               size="small"
@@ -215,27 +355,12 @@ const FilterDropdown: React.FC<FilterDropdownProps> = ({
                   return <Typography color="text.secondary">All</Typography>;
                 }
                 return (
-                  <Box
-                    sx={{
-                      display: "flex",
-                      flexWrap: "wrap",
-                      gap: 0.5,
-                      alignItems: "center",
-                    }}
-                  >
+                  <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.5 }}>
                     {(selected as string[]).map((value) => (
                       <StyledChip
                         key={value}
-                        onMouseDown={(e) => e.stopPropagation()}
                         label={value}
-                        onClick={(event) =>
-                          handleChipDelete(
-                            selectedEnrollmentStatuses,
-                            onEnrollmentStatusesChange,
-                            event,
-                            value
-                          )
-                        }
+                        onMouseDown={(e) => e.stopPropagation()}
                         onDelete={(event) =>
                           handleChipDelete(
                             selectedEnrollmentStatuses,
@@ -255,7 +380,8 @@ const FilterDropdown: React.FC<FilterDropdownProps> = ({
                 <MenuItem key={option} value={option}>
                   <Checkbox
                     checked={selectedEnrollmentStatuses.indexOf(option) > -1}
-                    sx={{ padding: 0.5, borderRadius: "8px" }}
+                    sx={{ padding: 0.5 }}
+                    
                   />
                   <ListItemText primary={option} sx={{ ml: 1 }} />
                 </MenuItem>
@@ -264,13 +390,12 @@ const FilterDropdown: React.FC<FilterDropdownProps> = ({
           </StyledFormControl>
 
           <StyledFormControl>
-            <Typography
-              variant="subtitle2"
-              gutterBottom
-              sx={{ fontWeight: 600, color: "text.primary" }}
-            >
-              Class Type
-            </Typography>
+            {renderFilterHeader(
+              "Class Type",
+              selectedClassTypes,
+              onClassTypesChange,
+              classTypeOptions
+            )}
             <Select
               multiple
               size="small"
@@ -290,14 +415,6 @@ const FilterDropdown: React.FC<FilterDropdownProps> = ({
                         key={value}
                         label={value}
                         onMouseDown={(e) => e.stopPropagation()}
-                        onClick={(event) =>
-                          handleChipDelete(
-                            selectedClassTypes,
-                            onClassTypesChange,
-                            event,
-                            value
-                          )
-                        }
                         onDelete={(event) =>
                           handleChipDelete(
                             selectedClassTypes,
@@ -318,6 +435,7 @@ const FilterDropdown: React.FC<FilterDropdownProps> = ({
                   <Checkbox
                     checked={selectedClassTypes.indexOf(option) > -1}
                     sx={{ padding: 0.5 }}
+                    
                   />
                   <ListItemText primary={option} sx={{ ml: 1 }} />
                 </MenuItem>
@@ -326,13 +444,12 @@ const FilterDropdown: React.FC<FilterDropdownProps> = ({
           </StyledFormControl>
 
           <StyledFormControl>
-            <Typography
-              variant="subtitle2"
-              gutterBottom
-              sx={{ fontWeight: 600, color: "text.primary" }}
-            >
-              Subjects
-            </Typography>
+            {renderFilterHeader(
+              "Subjects",
+              selectedSubjects,
+              onSelectedSubjectsChange,
+              codes
+            )}
             <Select
               multiple
               size="small"
@@ -354,14 +471,6 @@ const FilterDropdown: React.FC<FilterDropdownProps> = ({
                         key={value}
                         label={value}
                         onMouseDown={(e) => e.stopPropagation()}
-                        onClick={(event) =>
-                          handleChipDelete(
-                            selectedSubjects,
-                            onSelectedSubjectsChange,
-                            event,
-                            value
-                          )
-                        }
                         onDelete={(event) =>
                           handleChipDelete(
                             selectedSubjects,
@@ -378,25 +487,21 @@ const FilterDropdown: React.FC<FilterDropdownProps> = ({
               MenuProps={MenuProps}
             >
               {codes?.map((option) => (
-                <MenuItem key={option} value={option}>
+                <MenuItem key={option} value={option} >
                   <Checkbox
                     checked={selectedSubjects?.indexOf(option) > -1}
                     sx={{ padding: 0.5 }}
+                    
                   />
                   <ListItemText primary={option} sx={{ ml: 1 }} />
                 </MenuItem>
               ))}
             </Select>
           </StyledFormControl>
+
           {GEs?.length > 1 && (
             <StyledFormControl>
-              <Typography
-                variant="subtitle2"
-                gutterBottom
-                sx={{ fontWeight: 600, color: "text.primary" }}
-              >
-                GEs
-              </Typography>
+              {renderFilterHeader("GEs", selectedGEs, onSelectedGEs, GEs)}
               <Select
                 multiple
                 size="small"
@@ -407,7 +512,7 @@ const FilterDropdown: React.FC<FilterDropdownProps> = ({
                 displayEmpty
                 renderValue={(selected) => {
                   if ((selected as string[]).length === 0) {
-                    return <Typography color="text.secondary">All</Typography>;
+                    return <Typography color="text.secondary">None</Typography>;
                   }
                   return (
                     <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.5 }}>
@@ -416,14 +521,6 @@ const FilterDropdown: React.FC<FilterDropdownProps> = ({
                           key={value}
                           label={value}
                           onMouseDown={(e) => e.stopPropagation()}
-                          onClick={(event) =>
-                            handleChipDelete(
-                              selectedGEs,
-                              onSelectedGEs,
-                              event,
-                              value
-                            )
-                          }
                           onDelete={(event) =>
                             handleChipDelete(
                               selectedGEs,
@@ -444,6 +541,7 @@ const FilterDropdown: React.FC<FilterDropdownProps> = ({
                     <Checkbox
                       checked={selectedGEs?.indexOf(option) > -1}
                       sx={{ padding: 0.5 }}
+                      
                     />
                     <ListItemText primary={option} sx={{ ml: 1 }} />
                   </MenuItem>

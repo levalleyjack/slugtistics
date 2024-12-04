@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import axios from "axios";
 import React from "react";
-import { Course } from "../Colors";
+import { Course } from "../Constants";
 
 export const local = "https://api.slugtistics.com/api/pyback";
 
@@ -10,14 +10,15 @@ const CONFIG = {
   gcTime: 30 * 60 * 1000,
 } as const;
 
-const API_URL = `${local}/api/courses`;
+const GE_COURSES_URL = `${local}/ge_courses`;
+const All_COURSES_URL = `${local}/all_courses`;
 
-export const useCourseData = () => {
+export const useGECourseData = () => {
   const courseQuery = useQuery({
-    queryKey: ["courses"],
+    queryKey: ["ge_courses"],
     queryFn: async () => {
       const response = await axios.get<{ data: Record<string, Course[]> }>(
-        API_URL
+        GE_COURSES_URL
       );
       return response.data?.data ?? {};
     },
@@ -31,25 +32,44 @@ export const useCourseData = () => {
   const enhancedData = React.useMemo<Record<string, Course[]>>(() => {
     if (!courseQuery.data) return {};
 
-    const baseEnhancedData = Object.fromEntries(
+    return Object.fromEntries(
       Object.entries(courseQuery.data).map(([category, courses]) => [
         category,
-        courses.map(
-          (course): Course => ({
-            ...course,
-            ge_category: category,
-          })
-        ),
+        Array.isArray(courses)
+          ? courses.map(
+              (course): Course => ({
+                ...course,
+                ge_category: category,
+              })
+            )
+          : [],
       ])
     );
-
-    return {
-      ...baseEnhancedData,
-    };
   }, [courseQuery.data]);
 
   return {
     data: enhancedData,
+    isLoading: courseQuery.isLoading,
+    isError: courseQuery.isError,
+    error: courseQuery.error,
+  };
+};
+export const useAllCourseData = () => {
+  const courseQuery = useQuery({
+    queryKey: ["all_courses"],
+    queryFn: async () => {
+      const response = await axios.get<{ data: Course[] }>(All_COURSES_URL);
+      return response.data?.data ?? {};
+    },
+    staleTime: CONFIG.staleTime,
+    refetchInterval: CONFIG.staleTime,
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
+    gcTime: CONFIG.gcTime,
+  });
+
+  return {
+    data: courseQuery.data ?? [],
     isLoading: courseQuery.isLoading,
     isError: courseQuery.isError,
     error: courseQuery.error,

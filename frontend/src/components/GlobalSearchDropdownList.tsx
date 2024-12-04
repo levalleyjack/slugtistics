@@ -14,15 +14,17 @@ import {
   useTheme,
   alpha,
   useMediaQuery,
+  Box,
 } from "@mui/material";
 import SearchIcon from "@mui/icons-material/Search";
 import React, { useState, useMemo, useRef } from "react";
-import { COLORS, Course } from "../Colors";
+import { COLORS, Course } from "../Constants";
+import StatusIcon from "./StatusIcon";
 
 interface Props {
-  courses: Record<string, Course[]>;
-  onCourseSelect: (category: string, courseId: string) => void;
-  selectedGE: string;
+  courses: Course[] | Record<string, Course[]>;
+  onCourseSelect: (courseId: string, category?: string) => void;
+  selectedGE?: string;
   lastUpdated: string;
   isSmallScreen: boolean;
 }
@@ -32,7 +34,7 @@ const StyledPopper = styled(Popper)(({ theme }) => ({
   zIndex: 1301,
   marginTop: theme.spacing(1),
   [theme.breakpoints.down("sm")]: {
-    width: "calc(100% - 32px) !important",
+    width: "calc(100dvw - 32px) !important",
     left: "16px !important",
     right: "16px !important",
     position: "absolute !important",
@@ -50,13 +52,12 @@ const LastUpdatedText = styled(Typography)(({ theme }) => ({
 
 const SearchWrapper = styled("div")(({ theme }) => ({
   position: "relative",
-
   width: "100%",
   [theme.breakpoints.down("sm")]: {},
 }));
 
 const StyledPaper = styled(Paper)(({ theme }) => ({
-  maxHeight: "calc(100vh - 200px)",
+  maxHeight: "calc(100dvh - 200px)",
   overflowY: "auto",
   boxShadow: theme.shadows[8],
   border: `1px solid ${theme.palette.divider}`,
@@ -95,12 +96,6 @@ const SearchMetrics = styled(Typography)(({ theme }) => ({
   fontWeight: 500,
 }));
 
-const SectionDivider = styled("div")(({ theme }) => ({
-  height: theme.spacing(1),
-  backgroundColor: theme.palette.grey[50],
-  borderBottom: `1px solid ${theme.palette.divider}`,
-}));
-
 const GlobalSearch = ({
   courses,
   onCourseSelect,
@@ -118,12 +113,14 @@ const GlobalSearch = ({
   const allCourses = useMemo(() => {
     if (!courses) return [];
 
+    if (Array.isArray(courses)) {
+      return courses;
+    }
+
     return Object.entries(courses).flatMap(([category, categoryCourses]) =>
       categoryCourses.map((course) => ({
         ...course,
         category,
-        searchableText:
-          `${course.subject} ${course.catalog_num} ${course.name} ${course.instructor} ${category}`.toLowerCase(),
       }))
     );
   }, [courses]);
@@ -131,19 +128,114 @@ const GlobalSearch = ({
   const searchResults = useMemo(() => {
     if (!search.trim()) return [];
 
-    const searchTerms = search.toLowerCase().split(" ");
+    const searchInput = search.toLowerCase().trim();
+    const searchTerms = searchInput.split(" ");
 
+    //helper function to normalize instructor names for comparison
+    const normalizeInstructorName = (name: string) => {
+      const parts = name.toLowerCase().split(" ");
+      return {
+        firstName: parts[0],
+        lastName: parts[parts.length - 1],
+        fullName: name.toLowerCase(),
+        firstInitial: parts[0].charAt(0),
+        parts: parts,
+      };
+    };
+
+    //helper function to check if search matches instructor
+    const matchesInstructor = (instructor: string) => {
+      const normalizedInstructor = normalizeInstructorName(instructor);
+
+      //single word search  match against any part of the name
+      if (searchTerms.length === 1) {
+        return normalizedInstructor.parts.some((part) =>
+          part.startsWith(searchInput)
+        );
+      }
+
+      //match first initial + last name (e.g., "p tantalo")
+      if (
+        searchTerms.length === 2 &&
+        normalizedInstructor.firstInitial === searchTerms[0] &&
+        normalizedInstructor.lastName.includes(searchTerms[1])
+      ) {
+        return true;
+      }
+
+      //match full name parts in any order
+      return searchTerms.every((term) =>
+        normalizedInstructor.parts.some((part) => part.startsWith(term))
+      );
+    };
+
+    //first check if the search contains any numbers
+    const containsNumbers = /\d/.test(searchInput);
+
+    if (!containsNumbers) {
+      return allCourses
+        .filter((course) => {
+          const courseName = course.name.toLowerCase();
+          const courseCode =
+            `${course.subject} ${course.catalog_num}`.toLowerCase();
+
+          return (
+            matchesInstructor(course.instructor) ||
+            courseName.startsWith(searchInput) ||
+            courseCode.startsWith(searchInput)
+          );
+        })
+        .slice(0, 20);
+    }
+
+    //if contains numbers, check for course code pattern
+    const courseCodeMatch = searchInput.match(/^([a-zA-Z]+)\s*(\d+)?$/);
+
+    if (courseCodeMatch) {
+      const [_, subject, number] = courseCodeMatch;
+
+      return allCourses.filter((course) => {
+        const courseSubject = course.subject.toLowerCase();
+        const courseCatalogNum = course.catalog_num.toLowerCase();
+
+        if (subject && number) {
+          return (
+            courseSubject.startsWith(subject.toLowerCase()) &&
+            courseCatalogNum.startsWith(number)
+          );
+        }
+        return courseSubject.startsWith(subject.toLowerCase());
+      });
+    }
+
+    //fallback to general search
     return allCourses
-      .filter((course) =>
-        searchTerms.every((term) => course.searchableText.includes(term))
-      )
+      .filter((course) => {
+        const courseName = course.name.toLowerCase();
+        const courseCode =
+          `${course.subject} ${course.catalog_num}`.toLowerCase();
+
+        return (
+          matchesInstructor(course.instructor) ||
+          courseCode.startsWith(searchInput) ||
+          courseName.startsWith(searchInput)
+        );
+      })
       .slice(0, 20);
   }, [search, allCourses]);
 
   const { selectedGECourses, otherCourses } = useMemo(() => {
+    if (!selectedGE) {
+      return {
+        selectedGECourses: [] as Course[],
+        otherCourses: searchResults,
+      };
+    }
+
     return searchResults.reduce(
       (acc, course) => {
-        if (course.category === selectedGE) {
+        const courseCategory = course.ge || course.ge_category;
+        if (courseCategory === selectedGE) {
           acc.selectedGECourses.push(course);
         } else {
           acc.otherCourses.push(course);
@@ -151,8 +243,8 @@ const GlobalSearch = ({
         return acc;
       },
       { selectedGECourses: [], otherCourses: [] } as {
-        selectedGECourses: any[];
-        otherCourses: any[];
+        selectedGECourses: Course[];
+        otherCourses: Course[];
       }
     );
   }, [searchResults, selectedGE]);
@@ -162,11 +254,11 @@ const GlobalSearch = ({
     setIsSearching(true);
     setIsOpen(true);
 
-    setTimeout(() => setIsSearching(false), 300);
+    setTimeout(() => setIsSearching(false), 500);
   };
 
-  const handleCourseClick = (category: string, courseId: string) => {
-    onCourseSelect(category, courseId);
+  const handleCourseClick = (course: Course) => {
+    onCourseSelect(course.id, selectedGE ? course.ge_category : undefined);
     setIsOpen(false);
     setSearch("");
   };
@@ -186,9 +278,15 @@ const GlobalSearch = ({
 
   const CourseListItem = ({ course }: { course: Course }) => (
     <StyledListItem
-      onClick={() => handleCourseClick(course.ge_category, course.unique_id)}
+      onClick={() => handleCourseClick(course)}
       divider
-      secondaryAction={<CategoryChip label={course.ge_category} size="small" />}
+      secondaryAction={
+        (course.ge || course.ge_category) &&
+        course.ge !== "AnyGE" &&
+        course.ge_category !== "AnyGE" ? (
+          <CategoryChip label={course.ge || course.ge_category} size="small" />
+        ) : null
+      }
     >
       <ListItemText
         primary={
@@ -196,15 +294,15 @@ const GlobalSearch = ({
             <Typography variant="subtitle2" component="span">
               {`${course.subject} ${course.catalog_num}`}
             </Typography>
+            <StatusIcon status={course.class_status} />
+
             <Typography
               variant="caption"
               sx={{
                 color: getStatusColor(course.class_status),
                 fontWeight: 500,
               }}
-            >
-              • {course.class_status}
-            </Typography>
+            ></Typography>
           </div>
         }
         secondary={
@@ -231,17 +329,29 @@ const GlobalSearch = ({
               value={search}
               onChange={handleSearchChange}
               onFocus={() => setIsOpen(true)}
-              label="Search courses across all categories..."
-              placeholder="THEA 151A, Keiko Yukawa"
+              placeholder="Search for classes (e.g. AM 10, A Rudnick)"
               slotProps={{
                 input: {
                   startAdornment: (
-                    <InputAdornment position="start">
-                      {isSearching ? (
-                        <CircularProgress size={20} color="inherit" />
-                      ) : (
-                        <SearchIcon color="action" />
-                      )}
+                    <InputAdornment position="start" sx={{ width: 32 }}>
+                      <Box
+                        sx={{
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          width: 20,
+                        }}
+                      >
+                        {isSearching ? (
+                          <CircularProgress
+                            size={20}
+                            thickness={2}
+                            color="inherit"
+                          />
+                        ) : (
+                          <SearchIcon color="action" />
+                        )}
+                      </Box>
                     </InputAdornment>
                   ),
                   style: {
@@ -306,7 +416,7 @@ const GlobalSearch = ({
                 </NoResults>
               ) : (
                 <>
-                  {selectedGECourses.length > 0 && (
+                  {selectedGE && selectedGECourses.length > 0 && (
                     <>
                       <SearchMetrics color="textSecondary">
                         Found {selectedGECourses.length} courses in {selectedGE}
@@ -314,7 +424,7 @@ const GlobalSearch = ({
                       <List disablePadding>
                         {selectedGECourses.map((course: Course) => (
                           <CourseListItem
-                            key={`${course.unique_id}`}
+                            key={`${course.id}`}
                             course={course}
                           />
                         ))}
@@ -324,14 +434,14 @@ const GlobalSearch = ({
 
                   {otherCourses.length > 0 && (
                     <>
-                      {selectedGECourses.length > 0 && <SectionDivider />}
                       <SearchMetrics color="textSecondary">
-                        Found {otherCourses.length} courses in other categories
+                        Found {otherCourses.length} courses
+                        {selectedGE ? " in other categories" : ""}
                       </SearchMetrics>
                       <List disablePadding>
                         {otherCourses.map((course: Course) => (
                           <CourseListItem
-                            key={`${course.unique_id}`}
+                            key={`${course.id}`}
                             course={course}
                           />
                         ))}

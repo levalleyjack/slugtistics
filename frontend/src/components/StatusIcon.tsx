@@ -3,7 +3,7 @@ import { Box, Tooltip, SvgIcon } from "@mui/material";
 import CircleIcon from "@mui/icons-material/Circle";
 import AccessTimeIcon from "@mui/icons-material/AccessTime";
 import LockIcon from "@mui/icons-material/Lock";
-import { ClassStatusEnum } from "../Colors";
+import { ClassStatusEnum } from "../Constants";
 
 const StyledStatusIcon = styled(Box)(({ theme }) => ({
   display: "flex",
