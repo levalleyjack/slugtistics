@@ -141,12 +141,22 @@ export const CourseCard = forwardRef<HTMLDivElement, CourseCardProps>(
       refetchOnWindowFocus: false,
     });
 
-    const handleExpandClick = () => onExpandChange(course_code);
+    const handleExpandClick = (e: React.MouseEvent) => {
+      if (
+        e.target === e.currentTarget ||
+        e.currentTarget.contains(e.target as Node)
+      ) {
+        onExpandChange(course_code);
+      }
+    };
     const handleOpenModal = (e: React.MouseEvent) => {
+      e.preventDefault();
+
       e.stopPropagation();
       setIsModalOpen(true);
     };
     const handleModalClose = (e: React.MouseEvent) => {
+      e.preventDefault();
       e.stopPropagation();
       setIsModalOpen(false);
     };
@@ -508,7 +518,7 @@ export const CourseCard = forwardRef<HTMLDivElement, CourseCardProps>(
               <IconButton
                 onClick={(e) => {
                   e.stopPropagation();
-                  handleExpandClick();
+                  handleExpandClick(e);
                 }}
                 size="small"
                 sx={{ p: 0.5, borderRadius: "8px" }}

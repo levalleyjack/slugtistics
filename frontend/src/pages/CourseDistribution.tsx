@@ -21,6 +21,7 @@ import { Close as CloseIcon } from "@mui/icons-material";
 import { Bar } from "react-chartjs-2";
 import { useQuery } from "@tanstack/react-query";
 import "chart.js/auto";
+import { ChartOptions } from "chart.js";
 
 // Types
 interface CourseDistributionProps {
@@ -176,19 +177,24 @@ export const CourseDistribution: React.FC<CourseDistributionProps> = ({
   const theme = useTheme();
   const isSmallScreen = useMediaQuery(theme.breakpoints.down("sm"));
 
-  const [instructor, setInstructor] = useState<string>(professorName);
   const [term, setTerm] = useState<string>("All");
   const [showPercentage, setShowPercentage] = useState<boolean>(false);
-
-  const { data: distribution, isLoading: isDistributionLoading } = useQuery({
-    queryKey: ["gradeDistribution", courseCode, instructor, term],
-    queryFn: () => fetchGradeDistribution(courseCode, instructor, term),
-    enabled: isOpen,
-  });
 
   const { data: instructors = [] } = useQuery({
     queryKey: ["instructors", courseCode],
     queryFn: () => fetchInstructors(courseCode),
+    enabled: isOpen,
+  });
+  const initialInstructor = useMemo(() => {
+    if (!instructors?.length) return professorName;
+    return instructors.includes(professorName) ? professorName : "All";
+  }, [instructors, professorName]);
+
+  const [instructor, setInstructor] = useState<string>(initialInstructor);
+
+  const { data: distribution, isLoading: isDistributionLoading } = useQuery({
+    queryKey: ["gradeDistribution", courseCode, instructor, term],
+    queryFn: () => fetchGradeDistribution(courseCode, instructor, term),
     enabled: isOpen,
   });
 
@@ -242,14 +248,19 @@ export const CourseDistribution: React.FC<CourseDistributionProps> = ({
     totalStudents,
   ]);
 
-  const chartOptions = {
+  const chartOptions: ChartOptions<"bar"> = {
     responsive: true,
     maintainAspectRatio: false,
     scales: {
       y: {
         beginAtZero: true,
         ticks: {
-          callback: (value: number) => (showPercentage ? `${value}%` : value),
+          callback: function (value) {
+            if (typeof value === "number") {
+              return showPercentage ? `${value}%` : value;
+            }
+            return value;
+          },
         },
       },
     },
