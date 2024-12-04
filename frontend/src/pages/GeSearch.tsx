@@ -249,8 +249,10 @@ const GeSearch = () => {
     string[]
   >([]);
   const [selectedGEs, setSelectedGEs] = useState<string[]>([]);
-  const [isCategoriesVisible, setIsCategoriesVisible] = useState(true);
-
+  const [isCategoriesVisible, setIsCategoriesVisible] = useState(() => {
+    const stored = localStorage.getItem("isCategoriesVisible");
+    return stored !== null ? stored === "true" : true;
+  });
   const { data: lastUpdated } = useQuery({
     queryKey: ["lastUpdate"],
     queryFn: fetchLastUpdate,
@@ -273,7 +275,6 @@ const GeSearch = () => {
   const isMediumScreen = useMediaQuery(theme.breakpoints.down("md"));
 
   const { data: courses, isLoading: isFetchLoading } = useGECourseData();
-  console.log(courses);
 
   const currentCourses = courses?.[selectedGE];
   const handleGlobalCourseSelect = (courseId: string, category?: string) => {
@@ -283,7 +284,11 @@ const GeSearch = () => {
     handleExpandCard(courseId, true);
   };
   const toggleCategories = useCallback(() => {
-    setIsCategoriesVisible((prev) => !prev);
+    setIsCategoriesVisible((prev) => {
+      const newValue = !prev;
+      localStorage.setItem("isCategoriesVisible", String(newValue));
+      return newValue;
+    });
   }, []);
   const filteredCourses = useMemo(() => {
     const searchFiltered = filterCourses(currentCourses, search);

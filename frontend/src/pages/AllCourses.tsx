@@ -1,3 +1,4 @@
+import React, { useState, useCallback, useMemo } from "react";
 import {
   Typography,
   IconButton,
@@ -5,11 +6,17 @@ import {
   Button,
   useTheme,
   styled,
+  Drawer,
   Grid2,
 } from "@mui/material";
-import { COLORS, Course, StyledExpandIcon } from "../Constants";
-import React, { useState, useCallback, useMemo } from "react";
 import { useMediaQuery } from "@mui/material";
+import ArrowBackIcon from "@mui/icons-material/ArrowBack";
+import {
+  AnimatedArrowIcon,
+  COLORS,
+  Course,
+  StyledExpandIcon,
+} from "../Constants";
 import { useAllCourseData } from "./GetGEData";
 import SentimentDissatisfiedIcon from "@mui/icons-material/SentimentDissatisfied";
 import { fetchLastUpdate } from "./FetchLastUpdate";
@@ -22,19 +29,56 @@ const Root = styled("div")(({ theme }) => ({
   display: "flex",
   backgroundColor: COLORS.GRAY_50,
   height: "calc(100dvh - 64px)",
-
   overflow: "hidden",
   [theme.breakpoints.down("sm")]: {
     flexDirection: "column",
     height: "calc(100dvh - 64px)",
   },
 }));
+
 const DrawerHeader = styled("div")(({ theme }) => ({
   display: "flex",
   alignItems: "center",
   justifyContent: "space-between",
   padding: theme.spacing(1, 2),
   borderBottom: `1px solid ${theme.palette.divider}`,
+}));
+
+const SidebarContainer = styled("div")<{ isVisible: boolean }>(
+  ({ theme, isVisible }) => ({
+    width: isVisible ? 332 : 0,
+    height: "100%",
+    backgroundColor: COLORS.WHITE,
+    borderRight: isVisible ? `1px solid ${COLORS.GRAY_100}` : "none",
+    display: "flex",
+    flexDirection: "column",
+    transition: "all 0.3s ease-in-out",
+    overflow: "hidden",
+    position: "relative",
+    opacity: isVisible ? 1 : 0,
+    [theme.breakpoints.down("md")]: {
+      width: isVisible ? 280 : 0,
+      minWidth: isVisible ? 280 : 0,
+    },
+    [theme.breakpoints.down("sm")]: {
+      width: isVisible ? 240 : 0,
+      minWidth: isVisible ? 240 : 0,
+    },
+  })
+);
+const StatisticsCard = styled("div")(({ theme }) => ({
+  padding: theme.spacing(2),
+  backgroundColor: COLORS.GRAY_50,
+  borderRadius: "8px",
+  marginBottom: theme.spacing(2),
+  border: `1px solid ${theme.palette.divider}`,
+}));
+
+const CourseStatistic = styled("div")(({ theme }) => ({
+  display: "flex",
+  justifyContent: "space-between",
+  alignItems: "center",
+  marginBottom: theme.spacing(1),
 }));
 
 const MenuButton = styled(IconButton)(({ theme }) => ({
@@ -49,51 +93,42 @@ const MenuButton = styled(IconButton)(({ theme }) => ({
   transition: "transform 0.2s ease-in-out",
 }));
 
-const GeContainer = styled("div")<{ isVisible: boolean }>(
+const SidebarContent = styled("div")<{ isVisible: boolean }>(
   ({ theme, isVisible }) => ({
-    width: isVisible ? "300px" : "0px",
-    marginRight: isVisible ? "40px" : "0px",
+    width: "300px",
     height: "100%",
-    backgroundColor: COLORS.WHITE,
-    display: "flex",
-    flexDirection: "column",
-    flexShrink: 0,
-    borderRight: isVisible ? `1px solid ${COLORS.GRAY_100}` : "none",
-    transition: "width 0.3s ease-in-out, margin-right 0.3s ease-in-out",
-    overflow: "hidden",
+    padding: theme.spacing(2),
+    opacity: isVisible ? 1 : 0,
+    transition: "opacity 0.3s ease-in-out",
+    overflowY: "auto",
     [theme.breakpoints.down("md")]: {
-      width: isVisible ? "280px" : "0px",
+      width: "280px",
     },
     [theme.breakpoints.down("sm")]: {
-      width: isVisible ? "240px" : "0px",
+      width: "240px",
     },
   })
 );
 
-const CategoryContainer = styled("div")(({ theme }) => ({
-  height: "100%",
-  backgroundColor: COLORS.WHITE,
-  display: "flex",
-  flexDirection: "column",
-  overflowY: "auto",
-  transition: "all 0.3s ease",
-  scrollBehavior: "smooth",
-}));
-const CourseContainer = styled("div")(({ theme }) => ({
-  flex: 1,
-  borderLeft: `1px solid ${theme.palette.divider}`,
-  height: "100%",
-  display: "flex",
-  flexDirection: "column",
-  backgroundColor: COLORS.WHITE,
-  minWidth: 0,
-  [theme.breakpoints.down("md")]: {
-    width: "100%",
-  },
-  [theme.breakpoints.down("sm")]: {
+const CourseContainer = styled("div")<{ sidebarVisible: boolean }>(
+  ({ theme, sidebarVisible }) => ({
+    flex: 1,
+    borderLeft: `1px solid ${theme.palette.divider}`,
     height: "100%",
-  },
-}));
+    display: "flex",
+    flexDirection: "column",
+    backgroundColor: COLORS.WHITE,
+    minWidth: 0,
+    transition: "margin-left 0.3s ease-in-out",
+    [theme.breakpoints.down("md")]: {
+      width: "100%",
+    },
+    [theme.breakpoints.down("sm")]: {
+      height: "100%",
+    },
+  })
+);
+
 const HeaderContainer = styled("div")(({ theme }) => ({
   display: "flex",
   alignItems: "center",
@@ -103,7 +138,6 @@ const HeaderContainer = styled("div")(({ theme }) => ({
   backgroundColor: COLORS.WHITE,
   flexWrap: "wrap",
   gap: theme.spacing(1),
-
   [theme.breakpoints.down("sm")]: {
     padding: theme.spacing(1),
     flexDirection: "column",
@@ -116,7 +150,6 @@ const SearchSection = styled("div")(({ theme }) => ({
   flexDirection: "row",
   flex: 1,
   alignItems: "center",
-  marginLeft: theme.spacing(1),
   marginRight: theme.spacing(2),
 }));
 
@@ -145,6 +178,7 @@ const ExpandButton = styled(Button)(({ theme }) => ({
     marginLeft: theme.spacing(1),
   },
 }));
+
 const CenterContent = styled("div")({
   display: "flex",
   justifyContent: "center",
@@ -159,21 +193,6 @@ const NoResults = styled(Typography)(({ theme }) => ({
   gap: theme.spacing(1),
   color: COLORS.GRAY_400,
 }));
-
-const filterCourses = (courses: Course[], search: string): Course[] => {
-  if (!courses) return [];
-  if (!search) return courses;
-
-  const searchLower = search.toLowerCase();
-  return courses.filter(
-    (course: Course) =>
-      course.name.toLowerCase().includes(searchLower) ||
-      (course.subject + " " + course.catalog_num)
-        .toLowerCase()
-        .includes(searchLower) ||
-      course.instructor.toLowerCase().includes(searchLower)
-  );
-};
 
 const filterBySort = (
   sortBy: string,
@@ -234,7 +253,6 @@ const filterBySort = (
 
 const AllCourses = () => {
   const theme = useTheme();
-  const [search, setSearch] = useState("");
   const [sortBy, setSortBy] = useState("GPA");
   const [selectedClassTypes, setSelectedClassTypes] = useState<string[]>([]);
   const [selectedEnrollmentStatuses, setSelectedEnrollmentStatuses] = useState<
@@ -248,6 +266,12 @@ const AllCourses = () => {
   const [expandedCodesMap, setExpandedCodesMap] = useState<
     Map<string, boolean>
   >(new Map());
+  const [isSidebarVisible, setIsSidebarVisible] = useState(() => {
+    const stored = localStorage.getItem("isSidebarVisible");
+    return stored !== null ? stored === "true" : true;
+  });
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
   const isAllExpanded = React.useRef(false);
   const isSmallScreen = useMediaQuery(theme.breakpoints.down("sm"));
   const isMediumScreen = useMediaQuery(theme.breakpoints.down("md"));
@@ -263,34 +287,39 @@ const AllCourses = () => {
 
   const { data: coursesData, isLoading: isFetchLoading } = useAllCourseData();
 
-  // Ensure we have an array of courses
   const currentCourses = useMemo(() => {
     return Array.isArray(coursesData) ? coursesData : [];
   }, [coursesData]);
 
-  const handleGlobalCourseSelect = (courseId: string, category?: string) => {
+  const toggleSidebar = useCallback(() => {
+    setIsSidebarVisible((prev) => {
+      const newValue = !prev;
+      localStorage.setItem("isSidebarVisible", String(newValue));
+      return newValue;
+    });
+  }, []);
+
+  const handleGlobalCourseSelect = (courseId: string) => {
     handleClearFilters();
     setScrollToCourseId(courseId);
     handleExpandCard(courseId, true);
   };
 
   const filteredCourses = useMemo(() => {
-    const searchFiltered = filterCourses(currentCourses, search);
     return filterBySort(
       sortBy,
       selectedSubjects,
       selectedClassTypes,
       selectedEnrollmentStatuses,
-      searchFiltered,
+      currentCourses,
       selectedGEs
     );
   }, [
     sortBy,
-    currentCourses,
-    search,
     selectedSubjects,
     selectedClassTypes,
     selectedEnrollmentStatuses,
+    currentCourses,
     selectedGEs,
   ]);
 
@@ -333,11 +362,194 @@ const AllCourses = () => {
     ].sort();
   }, [currentCourses]);
 
+  const SidebarStats = () => {
+    const totalCourses = filteredCourses?.length || 0;
+    const averageGPA =
+      filteredCourses?.reduce(
+        (sum, course) => sum + (course.gpa ? parseFloat(course.gpa) : 0),
+        0
+      ) / totalCourses;
+    const openSections =
+      filteredCourses?.filter((course) => course.class_status === "Open")
+        .length || 0;
+
+    const departmentCounts = filteredCourses?.reduce((acc, course) => {
+      acc[course.subject] = (acc[course.subject] || 0) + 1;
+      return acc;
+    }, {} as Record<string, number>);
+
+    const topDepartments = Object.entries(departmentCounts || {})
+      .sort(([, a], [, b]) => b - a)
+      .slice(0, 5);
+    const coursesAt4 =
+      filteredCourses?.filter((course) => parseInt(course.gpa) === 4).length ||
+      0;
+
+    const coursesOver3 =
+      filteredCourses?.filter(
+        (course) => parseFloat(course.gpa) >= 3 && parseFloat(course.gpa) < 4
+      ).length || 0;
+    const coursesOver2 =
+      filteredCourses?.filter(
+        (course) => parseInt(course.gpa) >= 2 && parseFloat(course.gpa) < 3
+      ).length || 0;
+    const coursesOver1 =
+      filteredCourses?.filter(
+        (course) => parseInt(course.gpa) >= 1 && parseFloat(course.gpa) < 2
+      ).length || 0;
+    const noGPA =
+      filteredCourses?.filter((course) => course?.gpa === null).length || 0;
+
+    const yesGPA =
+      filteredCourses?.filter((course) => course?.gpa !== null).length || 0;
+
+    return (
+      <>
+        <Typography variant="h6" sx={{ mb: 3 }}>
+          Course Statistics
+        </Typography>
+
+        <StatisticsCard>
+          <Typography
+            variant="subtitle2"
+            sx={{ mb: 2, color: theme.palette.grey[600] }}
+          >
+            Quick Overview
+          </Typography>
+          <CourseStatistic>
+            <Typography variant="body2">Total Courses</Typography>
+            <Typography variant="body2" fontWeight="medium">
+              {totalCourses}
+            </Typography>
+          </CourseStatistic>
+          <CourseStatistic>
+            <Typography variant="body2">Average GPA</Typography>
+            <Typography variant="body2" fontWeight="medium">
+              {averageGPA ? averageGPA.toFixed(2) : "N/A"}
+            </Typography>
+          </CourseStatistic>
+          <CourseStatistic>
+            <Typography variant="body2">Open Sections</Typography>
+            <Typography variant="body2" fontWeight="medium">
+              {openSections}
+            </Typography>
+          </CourseStatistic>
+        </StatisticsCard>
+
+        <StatisticsCard>
+          <Typography
+            variant="subtitle2"
+            sx={{ mb: 2, color: theme.palette.grey[600] }}
+          >
+            Top Departments
+          </Typography>
+          {topDepartments.map(([dept, count]) => (
+            <CourseStatistic key={dept}>
+              <Typography variant="body2">{dept}</Typography>
+              <Typography variant="body2" fontWeight="medium">
+                {count}
+              </Typography>
+            </CourseStatistic>
+          ))}
+        </StatisticsCard>
+        <StatisticsCard>
+          <Typography
+            variant="subtitle2"
+            sx={{ mb: 2, color: theme.palette.grey[600] }}
+          >
+            Courses by GPA
+          </Typography>
+          <CourseStatistic>
+            <Typography variant="body2">{"4.0"}</Typography>
+            <Typography variant="body2" fontWeight="medium">
+              {coursesAt4}
+            </Typography>
+          </CourseStatistic>
+          <CourseStatistic>
+            <Typography variant="body2">{"3.0 - 3.99"}</Typography>
+            <Typography variant="body2" fontWeight="medium">
+              {coursesOver3}
+            </Typography>
+          </CourseStatistic>
+          <CourseStatistic>
+            <Typography variant="body2">{"2.0 - 2.99"}</Typography>
+            <Typography variant="body2" fontWeight="medium">
+              {coursesOver2}
+            </Typography>
+          </CourseStatistic>
+          {coursesOver1 > 0 && (
+            <CourseStatistic>
+              <Typography variant="body2">{"1.0 - 1.99"}</Typography>
+              <Typography variant="body2" fontWeight="medium">
+                {coursesOver1}
+              </Typography>
+            </CourseStatistic>
+          )}
+          <CourseStatistic>
+            <Typography variant="body2">{"No GPA"}</Typography>
+            <Typography variant="body2" fontWeight="medium">
+              {noGPA}
+            </Typography>
+          </CourseStatistic>
+        </StatisticsCard>
+      </>
+    );
+  };
+
   return (
     <Root>
-      <CourseContainer>
+      {isSmallScreen || isMediumScreen ? (
+        <Drawer
+          anchor="left"
+          open={mobileMenuOpen}
+          onClose={() => setMobileMenuOpen(false)}
+          sx={{
+            "& .MuiDrawer-paper": {
+              width: 240,
+              boxSizing: "border-box",
+            },
+          }}
+        >
+          <DrawerHeader>
+            <Typography variant="subtitle1" fontWeight="medium">
+              Course Statistics
+            </Typography>
+            <IconButton
+              onClick={() => setMobileMenuOpen(false)}
+              sx={{ borderRadius: "8px" }}
+            >
+              <ArrowBackIcon />
+            </IconButton>
+          </DrawerHeader>
+          <div style={{ padding: "16px" }}>
+            <SidebarStats />
+          </div>
+        </Drawer>
+      ) : (
+        <SidebarContainer isVisible={isSidebarVisible}>
+          <SidebarContent isVisible={isSidebarVisible}>
+            <SidebarStats />
+          </SidebarContent>
+        </SidebarContainer>
+      )}
+
+      <CourseContainer sidebarVisible={isSidebarVisible}>
         <HeaderContainer>
           <SearchSection>
+            <MenuButton
+              onClick={
+                isSmallScreen || isMediumScreen
+                  ? () => setMobileMenuOpen(!mobileMenuOpen)
+                  : toggleSidebar
+              }
+              aria-label="Toggle Statistics"
+            >
+              <AnimatedArrowIcon
+                isVisible={!isMediumScreen ? isSidebarVisible : true}
+                isSmallScreen={isMediumScreen}
+              />
+            </MenuButton>
+
             <GlobalSearch
               courses={currentCourses}
               onCourseSelect={handleGlobalCourseSelect}
@@ -421,9 +633,7 @@ const AllCourses = () => {
                     color: COLORS.GRAY_400,
                   }}
                 >
-                  {search
-                    ? "No matching courses found "
-                    : "No courses available "}
+                  {"No courses available "}
                   <SentimentDissatisfiedIcon
                     sx={{ ml: 1, color: COLORS.GRAY_400 }}
                   />
