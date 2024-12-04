@@ -31,12 +31,12 @@ import {
   Close as CloseIcon,
   LocalOffer as TagIcon,
 } from "@mui/icons-material";
-import { Rating } from "../Colors";
+import { Rating } from "../Constants";
 
 //Type Definitions
 interface RatingsModalProps {
   isOpen: boolean;
-  onClose: () => void;
+  onClose: (e: React.MouseEvent) => void;
   professorName: string;
   ratings?: Rating[];
   currentClass: string;
@@ -68,7 +68,7 @@ const ModalContent = styled(Paper)(({ theme }) => ({
   [theme.breakpoints.down("sm")]: {
     maxHeight: "100vh",
     height: "100%",
-    borderRadius: 0,
+    borderRadius: "8px",
   },
 }));
 
@@ -211,6 +211,7 @@ export const RatingsModal: React.FC<RatingsModalProps> = ({
             <IconButton
               onClick={onClose}
               size={isSmallScreen ? "medium" : "large"}
+              sx={{ borderRadius: "8px" }}
             >
               <CloseIcon />
             </IconButton>
@@ -285,7 +286,13 @@ export const RatingsModal: React.FC<RatingsModalProps> = ({
             </Grid>
           </Grid>
 
-          <Paper sx={{ p: isSmallScreen ? 1 : 2, mb: isSmallScreen ? 2 : 3 }}>
+          <Paper
+            sx={{
+              p: isSmallScreen ? 1 : 2,
+              mb: isSmallScreen ? 2 : 3,
+              borderRadius: "8px",
+            }}
+          >
             <Grid container spacing={isSmallScreen ? 1 : 2}>
               <Grid item xs={12} md={6}>
                 <TextField
@@ -297,7 +304,7 @@ export const RatingsModal: React.FC<RatingsModalProps> = ({
                     input: {
                       sx: {
                         "&::placeholder": {
-                          ...theme.typography.body1, 
+                          ...theme.typography.body1,
                         },
                       },
                       startAdornment: (

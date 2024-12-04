@@ -10,7 +10,7 @@ import {
   useTheme,
 } from "@mui/material";
 import { styled } from "@mui/material/styles";
-import { categories } from "../Colors";
+import { categories } from "../Constants";
 
 interface Category {
   id: string;
@@ -70,10 +70,12 @@ const CategoryItem: React.FC<CategoryItemProps> = memo(
 
     const theme = useTheme();
     const isSmallScreen = useMediaQuery(theme.breakpoints.down("sm"));
+    const isMediumScreen = useMediaQuery(theme.breakpoints.down("md"));
 
-    const displayText = category.name
-      ? `${category.id} - ${category.name}`
-      : category.id;
+    const displayText =
+      category.id !== "AnyGE"
+        ? `${category.id} - ${category.name}`
+        : "All Courses";
 
     return (
       <StyledListItem
@@ -85,8 +87,10 @@ const CategoryItem: React.FC<CategoryItemProps> = memo(
         <ListItemText
           primary={
             <Typography
-              variant={isSmallScreen ? "body2" : "body1"}
-              sx={{ fontWeight: 500 }}
+              variant={isMediumScreen ? "body2" : "body1"}
+              sx={{
+                fontWeight: 500,
+              }}
             >
               {displayText}
             </Typography>
@@ -121,7 +125,7 @@ export const CategorySidebar: React.FC<CategorySidebarProps> = memo(
                 isSelected={selectedCategory === category.id}
                 onSelect={onCategorySelect}
               />
-              {index === 0 && <Divider />} 
+              {index === 0 && <Divider />}
             </React.Fragment>
           ))}
         </List>

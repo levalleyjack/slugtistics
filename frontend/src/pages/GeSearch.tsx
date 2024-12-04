@@ -8,20 +8,26 @@ import {
   Drawer,
   Grid2,
 } from "@mui/material";
-import { COLORS, Course, StyledExpandIcon } from "../Colors";
+import {
+  AnimatedArrowIcon,
+  COLORS,
+  Course,
+  StyledExpandIcon,
+} from "../Constants";
 import React, { useState, useCallback, useMemo } from "react";
 import { useMediaQuery } from "@mui/material";
 import MenuIcon from "@mui/icons-material/Menu";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import { useCourseData } from "./GetGEData";
 import SentimentDissatisfiedIcon from "@mui/icons-material/SentimentDissatisfied";
-import { CategorySidebar } from "./CategorySideBar";
+import { CategorySidebar } from "../components/CategorySideBar";
 import { fetchLastUpdate } from "./FetchLastUpdate";
-import FilterDropdown from "./FilterDropdown";
-import GlobalSearch from "./GlobalSearchDropdownList";
+import FilterDropdown from "../components/FilterDropdown";
+import GlobalSearch from "../components/GlobalSearchDropdownList";
 import { DynamicCourseList } from "./VirtualizedCourseList";
 import { useQuery } from "@tanstack/react-query";
-
+import ArrowBackIosNewIcon from "@mui/icons-material/ArrowBackIosNew";
+import { ArrowForwardIos } from "@mui/icons-material";
 const Root = styled("div")(({ theme }) => ({
   display: "flex",
   backgroundColor: COLORS.GRAY_50,
@@ -42,35 +48,37 @@ const DrawerHeader = styled("div")(({ theme }) => ({
 }));
 
 const MenuButton = styled(IconButton)(({ theme }) => ({
-  position: "fixed",
-  top: theme.spacing(8.5),
-  left: theme.spacing(1),
-  zIndex: 1100,
   backgroundColor: COLORS.WHITE,
   boxShadow: theme.shadows[2],
+  marginRight: theme.spacing(1),
   "&:hover": {
     backgroundColor: COLORS.GRAY_50,
+    transform: "translateY(-2px)",
+    transition: "transform 0.2s ease-in-out",
   },
-  [theme.breakpoints.up("md")]: {
-    display: "none",
-  },
+  transition: "transform 0.2s ease-in-out",
 }));
-const GeContainer = styled("div")(({ theme }) => ({
-  width: "300px",
-  marginRight: "40px",
-  height: "100%",
-  backgroundColor: COLORS.WHITE,
-  display: "flex",
-  flexDirection: "column",
-  flexShrink: 0,
-  borderRight: `1px solid ${COLORS.GRAY_100}`,
-  [theme.breakpoints.down("md")]: {
-    width: "280px",
-  },
-  [theme.breakpoints.down("sm")]: {
-    width: "240px",
-  },
-}));
+
+const GeContainer = styled("div")<{ isVisible: boolean }>(
+  ({ theme, isVisible }) => ({
+    width: isVisible ? "300px" : "0px",
+    marginRight: isVisible ? "40px" : "0px",
+    height: "100%",
+    backgroundColor: COLORS.WHITE,
+    display: "flex",
+    flexDirection: "column",
+    flexShrink: 0,
+    borderRight: isVisible ? `1px solid ${COLORS.GRAY_100}` : "none",
+    transition: "width 0.3s ease-in-out, margin-right 0.3s ease-in-out",
+    overflow: "hidden",
+    [theme.breakpoints.down("md")]: {
+      width: isVisible ? "280px" : "0px",
+    },
+    [theme.breakpoints.down("sm")]: {
+      width: isVisible ? "240px" : "0px",
+    },
+  })
+);
 
 const CategoryContainer = styled("div")(({ theme }) => ({
   height: "100%",
@@ -78,22 +86,8 @@ const CategoryContainer = styled("div")(({ theme }) => ({
   display: "flex",
   flexDirection: "column",
   overflowY: "auto",
-  "&::-webkit-scrollbar": {
-    width: "8px",
-  },
-  "&::-webkit-scrollbar-track": {
-    backgroundColor: COLORS.GRAY_50,
-    borderRadius: "4px",
-  },
-  "&::-webkit-scrollbar-thumb": {
-    backgroundColor: COLORS.GRAY_300,
-    borderRadius: "4px",
-    "&:hover": {
-      backgroundColor: COLORS.GRAY_400,
-    },
-  },
-  scrollbarWidth: "thin",
-  scrollbarColor: `${COLORS.GRAY_300} ${COLORS.GRAY_50}`,
+  transition: "all 0.3s ease",
+  scrollBehavior: "smooth",
 }));
 const CourseContainer = styled("div")(({ theme }) => ({
   flex: 1,
@@ -113,12 +107,13 @@ const CourseContainer = styled("div")(({ theme }) => ({
 const HeaderContainer = styled("div")(({ theme }) => ({
   display: "flex",
   alignItems: "center",
+  padding: theme.spacing(2),
   justifyContent: "space-between",
-  padding: theme.spacing(2, 3),
   borderBottom: `1px solid ${theme.palette.divider}`,
   backgroundColor: COLORS.WHITE,
   flexWrap: "wrap",
   gap: theme.spacing(1),
+
   [theme.breakpoints.down("sm")]: {
     padding: theme.spacing(1),
     flexDirection: "column",
@@ -128,14 +123,10 @@ const HeaderContainer = styled("div")(({ theme }) => ({
 
 const SearchSection = styled("div")(({ theme }) => ({
   display: "flex",
-
-  flexDirection: "column",
+  flexDirection: "row",
   flex: 1,
+  alignItems: "center",
   marginRight: theme.spacing(2),
-  [theme.breakpoints.down("sm")]: {
-    width: "auto",
-    marginLeft: "12%",
-  },
 }));
 
 const ControlsContainer = styled("div")(({ theme }) => ({
@@ -192,10 +183,12 @@ const filterCourses = (courses: Course[], search: string) => {
 };
 
 const filterBySort = (
+  sortBy: string,
   selectedSubjects: string[],
   selectedClassTypes: string[],
   selectedEnrollmentStatuses: string[],
   currentCourses: Course[],
+  currentGE: string,
   selectedGEs: string[]
 ): Course[] => {
   if (!currentCourses || currentCourses.length === 0) return [];
@@ -214,26 +207,52 @@ const filterBySort = (
       selectedEnrollmentStatuses.includes(course.class_status);
 
     const matchGEs =
-      selectedGEs.length === 0 || selectedGEs.includes(course.ge);
+      currentGE === "AnyGE"
+        ? selectedGEs.length === 0 || selectedGEs.includes(course.ge)
+        : currentCourses;
 
     return matchSubject && matchType && matchStatus && matchGEs;
   });
 
   return filteredCourses.sort((a, b) => {
-    const gpaA = a.gpa === null ? -Infinity : parseFloat(a.gpa);
-    const gpaB = b.gpa === null ? -Infinity : parseFloat(b.gpa);
-    return gpaB - gpaA;
+    switch (sortBy) {
+      case "GPA":
+        const gpaA = a.gpa === null ? -Infinity : parseFloat(a.gpa);
+        const gpaB = b.gpa === null ? -Infinity : parseFloat(b.gpa);
+        return gpaB - gpaA;
+      case "INSTRUCTOR":
+        const ratingA =
+          (a.instructor_ratings && a.instructor_ratings.avg_rating) ??
+          -Infinity;
+        const ratingB =
+          (b.instructor_ratings && b.instructor_ratings.avg_rating) ??
+          -Infinity;
+        return ratingA === ratingB &&
+          b.instructor_ratings &&
+          a.instructor_ratings
+          ? b.instructor_ratings.num_ratings - a.instructor_ratings.num_ratings
+          : ratingB - ratingA;
+      case "ALPHANUMERIC":
+        const aCourseCode = `${a.subject} ${a.catalog_num}`;
+        const bCourseCode = `${b.subject} ${b.catalog_num}`;
+        return aCourseCode.localeCompare(bCourseCode, "en", { numeric: true });
+      default:
+        return 0;
+    }
   });
 };
+
 const GeSearch = () => {
   const theme = useTheme();
   const [selectedGE, setSelectedGE] = useState("AnyGE");
   const [search, setSearch] = useState("");
+  const [sortBy, setSortBy] = useState("GPA");
   const [selectedClassTypes, setSelectedClassTypes] = useState<string[]>([]);
   const [selectedEnrollmentStatuses, setSelectedEnrollmentStatuses] = useState<
     string[]
   >([]);
   const [selectedGEs, setSelectedGEs] = useState<string[]>([]);
+  const [isCategoriesVisible, setIsCategoriesVisible] = useState(true);
 
   const { data: lastUpdated } = useQuery({
     queryKey: ["lastUpdate"],
@@ -255,7 +274,9 @@ const GeSearch = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const isSmallScreen = useMediaQuery(theme.breakpoints.down("sm"));
   const isMediumScreen = useMediaQuery(theme.breakpoints.down("md"));
+
   const { data: courses, isLoading: isFetchLoading } = useCourseData();
+  console.log(courses);
 
   const currentCourses = courses?.[selectedGE];
   const handleGlobalCourseSelect = (category: string, courseId: string) => {
@@ -264,21 +285,28 @@ const GeSearch = () => {
     setScrollToCourseId(courseId);
     handleExpandCard(courseId, true);
   };
+  const toggleCategories = useCallback(() => {
+    setIsCategoriesVisible((prev) => !prev);
+  }, []);
   const filteredCourses = useMemo(() => {
     const searchFiltered = filterCourses(currentCourses, search);
     return filterBySort(
+      sortBy,
       selectedSubjects,
       selectedClassTypes,
       selectedEnrollmentStatuses,
       searchFiltered,
+      selectedGE,
       selectedGEs
     );
   }, [
+    sortBy,
     currentCourses,
     search,
     selectedSubjects,
     selectedClassTypes,
     selectedEnrollmentStatuses,
+    selectedGE,
     selectedGEs,
   ]);
 
@@ -309,27 +337,22 @@ const GeSearch = () => {
     isAllExpanded.current = !isAllExpanded.current;
     setExpandedCodesMap(
       new Map(
-        currentCourses?.map((course) => [
-          course.unique_id,
-          isAllExpanded.current,
-        ]) || []
+        currentCourses?.map((course) => [course.id, isAllExpanded.current]) ||
+          []
       )
     );
   }, [currentCourses]);
   const codes = [
     ...new Set(currentCourses?.map((course) => course.subject)),
   ].sort();
-  const GEs = [...new Set(currentCourses?.map((course) => course.ge))].sort();
+  const GEs = [
+    ...new Set(
+      currentCourses?.map((course) => course.ge).filter((ge) => ge != null)
+    ),
+  ].sort();
 
   return (
     <Root>
-      <MenuButton
-        onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-        aria-label="Toggle Categories"
-      >
-        <MenuIcon />
-      </MenuButton>
-
       {isSmallScreen || isMediumScreen ? (
         <Drawer
           anchor="left"
@@ -346,7 +369,10 @@ const GeSearch = () => {
             <Typography variant="subtitle1" fontWeight="medium">
               Categories
             </Typography>
-            <IconButton onClick={() => setMobileMenuOpen(false)}>
+            <IconButton
+              onClick={() => setMobileMenuOpen(false)}
+              sx={{ borderRadius: "8px" }}
+            >
               <ArrowBackIcon />
             </IconButton>
           </DrawerHeader>
@@ -358,7 +384,7 @@ const GeSearch = () => {
           </CategoryContainer>
         </Drawer>
       ) : (
-        <GeContainer>
+        <GeContainer isVisible={isCategoriesVisible}>
           <CategoryContainer>
             <CategorySidebar
               selectedCategory={selectedGE}
@@ -371,6 +397,20 @@ const GeSearch = () => {
       <CourseContainer>
         <HeaderContainer>
           <SearchSection>
+            <MenuButton
+              onClick={
+                isSmallScreen || isMediumScreen
+                  ? () => setMobileMenuOpen(!mobileMenuOpen)
+                  : toggleCategories
+              }
+              aria-label="Toggle Categories"
+            >
+              <AnimatedArrowIcon
+                isVisible={!isMediumScreen ? isCategoriesVisible : true}
+                isSmallScreen={isMediumScreen}
+              />
+            </MenuButton>
+
             <GlobalSearch
               courses={courses}
               onCourseSelect={handleGlobalCourseSelect}
@@ -384,7 +424,6 @@ const GeSearch = () => {
             {isSmallScreen ? (
               <>
                 <ExpandButton
-                  disableRipple
                   variant="outlined"
                   color="primary"
                   onClick={handleExpandAll}
@@ -398,10 +437,12 @@ const GeSearch = () => {
                 <FilterDropdown
                   codes={codes}
                   GEs={GEs}
+                  sortBy={sortBy}
                   selectedGEs={selectedGEs}
                   selectedSubjects={selectedSubjects}
                   selectedClassTypes={selectedClassTypes}
                   selectedEnrollmentStatuses={selectedEnrollmentStatuses}
+                  onSortBy={setSortBy}
                   onClassTypesChange={setSelectedClassTypes}
                   onSelectedSubjectsChange={setSelectedSubjects}
                   onEnrollmentStatusesChange={setSelectedEnrollmentStatuses}
@@ -418,16 +459,17 @@ const GeSearch = () => {
                     <StyledExpandIcon expanded={isAllExpanded.current} />
                   }
                 >
-                  {isAllExpanded.current ? "Collapse" : "Expand"}{" "}
-                  {isMediumScreen ? "" : "All"}
+                  {isAllExpanded.current ? "Collapse" : "Expand"}
                 </ExpandButton>
                 <FilterDropdown
                   codes={codes}
                   GEs={GEs}
+                  sortBy={sortBy}
                   selectedGEs={selectedGEs}
                   selectedSubjects={selectedSubjects}
                   selectedClassTypes={selectedClassTypes}
                   selectedEnrollmentStatuses={selectedEnrollmentStatuses}
+                  onSortBy={setSortBy}
                   onClassTypesChange={setSelectedClassTypes}
                   onSelectedSubjectsChange={setSelectedSubjects}
                   onEnrollmentStatusesChange={setSelectedEnrollmentStatuses}

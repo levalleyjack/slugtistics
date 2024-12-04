@@ -1,5 +1,4 @@
 import React from "react";
-import PeopleIcon from "@mui/icons-material/People";
 import MenuBookIcon from "@mui/icons-material/MenuBook";
 import CalculateIcon from "@mui/icons-material/Calculate";
 import ScienceIcon from "@mui/icons-material/Science";
@@ -8,16 +7,16 @@ import AutoStoriesIcon from "@mui/icons-material/AutoStories";
 import ParkIcon from "@mui/icons-material/Park";
 import PsychologyIcon from "@mui/icons-material/Psychology";
 import PrecisionManufacturingIcon from "@mui/icons-material/PrecisionManufacturing";
-import GroupsIcon from "@mui/icons-material/Groups";
 import PaletteIcon from "@mui/icons-material/Palette";
 import VolunteerActivismIcon from "@mui/icons-material/VolunteerActivism";
-import CreateIcon from "@mui/icons-material/Create";
-import RateReviewIcon from "@mui/icons-material/RateReview";
 import AppsIcon from "@mui/icons-material/Apps";
-import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
-
+import BookIcon from "@mui/icons-material/Book";
 import { ChipProps, styled } from "@mui/material";
+import Diversity2Icon from "@mui/icons-material/Diversity2";
+import HandshakeIcon from "@mui/icons-material/Handshake";
+import Diversity3Icon from '@mui/icons-material/Diversity3';
+
 export const COLORS = {
   WHITE: "#ffffff",
   BLACK: "#000000",
@@ -25,7 +24,7 @@ export const COLORS = {
   INDIGO_LIGHT: "rgba(79, 70, 229, 0.1)",
   GRAY_50: "#f8fafc",
   GRAY_100: "#f1f5f9",
-  GRAY_300: "#d1d5db", 
+  GRAY_300: "#d1d5db",
   GRAY_400: "#9ca3af",
   GRAY_500: "#6B7280",
   YELLOW: "#ffc107",
@@ -42,34 +41,16 @@ export type ColorType = typeof COLORS;
 // import { COLORS } from './colors';
 // backgroundColor: COLORS.WHITE
 
-export interface ExpandIconProps {
-  expanded: boolean;
-}
-
-export interface GradeChipProps extends ChipProps {
-  grade: number;
-}
-export interface DifficultyChipProps extends ChipProps {
-  difficulty: number;
-}
-export const StyledExpandIcon = styled(KeyboardArrowDownIcon)<{ expanded: boolean }>(
-  ({ theme, expanded }) => ({
-    transform: expanded ? "rotate(180deg)" : "rotate(0deg)",
-    transition: theme.transitions.create("transform", {
-      duration: theme.transitions.duration.shortest,
-    }),
-  })
-);
 export enum ClassStatusEnum {
   OPEN = "Open",
   CLOSED = "Closed",
   WAITLIST = "Wait List",
-} 
+}
+
 export interface Course {
   id: any;
-  unique_id:any;
-  subject:string;
-  catalog_num:string;
+  subject: string;
+  catalog_num: string;
   link: string;
   enroll_num: string;
   name: string;
@@ -81,9 +62,8 @@ export interface Course {
   location: string;
   gpa: string;
   instructor_ratings: any;
-  class_status:ClassStatusEnum;
-  ge_category: string; // Add this line
-
+  class_status: ClassStatusEnum;
+  ge_category: string;
 }
 
 export interface RMPResponse {
@@ -115,35 +95,34 @@ export interface Rating {
   class_name: string;
   date: string;
   createdByUser: string;
-  flag_status: 'UNFLAGGED' | 'FLAGGED';
+  flag_status: "UNFLAGGED" | "FLAGGED";
   tags: string;
-  thumbs_up:number;
-  thumbs_down:number;
-  would_take_again:true;
-  overall_rating:number;
-
+  thumbs_up: number;
+  thumbs_down: number;
+  would_take_again: true;
+  overall_rating: number;
+}
+export interface ExpandIconProps {
+  expanded: boolean;
 }
 
-export const getLetterGrade = (gpa: string) => {
-  const gpaNum = parseFloat(gpa);
-  if (gpaNum >= 4.0) return "A";
-  if (gpaNum >= 3.7) return "A-";
-  if (gpaNum >= 3.3) return "B+";
-  if (gpaNum >= 3.0) return "B";
-  if (gpaNum >= 2.7) return "B-";
-  if (gpaNum >= 2.3) return "C+";
-  if (gpaNum >= 2.0) return "C";
-  if (gpaNum >= 1.7) return "C-";
-  if (gpaNum >= 1.3) return "D+";
-  if (gpaNum >= 1.0) return "D";
-  if (gpaNum >= 0.7) return "D-";
-  return "F";
-};
+export interface GradeChipProps extends ChipProps {
+  grade: number;
+}
+export interface DifficultyChipProps extends ChipProps {
+  difficulty: number;
+}
+
+interface AnimatedArrowIconProps {
+  isVisible: boolean;
+  isSmallScreen: boolean;
+  sx?: object;
+}
 
 export const categories = [
   { id: "AnyGE", name: "All Courses", icon: <AppsIcon /> },
-  { id: "CC", name: "Cross-Cultural Analysis", icon: <PeopleIcon /> },
-  { id: "ER", name: "Ethnicity and Race", icon: <PeopleIcon /> },
+  { id: "CC", name: "Cross-Cultural Analysis", icon: <Diversity3Icon /> },
+  { id: "ER", name: "Ethnicity and Race", icon: <Diversity2Icon /> },
   { id: "IM", name: "Interpreting Arts and Media", icon: <MenuBookIcon /> },
   {
     id: "MF",
@@ -171,7 +150,7 @@ export const categories = [
   {
     id: "PR-E",
     name: "Practice: Collaborative Endeavor",
-    icon: <GroupsIcon />,
+    icon: <HandshakeIcon />,
   },
   { id: "PR-C", name: "Practice: Creative Process", icon: <PaletteIcon /> },
   {
@@ -179,6 +158,53 @@ export const categories = [
     name: "Practice: Service Learning",
     icon: <VolunteerActivismIcon />,
   },
-  { id: "C", name: "Composition", icon: <CreateIcon /> },
-
+  { id: "C", name: "Composition", icon: <BookIcon /> },
 ];
+
+export const StyledExpandIcon = styled(KeyboardArrowDownIcon)<{
+  expanded: boolean;
+}>(({ theme, expanded }) => ({
+  transform: expanded ? "rotate(180deg)" : "rotate(0deg)",
+  transition: theme.transitions.create("transform", {
+    duration: theme.transitions.duration.shortest,
+  }),
+  
+}));
+import { ArrowBackIosNew, ArrowForwardIos } from "@mui/icons-material";
+
+const AnimatedIcon = styled("div")<{ isVisible: boolean }>(({ isVisible }) => ({
+  display: "flex",
+  alignItems: "center",
+  transform: isVisible ? "rotate(0deg)" : "rotate(180deg)",
+  transition: "transform 0.3s ease-in-out",
+}));
+
+export const AnimatedArrowIcon: React.FC<AnimatedArrowIconProps> = ({
+  isVisible,
+  isSmallScreen,
+  sx,
+}) => {
+  const IconComponent = isSmallScreen ? ArrowForwardIos : ArrowBackIosNew;
+
+  return (
+    <AnimatedIcon isVisible={isVisible} >
+      <IconComponent sx={{ fontSize: 20, ...sx }} />
+    </AnimatedIcon>
+  );
+};
+
+export const getLetterGrade = (gpa: string) => {
+  const gpaNum = parseFloat(gpa);
+  if (gpaNum >= 4.0) return "A";
+  if (gpaNum >= 3.7) return "A-";
+  if (gpaNum >= 3.3) return "B+";
+  if (gpaNum >= 3.0) return "B";
+  if (gpaNum >= 2.7) return "B-";
+  if (gpaNum >= 2.3) return "C+";
+  if (gpaNum >= 2.0) return "C";
+  if (gpaNum >= 1.7) return "C-";
+  if (gpaNum >= 1.3) return "D+";
+  if (gpaNum >= 1.0) return "D";
+  if (gpaNum >= 0.7) return "D-";
+  return "F";
+};
