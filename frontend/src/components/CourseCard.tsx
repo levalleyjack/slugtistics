@@ -143,7 +143,6 @@ export const CourseCard = forwardRef<HTMLDivElement, CourseCardProps>(
 
     const handleExpandClick = () => onExpandChange(course_code);
     const handleOpenModal = (e: React.MouseEvent) => {
-      console.log(course);
       e.stopPropagation();
       setIsModalOpen(true);
     };

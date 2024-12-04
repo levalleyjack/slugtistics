@@ -131,7 +131,6 @@ const GlobalSearch = ({
     const searchInput = search.toLowerCase().trim();
     const searchTerms = searchInput.split(" ");
 
-    //helper function to normalize instructor names for comparison
     const normalizeInstructorName = (name: string) => {
       const parts = name.toLowerCase().split(" ");
       return {
@@ -143,18 +142,15 @@ const GlobalSearch = ({
       };
     };
 
-    //helper function to check if search matches instructor
     const matchesInstructor = (instructor: string) => {
       const normalizedInstructor = normalizeInstructorName(instructor);
 
-      //single word search  match against any part of the name
       if (searchTerms.length === 1) {
         return normalizedInstructor.parts.some((part) =>
           part.startsWith(searchInput)
         );
       }
 
-      //match first initial + last name (e.g., "p tantalo")
       if (
         searchTerms.length === 2 &&
         normalizedInstructor.firstInitial === searchTerms[0] &&
@@ -163,21 +159,18 @@ const GlobalSearch = ({
         return true;
       }
 
-      //match full name parts in any order
       return searchTerms.every((term) =>
         normalizedInstructor.parts.some((part) => part.startsWith(term))
       );
     };
 
-    //first check if the search contains any numbers
     const containsNumbers = /\d/.test(searchInput);
 
     if (!containsNumbers) {
       return allCourses
         .filter((course) => {
           const courseName = course.name.toLowerCase();
-          const courseCode =
-            `${course.subject} ${course.catalog_num}`.toLowerCase();
+          const courseCode = `${course.subject} ${course.catalog_num}`.toLowerCase();
 
           return (
             matchesInstructor(course.instructor) ||
@@ -188,7 +181,6 @@ const GlobalSearch = ({
         .slice(0, 20);
     }
 
-    //if contains numbers, check for course code pattern
     const courseCodeMatch = searchInput.match(/^([a-zA-Z]+)\s*(\d+)?$/);
 
     if (courseCodeMatch) {
@@ -208,12 +200,10 @@ const GlobalSearch = ({
       });
     }
 
-    //fallback to general search
     return allCourses
       .filter((course) => {
         const courseName = course.name.toLowerCase();
-        const courseCode =
-          `${course.subject} ${course.catalog_num}`.toLowerCase();
+        const courseCode = `${course.subject} ${course.catalog_num}`.toLowerCase();
 
         return (
           matchesInstructor(course.instructor) ||
@@ -234,18 +224,15 @@ const GlobalSearch = ({
 
     return searchResults.reduce(
       (acc, course) => {
-        const courseCategory = course.ge || course.ge_category;
-        if (courseCategory === selectedGE) {
+        const courseGE = course.ge_category;
+        if (courseGE === selectedGE) {
           acc.selectedGECourses.push(course);
         } else {
           acc.otherCourses.push(course);
         }
         return acc;
       },
-      { selectedGECourses: [], otherCourses: [] } as {
-        selectedGECourses: Course[];
-        otherCourses: Course[];
-      }
+      { selectedGECourses: [] as Course[], otherCourses: [] as Course[] }
     );
   }, [searchResults, selectedGE]);
 
@@ -253,7 +240,6 @@ const GlobalSearch = ({
     setSearch(event.target.value);
     setIsSearching(true);
     setIsOpen(true);
-
     setTimeout(() => setIsSearching(false), 500);
   };
 
@@ -295,7 +281,6 @@ const GlobalSearch = ({
               {`${course.subject} ${course.catalog_num}`}
             </Typography>
             <StatusIcon status={course.class_status} />
-
             <Typography
               variant="caption"
               sx={{
@@ -343,11 +328,7 @@ const GlobalSearch = ({
                         }}
                       >
                         {isSearching ? (
-                          <CircularProgress
-                            size={20}
-                            thickness={2}
-                            color="inherit"
-                          />
+                          <CircularProgress size={20} thickness={2} color="inherit" />
                         ) : (
                           <SearchIcon color="action" />
                         )}
@@ -416,17 +397,15 @@ const GlobalSearch = ({
                 </NoResults>
               ) : (
                 <>
-                  {selectedGE && selectedGECourses.length > 0 && (
+                  {selectedGECourses.length > 0 && (
                     <>
                       <SearchMetrics color="textSecondary">
-                        Found {selectedGECourses.length} courses in {selectedGE}
+                        Found {selectedGECourses.length} course
+                        {selectedGECourses.length === 1 ? "" : "s"} in {selectedGE}
                       </SearchMetrics>
                       <List disablePadding>
                         {selectedGECourses.map((course: Course) => (
-                          <CourseListItem
-                            key={`${course.id}`}
-                            course={course}
-                          />
+                          <CourseListItem key={`${course.id}-${course.ge || course.ge_category}`} course={course} />
                         ))}
                       </List>
                     </>
@@ -435,15 +414,12 @@ const GlobalSearch = ({
                   {otherCourses.length > 0 && (
                     <>
                       <SearchMetrics color="textSecondary">
-                        Found {otherCourses.length} courses
-                        {selectedGE ? " in other categories" : ""}
+                        Found {otherCourses.length} course
+                        {`${otherCourses.length === 1 ? "" : "s"} ${selectedGE ? "in other categories" : ""}`}
                       </SearchMetrics>
                       <List disablePadding>
                         {otherCourses.map((course: Course) => (
-                          <CourseListItem
-                            key={`${course.id}`}
-                            course={course}
-                          />
+                          <CourseListItem key={`${course.id}-${course.ge || course.ge_category}`} course={course} />
                         ))}
                       </List>
                     </>
