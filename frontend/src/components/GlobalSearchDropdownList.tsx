@@ -316,7 +316,7 @@ const GlobalSearch = ({
               value={search}
               onChange={handleSearchChange}
               onFocus={() => setIsOpen(true)}
-              placeholder="Search for classes (e.g. AM 10, A Rudnick)"
+              placeholder="Search for classes"
               slotProps={{
                 input: {
                   startAdornment: (

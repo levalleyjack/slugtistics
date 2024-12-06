@@ -47,6 +47,7 @@ const DrawerHeader = styled("div")(({ theme }) => ({
 const SidebarContainer = styled("div")<{ isVisible: boolean }>(
   ({ theme, isVisible }) => ({
     width: isVisible ? 332 : 0,
+
     height: "100%",
     backgroundColor: COLORS.WHITE,
     borderRight: isVisible ? `1px solid ${COLORS.GRAY_100}` : "none",
@@ -150,7 +151,11 @@ const SearchSection = styled("div")(({ theme }) => ({
   flexDirection: "row",
   flex: 1,
   alignItems: "center",
-  marginRight: theme.spacing(2),
+  marginRight: theme.spacing(1),
+
+  [theme.breakpoints.down("sm")]: {
+    marginRight: theme.spacing(3),
+  },
 }));
 
 const ControlsContainer = styled("div")(({ theme }) => ({
@@ -165,13 +170,35 @@ const ControlsContainer = styled("div")(({ theme }) => ({
   },
 }));
 
+
 const ExpandButton = styled(Button)(({ theme }) => ({
   height: "36px",
   borderRadius: "8px",
-  backgroundColor: COLORS.GRAY_50,
+  padding: "6px 16px",
+  textTransform: "none",
+  backgroundColor: theme.palette.primary.main,
+  color: theme.palette.common.white,
+  fontWeight: "bold",
+  boxShadow: "0 2px 8px rgba(0, 0, 0, 0.15)",
+  background: `linear-gradient(135deg,
+    ${theme.palette.primary.dark} 0%,
+    ${theme.palette.primary.main} 100%)`,
+
+  transition: "all 0.2s ease-in-out",
+
   "&:hover": {
-    backgroundColor: COLORS.WHITE,
+    boxShadow: "0 6px 16px rgba(0, 0, 0, 0.2)",
+    background: `linear-gradient(135deg,
+      ${theme.palette.primary.light} 0%,
+      ${theme.palette.primary.main} 100%)`,
   },
+
+  "&:active": {
+    transform: "translateY(0)",
+    filter: "brightness(95%)",
+    boxShadow: "0 2px 8px rgba(0, 0, 0, 0.15)",
+  },
+
   [theme.breakpoints.down("sm")]: {
     flex: 1,
     minWidth: "120px",
@@ -225,7 +252,6 @@ const filterBySort = (
 
   return filteredCourses.sort((a, b) => {
     switch (sortBy) {
-
       case "DEFAULT":
         const getScore = (course: Course) => {
           //gpa to 5.0
@@ -272,25 +298,25 @@ const filterBySort = (
 const AllCourses = () => {
   const theme = useTheme();
   const [sortBy, setSortBy] = useState(() => {
-    const stored = localStorage.getItem("sortBy");
+    const stored = sessionStorage.getItem("sortBy");
     return stored !== null ? stored : "DEFAULT";
   });
   const [selectedClassTypes, setSelectedClassTypes] = useState<string[]>(() => {
-    const stored = localStorage.getItem("selectedClassTypes");
+    const stored = sessionStorage.getItem("selectedClassTypes");
     return stored ? JSON.parse(stored) : [];
   });
   const [selectedEnrollmentStatuses, setSelectedEnrollmentStatuses] = useState<
     string[]
   >(() => {
-    const stored = localStorage.getItem("selectedEnrollmentStatuses");
+    const stored = sessionStorage.getItem("selectedEnrollmentStatuses");
     return stored ? JSON.parse(stored) : [];
   });
   const [selectedGEs, setSelectedGEs] = useState<string[]>(() => {
-    const stored = localStorage.getItem("selectedGEs");
+    const stored = sessionStorage.getItem("selectedGEs");
     return stored ? JSON.parse(stored) : [];
   });
   const [selectedSubjects, setSelectedSubjects] = useState<string[]>(() => {
-    const stored = localStorage.getItem("selectedSubjects");
+    const stored = sessionStorage.getItem("selectedSubjects");
     return stored ? JSON.parse(stored) : [];
   });
   const [scrollToCourseId, setScrollToCourseId] = useState<
@@ -300,7 +326,7 @@ const AllCourses = () => {
     Map<string, boolean>
   >(new Map());
   const [isSidebarVisible, setIsSidebarVisible] = useState(() => {
-    const stored = localStorage.getItem("isSidebarVisible");
+    const stored = sessionStorage.getItem("isSidebarVisible");
     return stored !== null ? stored === "true" : true;
   });
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -325,7 +351,7 @@ const AllCourses = () => {
 
   const handleSortBy = useCallback((sortBy: string) => {
     setSortBy(() => {
-      localStorage.setItem("sortBy", sortBy);
+      sessionStorage.setItem("sortBy", sortBy);
       return sortBy;
     });
   }, []);
@@ -333,28 +359,28 @@ const AllCourses = () => {
   const handleSidebar = useCallback(() => {
     setIsSidebarVisible((prev) => {
       const newValue = !prev;
-      localStorage.setItem("isSidebarVisible", String(newValue));
+      sessionStorage.setItem("isSidebarVisible", String(newValue));
       return newValue;
     });
   }, []);
 
   const handleSelectedClassTypes = (newClassTypes: string[]) => {
     setSelectedClassTypes(newClassTypes);
-    localStorage.setItem("selectedClassTypes", JSON.stringify(newClassTypes));
+    sessionStorage.setItem("selectedClassTypes", JSON.stringify(newClassTypes));
   };
   const handleSelectedGEs = (newGEs: string[]) => {
     setSelectedGEs(newGEs);
-    localStorage.setItem("selectedGEs", JSON.stringify(newGEs));
+    sessionStorage.setItem("selectedGEs", JSON.stringify(newGEs));
   };
   const handleSelectedSubjects = (newSubjects: string[]) => {
     setSelectedSubjects(newSubjects);
-    localStorage.setItem("selectedSubjects", JSON.stringify(newSubjects));
+    sessionStorage.setItem("selectedSubjects", JSON.stringify(newSubjects));
   };
   const handleSelectedEnrollmentStatuses = (
     newEnrollmentStatuses: string[]
   ) => {
     setSelectedEnrollmentStatuses(newEnrollmentStatuses);
-    localStorage.setItem(
+    sessionStorage.setItem(
       "selectedEnrollmentStatuses",
       JSON.stringify(newEnrollmentStatuses)
     );
@@ -624,10 +650,10 @@ const AllCourses = () => {
             {isSmallScreen ? (
               <>
                 <ExpandButton
-                  variant="outlined"
+                  variant="contained"
                   color="primary"
                   onClick={handleExpandAll}
-                  startIcon={
+                  endIcon={
                     <StyledExpandIcon expanded={isAllExpanded.current} />
                   }
                   fullWidth
@@ -651,8 +677,8 @@ const AllCourses = () => {
               </>
             ) : (
               <>
-                <ExpandButton
-                  variant="outlined"
+               <ExpandButton
+                  variant="contained"
                   color="primary"
                   onClick={handleExpandAll}
                   endIcon={

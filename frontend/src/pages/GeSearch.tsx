@@ -123,35 +123,35 @@ const GeSearch = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [search, setSearch] = useState("");
   const [sortBy, setSortBy] = useState(() => {
-    const stored = localStorage.getItem("sortBy");
+    const stored = sessionStorage.getItem("sortBy");
     return stored !== null ? stored : "DEFAULT";
   });
   const [selectedGE, setSelectedGE] = useState(() => {
-    const stored = localStorage.getItem("selectedGE");
+    const stored = sessionStorage.getItem("selectedGE");
     return stored !== null ? stored : "AnyGE";
   });
 
   const [selectedClassTypes, setSelectedClassTypes] = useState<string[]>(() => {
-    const stored = localStorage.getItem("selectedClassTypes");
+    const stored = sessionStorage.getItem("selectedClassTypes");
     return stored ? JSON.parse(stored) : [];
   });
   const [selectedEnrollmentStatuses, setSelectedEnrollmentStatuses] = useState<
     string[]
   >(() => {
-    const stored = localStorage.getItem("selectedEnrollmentStatuses");
+    const stored = sessionStorage.getItem("selectedEnrollmentStatuses");
     return stored ? JSON.parse(stored) : [];
   });
   const [selectedGEs, setSelectedGEs] = useState<string[]>(() => {
-    const stored = localStorage.getItem("selectedGEs");
+    const stored = sessionStorage.getItem("selectedGEs");
     return stored ? JSON.parse(stored) : [];
   });
   const [selectedSubjects, setSelectedSubjects] = useState<string[]>(() => {
-    const stored = localStorage.getItem("selectedSubjects");
+    const stored = sessionStorage.getItem("selectedSubjects");
     return stored ? JSON.parse(stored) : [];
   });
   const [isCategoriesVisible, setIsCategoriesVisible] = useState<boolean>(
     () => {
-      const stored = localStorage.getItem("isCategoriesVisible");
+      const stored = sessionStorage.getItem("isCategoriesVisible");
       return stored !== null ? stored === "true" : true;
     }
   );
@@ -177,33 +177,33 @@ const GeSearch = () => {
 
   const handleGE = useCallback((category: string) => {
     setSelectedGE(() => {
-      localStorage.setItem("selectedGE", category);
+      sessionStorage.setItem("selectedGE", category);
       return category;
     });
   }, []);
   const handleSortBy = useCallback((sortBy: string) => {
     setSortBy(() => {
-      localStorage.setItem("sortBy", sortBy);
+      sessionStorage.setItem("sortBy", sortBy);
       return sortBy;
     });
   }, []);
   const handleSelectedClassTypes = (newClassTypes: string[]) => {
     setSelectedClassTypes(newClassTypes);
-    localStorage.setItem("selectedClassTypes", JSON.stringify(newClassTypes));
+    sessionStorage.setItem("selectedClassTypes", JSON.stringify(newClassTypes));
   };
   const handleSelectedGEs = (newGEs: string[]) => {
     setSelectedGEs(newGEs);
-    localStorage.setItem("selectedGEs", JSON.stringify(newGEs));
+    sessionStorage.setItem("selectedGEs", JSON.stringify(newGEs));
   };
   const handleSelectedSubjects = (newSubjects: string[]) => {
     setSelectedSubjects(newSubjects);
-    localStorage.setItem("selectedSubjects", JSON.stringify(newSubjects));
+    sessionStorage.setItem("selectedSubjects", JSON.stringify(newSubjects));
   };
   const handleSelectedEnrollmentStatuses = (
     newEnrollmentStatuses: string[]
   ) => {
     setSelectedEnrollmentStatuses(newEnrollmentStatuses);
-    localStorage.setItem(
+    sessionStorage.setItem(
       "selectedEnrollmentStatuses",
       JSON.stringify(newEnrollmentStatuses)
     );
@@ -218,7 +218,7 @@ const GeSearch = () => {
   const handleCategories = useCallback(() => {
     setIsCategoriesVisible((prev) => {
       const newValue = !prev;
-      localStorage.setItem("isCategoriesVisible", String(newValue));
+      sessionStorage.setItem("isCategoriesVisible", String(newValue));
       return newValue;
     });
   }, []);
@@ -359,10 +359,10 @@ const GeSearch = () => {
             {isSmallScreen ? (
               <>
                 <ExpandButton
-                  variant="outlined"
+                  variant="contained"
                   color="primary"
                   onClick={handleExpandAll}
-                  startIcon={
+                  endIcon={
                     <StyledExpandIcon expanded={isAllExpanded.current} />
                   }
                   fullWidth
@@ -387,7 +387,7 @@ const GeSearch = () => {
             ) : (
               <>
                 <ExpandButton
-                  variant="outlined"
+                  variant="contained"
                   color="primary"
                   onClick={handleExpandAll}
                   endIcon={
@@ -499,25 +499,27 @@ const MenuButton = styled(IconButton)(({ theme }) => ({
 
 const GeContainer = styled("div")<{ isVisible: boolean }>(
   ({ theme, isVisible }) => ({
-    width: isVisible ? "300px" : "0px",
-    marginRight: isVisible ? "40px" : "0px",
+    width: isVisible ? 300 : 0,
+    marginRight: isVisible? "32px" : 0,
     height: "100%",
     backgroundColor: COLORS.WHITE,
+    borderRight: isVisible ? `1px solid ${COLORS.GRAY_100}` : "none",
     display: "flex",
     flexDirection: "column",
-    flexShrink: 0,
-    borderRight: isVisible ? `1px solid ${COLORS.GRAY_100}` : "none",
-    transition: "width 0.3s ease-in-out, margin-right 0.3s ease-in-out",
+    transition: "all 0.3s ease-in-out",
     overflow: "hidden",
+    position: "relative",
+    opacity: isVisible ? 1 : 0,
     [theme.breakpoints.down("md")]: {
-      width: isVisible ? "280px" : "0px",
+      width: isVisible ? 280 : 0,
+      minWidth: isVisible ? 280 : 0,
     },
     [theme.breakpoints.down("sm")]: {
-      width: isVisible ? "240px" : "0px",
+      width: isVisible ? 240 : 0,
+      minWidth: isVisible ? 240 : 0,
     },
   })
 );
-
 const CategoryContainer = styled("div")(({ theme }) => ({
   height: "100%",
   backgroundColor: COLORS.WHITE,
@@ -564,7 +566,11 @@ const SearchSection = styled("div")(({ theme }) => ({
   flexDirection: "row",
   flex: 1,
   alignItems: "center",
-  marginRight: theme.spacing(2),
+  marginRight: theme.spacing(1),
+
+  [theme.breakpoints.down("sm")]: {
+    marginRight: theme.spacing(3),
+  },
 }));
 
 const ControlsContainer = styled("div")(({ theme }) => ({
@@ -582,10 +588,31 @@ const ControlsContainer = styled("div")(({ theme }) => ({
 const ExpandButton = styled(Button)(({ theme }) => ({
   height: "36px",
   borderRadius: "8px",
-  backgroundColor: COLORS.GRAY_50,
+  padding: "6px 16px",
+  textTransform: "none",
+  backgroundColor: theme.palette.primary.main,
+  color: theme.palette.common.white,
+  fontWeight: "bold",
+  boxShadow: "0 2px 8px rgba(0, 0, 0, 0.15)",
+  background: `linear-gradient(135deg,
+    ${theme.palette.primary.dark} 0%,
+    ${theme.palette.primary.main} 100%)`,
+
+  transition: "all 0.2s ease-in-out",
+
   "&:hover": {
-    backgroundColor: COLORS.WHITE,
+    boxShadow: "0 6px 16px rgba(0, 0, 0, 0.2)",
+    background: `linear-gradient(135deg,
+      ${theme.palette.primary.light} 0%,
+      ${theme.palette.primary.main} 100%)`,
   },
+
+  "&:active": {
+    transform: "translateY(0)",
+    filter: "brightness(95%)",
+    boxShadow: "0 2px 8px rgba(0, 0, 0, 0.15)",
+  },
+
   [theme.breakpoints.down("sm")]: {
     flex: 1,
     minWidth: "120px",
