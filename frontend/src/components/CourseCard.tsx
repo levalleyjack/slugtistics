@@ -23,10 +23,10 @@ import CancelIcon from "@mui/icons-material/Cancel";
 import EqualizerIcon from "@mui/icons-material/Equalizer";
 import Grid from "@mui/material/Grid";
 import ShoppingCartIcon from "@mui/icons-material/ShoppingCart";
+import LocationOnIcon from "@mui/icons-material/LocationOn";
 import {
   ContentCopy as ContentCopyIcon,
   CheckCircleOutline as CheckCircleOutlineIcon,
-  School as SchoolIcon,
   Person as PersonIcon,
   AccessTime as AccessTimeIcon,
   Groups as GroupsIcon,
@@ -483,7 +483,7 @@ export const CourseCard = forwardRef<HTMLDivElement, CourseCardProps>(
                   <ListItemIcon>
                     <EqualizerIcon fontSize="small" />
                   </ListItemIcon>
-                  <ListItemText>Open Course Distribution</ListItemText>
+                  <ListItemText>View Course Distribution</ListItemText>
                 </MenuItem>
 
                 <MenuItem
@@ -511,7 +511,7 @@ export const CourseCard = forwardRef<HTMLDivElement, CourseCardProps>(
                   <ListItemIcon>
                     <ShoppingCartIcon fontSize="small" />
                   </ListItemIcon>
-                  <ListItemText>Open Shopping Cart</ListItemText>
+                  <ListItemText>Add to UCSC Cart</ListItemText>
                 </MenuItem>
               </Menu>
 
@@ -530,15 +530,21 @@ export const CourseCard = forwardRef<HTMLDivElement, CourseCardProps>(
         </CardContent>
 
         <Collapse in={expanded} timeout="auto" unmountOnExit>
-          <CardContent sx={{ pt: 0, pb: "8px !important" }}>
+          <CardContent sx={{ pt: 0, pb: "0px !important" }}>
             <Paper
               variant="outlined"
-              sx={{ p: 1.5, mt: 1, borderRadius: "8px" }}
+              sx={{
+                p: 1.5,
+                mt: 1,
+                borderRadius: "8px",
+
+                background: COLORS.GRAY_50,
+              }}
             >
               <Grid container spacing={2}>
                 <Grid item xs={6}>
                   <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                    <SchoolIcon sx={{ fontSize: 18 }} />
+                    <LocationOnIcon sx={{ fontSize: 18 }} />
                     <Typography variant="body2">{course.location}</Typography>
                   </Box>
                 </Grid>
@@ -630,7 +636,6 @@ const CourseCodeChip = styled(BaseChip)(({ theme }) => ({
   background: `linear-gradient(135deg,
     ${theme.palette.primary.dark} 0%,
     ${theme.palette.primary.light} 100%)`,
-  border: `1px solid ${theme.palette.primary.dark}`,
   color: "white",
   fontSize: "0.875rem",
   letterSpacing: "0.03em",
@@ -651,7 +656,6 @@ const GECategoryChip = styled(BaseChip)(({ theme }) => ({
   background: `linear-gradient(135deg, 
     ${theme.palette.secondary.dark} 0%, 
     ${theme.palette.secondary.light} 100%)`,
-  border: `1px solid ${theme.palette.secondary.dark}`,
   fontWeight: "lighter",
   color: "white",
   letterSpacing: "0.5px",
@@ -730,18 +734,16 @@ const RatingChip = styled(BaseChip)(({ theme }) => ({
   height: "26px",
   color: "white",
 }));
-
 const ReviewCountChip = styled(BaseChip)(({ theme }) => ({
   height: "24px",
   fontWeight: "lighter",
-  background: `linear-gradient(135deg,
-    ${theme.palette.primary.light} 0%,
-    ${theme.palette.primary.main} 100%)`,
-  border: `1px solid ${theme.palette.primary.dark}`,
+  background: `linear-gradient(90deg,
+    ${theme.palette.primary.main} 0%,
+    ${theme.palette.secondary.light} 100%)`,
   color: "white",
   "&.MuiChip-clickable:hover": {
     background: `linear-gradient(135deg,
-      ${theme.palette.primary.light} 0%,
+      ${theme.palette.secondary.light} 0%,
       ${theme.palette.primary.light} 100%)`,
     color: "white",
   },

@@ -25,9 +25,13 @@ import { StyledExpandIcon } from "../Constants";
 import DeleteForeverIcon from "@mui/icons-material/DeleteForever";
 import SelectAllIcon from "@mui/icons-material/SelectAll";
 import SortByAlphaIcon from "@mui/icons-material/SortByAlpha";
-import TuneIcon from '@mui/icons-material/Tune';import StarIcon from "@mui/icons-material/Star";
+import TuneIcon from "@mui/icons-material/Tune";
+import StarIcon from "@mui/icons-material/Star";
 import EqualizerIcon from "@mui/icons-material/Equalizer";
-
+import LockIcon from "@mui/icons-material/Lock";
+import ComputerIcon from "@mui/icons-material/Computer";
+import SchoolIcon from "@mui/icons-material/School";
+import CategoryIcon from "@mui/icons-material/Category";
 const StyledFormControl = styled(FormControl)(({ theme }) => ({
   width: "100%",
   marginBottom: theme.spacing(2),
@@ -54,8 +58,8 @@ const StyledFilterButton = styled(Button)(({ theme }) => ({
     backgroundColor: alpha(theme.palette.primary.main, 0.04),
     borderColor: theme.palette.primary.main,
   },
-  "& .MuiButton-startIcon": {
-    marginRight: 8,
+  [theme.breakpoints.down("sm")]: {
+    marginRight: theme.spacing(3),
   },
 }));
 
@@ -206,7 +210,8 @@ const FilterDropdown: React.FC<FilterDropdownProps> = ({
     title: string,
     selectedItems: string[],
     onSelectedItems: (value: string[]) => void,
-    allItems: string[]
+    allItems: string[],
+    icon: React.ReactElement
   ) => (
     <Box
       sx={{
@@ -216,12 +221,15 @@ const FilterDropdown: React.FC<FilterDropdownProps> = ({
         mb: 1,
       }}
     >
-      <Typography
-        variant="subtitle2"
-        sx={{ fontWeight: 600, color: "text.primary" }}
-      >
-        {title}
-      </Typography>
+      <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+        {icon}
+        <Typography
+          variant="subtitle2"
+          sx={{ fontWeight: 600, color: "text.primary" }}
+        >
+          {title}
+        </Typography>
+      </Box>
 
       <Box sx={{ display: "flex" }}>
         <Tooltip title="Select All">
@@ -337,7 +345,8 @@ const FilterDropdown: React.FC<FilterDropdownProps> = ({
               "Enrollment Status",
               selectedEnrollmentStatuses,
               onEnrollmentStatusesChange,
-              enrollmentStatusOptions
+              enrollmentStatusOptions,
+              <LockIcon />
             )}
             <Select
               multiple
@@ -392,7 +401,8 @@ const FilterDropdown: React.FC<FilterDropdownProps> = ({
               "Class Type",
               selectedClassTypes,
               onClassTypesChange,
-              classTypeOptions
+              classTypeOptions,
+              <ComputerIcon />
             )}
             <Select
               multiple
@@ -445,7 +455,8 @@ const FilterDropdown: React.FC<FilterDropdownProps> = ({
               "Subjects",
               selectedSubjects,
               onSelectedSubjectsChange,
-              codes
+              codes,
+              <CategoryIcon />
             )}
             <Select
               multiple
@@ -497,7 +508,13 @@ const FilterDropdown: React.FC<FilterDropdownProps> = ({
 
           {GEs?.length > 1 && (
             <StyledFormControl>
-              {renderFilterHeader("GEs", selectedGEs, onSelectedGEs, GEs)}
+              {renderFilterHeader(
+                "GEs",
+                selectedGEs,
+                onSelectedGEs,
+                GEs,
+                <SchoolIcon />
+              )}
               <Select
                 multiple
                 size="small"
