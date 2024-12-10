@@ -37,6 +37,7 @@ import { COLORS, Course, Rating } from "../Constants";
 import { useQuery } from "@tanstack/react-query";
 import RatingCard from "./RatingCard";
 import { styled } from "@mui/material/styles";
+import { local } from "../pages/GetGEData";
 
 interface CourseCode {
   courseCount: number;
@@ -176,7 +177,7 @@ export const RatingsModal: React.FC<RatingsModalProps> = ({
     queryKey: ["reviews", professorName, filterBy],
     queryFn: async () => {
       const response = await fetch(
-        `http://127.0.0.1:5001/instructor_ratings?instructor=${encodeURIComponent(
+        `${local}/instructor_ratings?instructor=${encodeURIComponent(
           professorName
         )}&course=${encodeURIComponent(filterBy === "all" ? "" : filterBy)}`
       );
