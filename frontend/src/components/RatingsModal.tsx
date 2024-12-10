@@ -424,7 +424,7 @@ export const RatingsModal: React.FC<RatingsModalProps> = ({
             </Box>
             {rating.tags && (
               <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.75 }}>
-                {rating.tags.split("--").map((tag, tagIndex) => (
+                {rating.tags.split("--")?.map((tag, tagIndex) => (
                   <Chip
                     key={tagIndex}
                     label={tag}
@@ -759,7 +759,7 @@ export const RatingsModal: React.FC<RatingsModalProps> = ({
                       }}
                     >
                       <MenuItem value="all">All Courses</MenuItem>
-                      {courseCodes.map((course: CourseCode) => (
+                      {courseCodes?.map((course: CourseCode) => (
                         <MenuItem
                           key={course.courseName}
                           value={course.courseName}
@@ -795,7 +795,7 @@ export const RatingsModal: React.FC<RatingsModalProps> = ({
               </Paper>
             ) : (
               <>
-                {processedRatings.map((rating, index) =>
+                {processedRatings?.map((rating, index) =>
                   renderReviewCard(rating, index)
                 )}
                 {processedRatings.length > 10 && (
