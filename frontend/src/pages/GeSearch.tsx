@@ -7,6 +7,7 @@ import {
   styled,
   Drawer,
   Grid2,
+  Box,
 } from "@mui/material";
 import {
   AnimatedArrowIcon,
@@ -25,6 +26,7 @@ import FilterDropdown from "../components/FilterDropdown";
 import GlobalSearch from "../components/GlobalSearchDropdownList";
 import { DynamicCourseList } from "./VirtualizedCourseList";
 import { useQuery } from "@tanstack/react-query";
+import { LoadingCourseCard } from "../components/LoadingCourseCard";
 
 const filterCourses = (courses: Course[], search: string) => {
   if (!search) return courses;
@@ -416,9 +418,11 @@ const GeSearch = () => {
         </HeaderContainer>
 
         {isFetchLoading ? (
-          <CenterContent>
-            <CircularProgress color="inherit" disableShrink />
-          </CenterContent>
+            <Box sx={{ p: 2, display: "flex", flexDirection: "column", gap: 2 }}>
+            {[1, 2, 3,4,5].map((i) => (
+              <LoadingCourseCard key={i} />
+            ))}
+          </Box>
         ) : filteredCourses?.length === 0 ? (
           <CenterContent>
             <NoResults color="textSecondary">

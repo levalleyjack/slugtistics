@@ -120,7 +120,10 @@ interface AnimatedArrowIconProps {
 }
 
 export const categories = [
+  
   { id: "AnyGE", name: "All Courses", icon: <AppsIcon /> },
+  { id: "C", name: "Composition", icon: <BookIcon /> },
+
   { id: "CC", name: "Cross-Cultural Analysis", icon: <Diversity3Icon /> },
   { id: "ER", name: "Ethnicity and Race", icon: <Diversity2Icon /> },
   { id: "IM", name: "Interpreting Arts and Media", icon: <MenuBookIcon /> },
@@ -158,7 +161,6 @@ export const categories = [
     name: "Practice: Service Learning",
     icon: <VolunteerActivismIcon />,
   },
-  { id: "C", name: "Composition", icon: <BookIcon /> },
 ];
 
 export const StyledExpandIcon = styled(KeyboardArrowDownIcon)<{
@@ -208,3 +210,5 @@ export const getLetterGrade = (gpa: string) => {
   if (gpaNum >= 0.7) return "D-";
   return "F";
 };
+
+

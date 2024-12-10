@@ -16,6 +16,8 @@ import {
   useTheme,
   useMediaQuery,
   styled,
+  Fade,
+  Skeleton,
 } from "@mui/material";
 import { Close as CloseIcon } from "@mui/icons-material";
 import { Bar } from "react-chartjs-2";
@@ -23,7 +25,6 @@ import { useQuery } from "@tanstack/react-query";
 import "chart.js/auto";
 import { ChartOptions } from "chart.js";
 
-// Types
 interface CourseDistributionProps {
   courseCode: string;
   professorName?: string;
@@ -48,13 +49,15 @@ interface APIResponse {
   [key: string]: number;
 }
 
-const BORDER_RADIUS = "8px";
+const BORDER_RADIUS = "12px";
 
 const StyledModal = styled(Modal)(({ theme }) => ({
   display: "flex",
   alignItems: "center",
   justifyContent: "center",
   padding: theme.spacing(2),
+  backdropFilter: "blur(5px)",
+  backgroundColor: "rgba(0, 0, 0, 0.5)",
 }));
 
 const ModalContent = styled(Paper)(({ theme }) => ({
@@ -67,6 +70,7 @@ const ModalContent = styled(Paper)(({ theme }) => ({
   flexDirection: "column",
   backgroundColor: theme.palette.background.default,
   overflow: "hidden",
+  boxShadow: theme.shadows[24],
   [theme.breakpoints.down("sm")]: {
     maxHeight: "100vh",
     height: "100%",
@@ -90,14 +94,18 @@ const StatItem = styled(Box)({
 
 const FilterContainer = styled(Paper)(({ theme }) => ({
   borderRadius: BORDER_RADIUS,
-  padding: theme.spacing(1.5),
+  padding: theme.spacing(2),
   marginBottom: theme.spacing(2),
+  backgroundColor: theme.palette.background.paper,
+  boxShadow: theme.shadows[2],
 }));
 
 const ChartContainer = styled(Paper)(({ theme }) => ({
   borderRadius: BORDER_RADIUS,
   padding: theme.spacing(2),
   height: 450,
+  backgroundColor: theme.palette.background.paper,
+  boxShadow: theme.shadows[2],
   [theme.breakpoints.down("sm")]: {
     height: 350,
   },
@@ -109,11 +117,58 @@ const StyledFormControl = styled(FormControl)({
 
 const StyledButton = styled(Button)(({ theme }) => ({
   borderRadius: BORDER_RADIUS,
-  padding: theme.spacing(0.75, 1.5),
+  padding: theme.spacing(1, 2),
   height: "40px",
   minWidth: "auto",
   whiteSpace: "nowrap",
+  textTransform: "none",
+  fontWeight: "bold",
+  boxShadow: "0 2px 8px rgba(0, 0, 0, 0.15)",
+  background: `linear-gradient(135deg, ${theme.palette.primary.dark} 0%, ${theme.palette.primary.main} 100%)`,
+
+  "&:hover": {
+    boxShadow: "0 4px 12px rgba(0, 0, 0, 0.2)",
+    background: `linear-gradient(135deg, ${theme.palette.primary.light} 0%, ${theme.palette.primary.main} 100%)`,
+  },
 }));
+
+const LoadingSkeleton = () => {
+  return (
+    <Box>
+      <FilterContainer>
+        <Stack
+          direction={{ xs: "column", sm: "row" }}
+          spacing={2}
+          alignItems="center"
+        >
+          {[1, 2].map((i) => (
+            <Skeleton
+              key={i}
+              variant="rounded"
+              width={200}
+              height={40}
+              sx={{ borderRadius: BORDER_RADIUS }}
+            />
+          ))}
+          <Skeleton
+            variant="rounded"
+            width={120}
+            height={40}
+            sx={{ borderRadius: BORDER_RADIUS }}
+          />
+        </Stack>
+      </FilterContainer>
+      <ChartContainer>
+        <Skeleton
+          variant="rectangular"
+          width="100%"
+          height="100%"
+          sx={{ borderRadius: BORDER_RADIUS }}
+        />
+      </ChartContainer>
+    </Box>
+  );
+};
 
 const API_ROUTE = "https://api.slugtistics.com/api/";
 
@@ -180,11 +235,12 @@ export const CourseDistribution: React.FC<CourseDistributionProps> = ({
   const [term, setTerm] = useState<string>("All");
   const [showPercentage, setShowPercentage] = useState<boolean>(false);
 
-  const { data: instructors = [] } = useQuery({
+  const { data: instructors = [], isLoading: isInstructorsLoading } = useQuery({
     queryKey: ["instructors", courseCode],
     queryFn: () => fetchInstructors(courseCode),
     enabled: isOpen,
   });
+
   const initialInstructor = useMemo(() => {
     if (!instructors?.length) return professorName;
     return instructors.includes(professorName) ? professorName : "All";
@@ -198,7 +254,7 @@ export const CourseDistribution: React.FC<CourseDistributionProps> = ({
     enabled: isOpen,
   });
 
-  const { data: quarters = [] } = useQuery({
+  const { data: quarters = [], isLoading: isQuartersLoading } = useQuery({
     queryKey: ["quarters", courseCode],
     queryFn: () => fetchQuarters(courseCode),
     enabled: isOpen,
@@ -255,7 +311,7 @@ export const CourseDistribution: React.FC<CourseDistributionProps> = ({
       y: {
         beginAtZero: true,
         ticks: {
-          callback: function (value) {
+          callback: (value) => {
             if (typeof value === "number") {
               return showPercentage ? `${value}%` : value;
             }
@@ -271,133 +327,146 @@ export const CourseDistribution: React.FC<CourseDistributionProps> = ({
     },
   };
 
+  const isLoading =
+    isInstructorsLoading || isDistributionLoading || isQuartersLoading;
+
   return (
-    <StyledModal open={isOpen} onClose={onClose}>
-      <ModalContent>
-        <Box
-          sx={{
-            p: 2,
-            borderBottom: 1,
-            borderColor: "divider",
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-          }}
-        >
-          <Box>
-            <Typography variant="h5" fontWeight="bold">
-              {courseCode}
-            </Typography>
-            <Typography variant="body2" color="text.secondary">
-              {instructor === "All" ? "All Instructors" : instructor}
-            </Typography>
-          </Box>
-          <IconButton
-            onClick={onClose}
-            size="small"
-            sx={{ borderRadius: "8px" }}
+    <StyledModal open={isOpen} onClose={onClose} closeAfterTransition={false}>
+      <Fade in={isOpen} timeout={{ enter: 300, exit: 0 }}>
+        <ModalContent>
+          <Box
+            sx={{
+              p: 2,
+              borderBottom: 1,
+              borderColor: "divider",
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+            }}
           >
-            <CloseIcon />
-          </IconButton>
-        </Box>
-
-        <StatsBar>
-          <StatItem>
-            <Typography variant="h6" fontWeight="bold">
-              {totalStudents}
-            </Typography>
-            <Typography variant="body2" color="text.secondary">
-              students
-            </Typography>
-          </StatItem>
-          <StatItem>
-            <Typography variant="h6" fontWeight="bold">
-              {distribution ? calculateGPA(distribution) : "N/A"}
-            </Typography>
-            <Typography variant="body2" color="text.secondary">
-              GPA
-            </Typography>
-          </StatItem>
-          <StatItem>
-            <Typography variant="h6" fontWeight="bold">
-              {instructors.length}
-            </Typography>
-            <Typography variant="body2" color="text.secondary">
-              instructors
-            </Typography>
-          </StatItem>
-        </StatsBar>
-
-        <Box sx={{ p: 2, flexGrow: 1, overflow: "auto" }}>
-          <FilterContainer elevation={1}>
-            <Stack
-              direction={{ xs: "column", sm: "row" }}
-              spacing={2}
-              alignItems="center"
+            <Box>
+              <Typography variant="h5" fontWeight="bold">
+                {courseCode}
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                {instructor === "All" ? "All Instructors" : instructor}
+              </Typography>
+            </Box>
+            <IconButton
+              onClick={onClose}
+              size="small"
+              sx={{
+                borderRadius: "8px",
+                "&:hover": {
+                  backgroundColor: theme.palette.action.hover,
+                },
+              }}
             >
-              <StyledFormControl size="small">
-                <InputLabel>Instructor</InputLabel>
-                <Select
-                  value={instructor}
-                  label="Instructor"
-                  onChange={(e: SelectChangeEvent<string>) =>
-                    setInstructor(e.target.value)
-                  }
-                >
-                  <MenuItem value="All">All Instructors</MenuItem>
-                  {instructors.map((inst) => (
-                    <MenuItem key={inst} value={inst}>
-                      {inst}
-                    </MenuItem>
-                  ))}
-                </Select>
-              </StyledFormControl>
+              <CloseIcon />
+            </IconButton>
+          </Box>
 
-              <StyledFormControl size="small">
-                <InputLabel>Term</InputLabel>
-                <Select
-                  value={term}
-                  label="Term"
-                  onChange={(e: SelectChangeEvent<string>) =>
-                    setTerm(e.target.value)
-                  }
-                >
-                  <MenuItem value="All">All Terms</MenuItem>
-                  {quarters.map((quarter) => (
-                    <MenuItem key={quarter} value={quarter}>
-                      {quarter}
-                    </MenuItem>
-                  ))}
-                </Select>
-              </StyledFormControl>
+          <Fade in={!isLoading} timeout={300}>
+            <StatsBar>
+              <StatItem>
+                <Typography variant="h6" fontWeight="bold">
+                  {isLoading ? <Skeleton width={40} /> : totalStudents}
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  students
+                </Typography>
+              </StatItem>
+              <StatItem>
+                <Typography variant="h6" fontWeight="bold">
+                  {isLoading ? (
+                    <Skeleton width={40} />
+                  ) : distribution ? (
+                    calculateGPA(distribution)
+                  ) : (
+                    "N/A"
+                  )}
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  GPA
+                </Typography>
+              </StatItem>
+              <StatItem>
+                <Typography variant="h6" fontWeight="bold">
+                  {isLoading ? <Skeleton width={40} /> : instructors.length}
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  instructors
+                </Typography>
+              </StatItem>
+            </StatsBar>
+          </Fade>
 
-              <StyledButton
-                variant="contained"
-                onClick={() => setShowPercentage((prev) => !prev)}
-              >
-                Show {showPercentage ? "Count" : "Percentage"}
-              </StyledButton>
-            </Stack>
-          </FilterContainer>
-
-          <ChartContainer elevation={1}>
-            {isDistributionLoading ? (
-              <Box
-                sx={{
-                  height: "100%",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                }}
-              >
-                <CircularProgress />
-              </Box>
+          <Box sx={{ p: 2, flexGrow: 1, overflow: "auto" }}>
+            {isLoading ? (
+              <LoadingSkeleton />
             ) : (
-              <Bar data={chartData} options={chartOptions} />
+              <Fade in={!isLoading} timeout={300}>
+                <Box>
+                  <FilterContainer>
+                    <Stack
+                      direction={{ xs: "column", sm: "row" }}
+                      spacing={2}
+                      alignItems="center"
+                    >
+                      <StyledFormControl size="small">
+                        <InputLabel>Instructor</InputLabel>
+                        <Select
+                          value={instructor}
+                          label="Instructor"
+                          onChange={(e: SelectChangeEvent<string>) =>
+                            setInstructor(e.target.value)
+                          }
+                        >
+                          <MenuItem value="All">All Instructors</MenuItem>
+                          {instructors.map((inst) => (
+                            <MenuItem key={inst} value={inst}>
+                              {inst}
+                            </MenuItem>
+                          ))}
+                        </Select>
+                      </StyledFormControl>
+
+                      <StyledFormControl size="small">
+                        <InputLabel>Term</InputLabel>
+                        <Select
+                          value={term}
+                          label="Term"
+                          onChange={(e: SelectChangeEvent<string>) =>
+                            setTerm(e.target.value)
+                          }
+                        >
+                          <MenuItem value="All">All Terms</MenuItem>
+                          {quarters.map((quarter) => (
+                            <MenuItem key={quarter} value={quarter}>
+                              {quarter}
+                            </MenuItem>
+                          ))}
+                        </Select>
+                      </StyledFormControl>
+
+                      <StyledButton
+                        variant="contained"
+                        onClick={() => setShowPercentage((prev) => !prev)}
+                      >
+                        Show {showPercentage ? "Count" : "Percentage"}
+                      </StyledButton>
+                    </Stack>
+                  </FilterContainer>
+
+                  <ChartContainer>
+                    <Bar data={chartData} options={chartOptions} />
+                  </ChartContainer>
+                </Box>
+              </Fade>
             )}
-          </ChartContainer>
-        </Box>
-      </ModalContent>
+          </Box>
+        </ModalContent>
+      </Fade>
     </StyledModal>
   );
 };

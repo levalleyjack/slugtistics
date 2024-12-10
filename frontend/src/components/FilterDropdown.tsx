@@ -20,6 +20,7 @@ import {
   ToggleButtonGroup,
   ToggleButton,
 } from "@mui/material";
+import CheckIcon from "@mui/icons-material/Check";
 import FilterAltIcon from "@mui/icons-material/FilterAlt";
 import { StyledExpandIcon } from "../Constants";
 import DeleteForeverIcon from "@mui/icons-material/DeleteForever";
@@ -110,10 +111,11 @@ const StyledToggleButtonGroup = styled(ToggleButtonGroup)(({ theme }) => ({
 const MenuProps: SelectProps["MenuProps"] = {
   PaperProps: {
     style: {
-      borderRadius: "8px",
-      maxHeight: 250,
+      borderRadius: "12px",
+      maxHeight: 300,
+      boxShadow: "0px 5px 15px rgba(0,0,0,0.08)",
     },
-    elevation: 2,
+    elevation: 3,
   },
   anchorOrigin: {
     vertical: "bottom",
@@ -123,8 +125,36 @@ const MenuProps: SelectProps["MenuProps"] = {
     vertical: "top",
     horizontal: "left",
   },
+  variant: "menu",
 };
-
+const StyledMenuItem = styled(MenuItem)(({ theme }) => ({
+  margin: "4px 8px",
+  borderRadius: "8px",
+  padding: "8px 12px",
+  minHeight: "36px",
+  "&:hover": {
+    backgroundColor: alpha(theme.palette.primary.main, 0.08),
+  },
+  "&.Mui-selected": {
+    backgroundColor: alpha(theme.palette.primary.main, 0.12),
+    "&:hover": {
+      backgroundColor: alpha(theme.palette.primary.main, 0.16),
+    },
+  },
+  display: "flex",
+  justifyContent: "space-between",
+  alignItems: "center",
+  gap: "8px",
+}));
+const StyledCheckbox = styled(Checkbox)(({ theme }) => ({
+  padding: "4px",
+  "& .MuiSvgIcon-root": {
+    fontSize: 20,
+  },
+  "&.Mui-checked": {
+    color: theme.palette.primary.main,
+  },
+}));
 const classTypeOptions = [
   "In Person",
   "Hybrid",
@@ -165,7 +195,8 @@ const FilterDropdown: React.FC<FilterDropdownProps> = ({
   onSelectedGEs,
 }) => {
   const [anchorEl, setAnchorEl] = useState<HTMLButtonElement | null>(null);
-
+  const [scrollPosition, setScrollPosition] = useState(0);
+  const menuRef = React.useRef<HTMLUListElement>(null);
   const handleClick = (event: React.MouseEvent<HTMLButtonElement>) => {
     setAnchorEl(event.currentTarget);
   };
@@ -385,13 +416,18 @@ const FilterDropdown: React.FC<FilterDropdownProps> = ({
               MenuProps={MenuProps}
             >
               {enrollmentStatusOptions.map((option) => (
-                <MenuItem key={option} value={option}>
-                  <Checkbox
-                    checked={selectedEnrollmentStatuses.indexOf(option) > -1}
-                    sx={{ padding: 0.5 }}
-                  />
+                <StyledMenuItem key={option} value={option}>
                   <ListItemText primary={option} sx={{ ml: 1 }} />
-                </MenuItem>
+                  {selectedEnrollmentStatuses.includes(option) && (
+                    <CheckIcon
+                      sx={{
+                        fontSize: 18,
+                        color: "primary.main",
+                        marginLeft: "auto",
+                      }}
+                    />
+                  )}
+                </StyledMenuItem>
               ))}
             </Select>
           </StyledFormControl>
@@ -439,13 +475,18 @@ const FilterDropdown: React.FC<FilterDropdownProps> = ({
               MenuProps={MenuProps}
             >
               {classTypeOptions.map((option) => (
-                <MenuItem key={option} value={option}>
-                  <Checkbox
-                    checked={selectedClassTypes.indexOf(option) > -1}
-                    sx={{ padding: 0.5 }}
-                  />
+                <StyledMenuItem key={option} value={option}>
                   <ListItemText primary={option} sx={{ ml: 1 }} />
-                </MenuItem>
+                  {selectedClassTypes.includes(option) && (
+                    <CheckIcon
+                      sx={{
+                        fontSize: 18,
+                        color: "primary.main",
+                        marginLeft: "auto",
+                      }}
+                    />
+                  )}
+                </StyledMenuItem>
               ))}
             </Select>
           </StyledFormControl>
@@ -495,13 +536,18 @@ const FilterDropdown: React.FC<FilterDropdownProps> = ({
               MenuProps={MenuProps}
             >
               {codes?.map((option) => (
-                <MenuItem key={option} value={option}>
-                  <Checkbox
-                    checked={selectedSubjects?.indexOf(option) > -1}
-                    sx={{ padding: 0.5 }}
-                  />
+                <StyledMenuItem key={option} value={option}>
                   <ListItemText primary={option} sx={{ ml: 1 }} />
-                </MenuItem>
+                  {selectedSubjects.includes(option) && (
+                    <CheckIcon
+                      sx={{
+                        fontSize: 18,
+                        color: "primary.main",
+                        marginLeft: "auto",
+                      }}
+                    />
+                  )}
+                </StyledMenuItem>
               ))}
             </Select>
           </StyledFormControl>
@@ -550,13 +596,18 @@ const FilterDropdown: React.FC<FilterDropdownProps> = ({
                 MenuProps={MenuProps}
               >
                 {GEs?.map((option) => (
-                  <MenuItem key={option} value={option}>
-                    <Checkbox
-                      checked={selectedGEs?.indexOf(option) > -1}
-                      sx={{ padding: 0.5 }}
-                    />
+                  <StyledMenuItem key={option} value={option}>
                     <ListItemText primary={option} sx={{ ml: 1 }} />
-                  </MenuItem>
+                    {selectedGEs.includes(option) && (
+                      <CheckIcon
+                        sx={{
+                          fontSize: 18,
+                          color: "primary.main",
+                          marginLeft: "auto",
+                        }}
+                      />
+                    )}
+                  </StyledMenuItem>
                 ))}
               </Select>
             </StyledFormControl>

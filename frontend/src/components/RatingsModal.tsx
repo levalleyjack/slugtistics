@@ -18,69 +18,80 @@ import {
   Grid,
   useTheme,
   useMediaQuery,
+  Skeleton,
+  Fade,
+  CircularProgress,
+  Rating as MuiRating,
 } from "@mui/material";
-import OutlinedFlagIcon from "@mui/icons-material/OutlinedFlag";
-import { styled } from "@mui/material/styles";
-import he from "he";
 import {
-  ThumbUp as ThumbUpIcon,
-  Visibility as GlassesIcon,
-  Psychology as BrainIcon,
-  School as SchoolIcon,
-  Search as SearchIcon,
-  Close as CloseIcon,
-  LocalOffer as TagIcon,
+  ThumbUpOutlined,
+  ThumbDownOutlined,
+  School,
+  Search,
+  Close,
+  LocalOffer,
+  OutlinedFlag,
 } from "@mui/icons-material";
-import { Rating } from "../Constants";
+import he from "he";
+import { COLORS, Course, Rating } from "../Constants";
+import { useQuery } from "@tanstack/react-query";
+import RatingCard from "./RatingCard";
+import { styled } from "@mui/material/styles";
+import { local } from "../pages/GetGEData";
 
-//Type Definitions
+interface CourseCode {
+  courseCount: number;
+  courseName: string;
+}
+
 interface RatingsModalProps {
   isOpen: boolean;
   onClose: (e: React.MouseEvent) => void;
   professorName: string;
-  ratings?: Rating[];
+  original_ratings?: Rating[];
   currentClass: string;
 }
 
-type SortOptions =
-  | "date"
-  | "helpful_rating"
-  | "clarity_rating"
-  | "difficulty_rating";
+type SortOptions = "date" | "rating" | "difficulty_rating" | "likes";
 
-//Styled Components
-const StyledModal = styled(Modal)(({ theme }) => ({
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "center",
-  padding: theme.spacing(2),
-}));
+const StyledModal = styled(Modal)({
+  backdropFilter: "blur(5px)",
+  backgroundColor: "rgba(0, 0, 0, 0.5)",
+});
 
 const ModalContent = styled(Paper)(({ theme }) => ({
   borderRadius: "8px",
   position: "relative",
   width: "100%",
-  maxWidth: "64rem",
-  maxHeight: "90vh",
+  maxWidth: "56rem",
+  maxHeight: "90dvh",
   display: "flex",
   flexDirection: "column",
   backgroundColor: theme.palette.background.default,
+  boxShadow: theme.shadows[24],
   [theme.breakpoints.down("sm")]: {
-    maxHeight: "100vh",
+    maxHeight: "100dvh",
     height: "100%",
     borderRadius: "8px",
+    margin: theme.spacing(0.5),
   },
 }));
 
 const StatCard = styled(Card)(({ theme }) => ({
   borderRadius: "8px",
   height: "100%",
+  transition: "transform 0.2s ease-in-out",
+  "&:hover": {
+    transform: "translateY(-2px)",
+  },
   "& .MuiCardContent-root": {
     height: "100%",
     display: "flex",
     flexDirection: "column",
     justifyContent: "center",
-    padding: theme.spacing(2),
+    alignItems: "center",
+    padding: theme.spacing(1.5),
+    textAlign: "center",
     [theme.breakpoints.down("sm")]: {
       padding: theme.spacing(1),
     },
@@ -90,443 +101,588 @@ const StatCard = styled(Card)(({ theme }) => ({
 const ResponsiveStack = styled(Stack)(({ theme }) => ({
   [theme.breakpoints.down("sm")]: {
     flexDirection: "column",
-    "& > *": {
-      marginBottom: theme.spacing(2),
-      marginRight: 0,
-    },
+    gap: theme.spacing(1),
   },
 }));
 
-const isUnique = (
-  element: React.ReactElement,
-  index: number,
-  array: React.ReactElement[]
-): boolean => {
-  const firstIndex = array.findIndex(
-    (item) => item.props.value === element.props.value
+const LoadingSkeleton = () => (
+  <Stack spacing={1}>
+    {[1, 2, 3].map((i) => (
+      <Paper key={i} sx={{ p: 2, borderRadius: "8px" }}>
+        <Stack spacing={1}>
+          <Skeleton variant="rectangular" height={20} width="30%" />
+          <Skeleton variant="rectangular" height={40} />
+          <Skeleton variant="rectangular" height={24} width="40%" />
+        </Stack>
+      </Paper>
+    ))}
+  </Stack>
+);
+
+const calculateStats = (ratings: Rating[]) => {
+  if (!ratings?.length)
+    return { overall: "0", difficulty: "0", wouldTakeAgain: "0" };
+
+  const validOverall = ratings.filter((r) => r.overall_rating !== undefined);
+  const validDifficulty = ratings.filter(
+    (r) => r.difficulty_rating !== undefined
   );
-  return index === firstIndex;
+  const validTakeAgain = ratings.filter(
+    (r) => r.would_take_again !== undefined
+  );
+
+  return {
+    overall: validOverall.length
+      ? (
+          validOverall.reduce((acc, r) => acc + (r.overall_rating ?? 0), 0) /
+          validOverall.length
+        ).toFixed(1)
+      : "0",
+    difficulty: validDifficulty.length
+      ? (
+          validDifficulty.reduce(
+            (acc, r) => acc + (r.difficulty_rating ?? 0),
+            0
+          ) / validDifficulty.length
+        ).toFixed(1)
+      : "0",
+    wouldTakeAgain: validTakeAgain.length
+      ? (
+          (validTakeAgain.filter((r) => r.would_take_again).length /
+            validTakeAgain.length) *
+          100
+        ).toFixed(1)
+      : "0",
+  };
 };
 
 export const RatingsModal: React.FC<RatingsModalProps> = ({
   isOpen,
   onClose,
   professorName,
-  ratings = [],
   currentClass,
 }) => {
   const theme = useTheme();
   const isSmallScreen = useMediaQuery(theme.breakpoints.down("sm"));
   const [sortBy, setSortBy] = useState<SortOptions>("date");
-  const [filterBy, setFilterBy] = useState<string>(() => {
-    if (!ratings || currentClass === "all") return "all";
-    return ratings.some((rating) => rating.class_name === currentClass)
-      ? currentClass
-      : "all";
-  });
+  const [filterBy, setFilterBy] = useState<string>(
+    !currentClass || currentClass === "all" ? "all" : currentClass
+  );
   const [searchTerm, setSearchTerm] = useState<string>("");
 
+  const {
+    data: ratingDetails = { all_ratings: [], course_codes: [] },
+    isLoading,
+  } = useQuery({
+    queryKey: ["reviews", professorName, filterBy],
+    queryFn: async () => {
+      const response = await fetch(
+        `${local}/instructor_ratings?instructor=${encodeURIComponent(
+          professorName
+        )}&course=${encodeURIComponent(filterBy === "all" ? "" : filterBy)}`
+      );
+      if (!response.ok) throw new Error("Network response was not ok");
+      const data = await response.json();
+
+      if (
+        filterBy === currentClass &&
+        !data.course_codes.some(
+          (course: CourseCode) => course.courseName === currentClass
+        )
+      ) {
+        setFilterBy("all");
+      }
+      return data || { all_ratings: [], course_codes: [] };
+    },
+    enabled: isOpen,
+    staleTime: 5 * 60 * 1000,
+    gcTime: 30 * 60 * 1000,
+    refetchOnWindowFocus: false,
+  });
+
+  const { all_ratings: ratings = [], course_codes: courseCodes = [] } =
+    ratingDetails as {
+      all_ratings: Rating[];
+      course_codes: CourseCode[];
+    };
+  const stats = calculateStats(ratings);
+
   const getRatingColor = (score: number): string => {
-    if (score >= 4) return "success.main";
-    if (score >= 3) return "warning.main";
-    return "error.main";
+    if (score >= 4) return theme.palette.success.main;
+    if (score >= 3) return theme.palette.warning.main;
+    return theme.palette.error.main;
   };
 
   const processedRatings = useMemo(() => {
-    const filtered = ratings?.filter((rating) => {
-      const matchesClass =
-        filterBy === "all" ? true : rating.class_name === filterBy;
-      const matchesSearch =
-        rating.comment.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        rating.class_name.toLowerCase().includes(searchTerm.toLowerCase());
-      return matchesClass && matchesSearch;
-    });
-
-    return filtered?.sort((a, b) => {
-      switch (sortBy) {
-        case "helpful_rating":
-          return b.helpful_rating - a.helpful_rating;
-        case "clarity_rating":
-          return b.clarity_rating - a.clarity_rating;
-        case "difficulty_rating":
-          return b.difficulty_rating - a.difficulty_rating;
-        case "date":
-        default:
-          return new Date(b.date).getTime() - new Date(a.date).getTime();
-      }
-    });
-  }, [ratings, filterBy, searchTerm, sortBy]);
-
-  const handleSortChange = (event: SelectChangeEvent<SortOptions>) => {
-    setSortBy(event.target.value as SortOptions);
-  };
-
-  const handleFilterChange = (event: SelectChangeEvent<string>) => {
-    setFilterBy(event.target.value);
-  };
-
-  const calculateAverage = (
-    ratings: Rating[],
-    key: keyof Pick<
-      Rating,
-      "clarity_rating" | "helpful_rating" | "difficulty_rating"
-    >
-  ): string => {
-    return ratings.length > 0
-      ? (ratings.reduce((acc, r) => acc + r[key], 0) / ratings.length).toFixed(
-          1
+    return (
+      ratings
+        ?.filter(
+          (rating) =>
+            rating.comment?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            rating.class_name?.toLowerCase().includes(searchTerm.toLowerCase())
         )
-      : "0";
-  };
+        ?.sort((a, b) => {
+          switch (sortBy) {
+            case "rating":
+              return (b.overall_rating ?? 0) - (a.overall_rating ?? 0);
+            case "difficulty_rating":
+              return (b.difficulty_rating ?? 0) - (a.difficulty_rating ?? 0);
+            case "likes":
+              return (b.thumbs_up ?? 0) - (a.thumbs_up ?? 0);
+            default:
+              return (
+                new Date(b.date ?? 0).getTime() -
+                new Date(a.date ?? 0).getTime()
+              );
+          }
+        }) ?? []
+    );
+  }, [ratings, searchTerm, sortBy]);
 
-  return (
-    <StyledModal open={isOpen} onClose={onClose}>
-      <ModalContent>
-        <Box
-          sx={{
-            p: isSmallScreen ? 1 : 2,
-            borderBottom: 1,
-            borderColor: "divider",
-          }}
-        >
-          <Box
-            sx={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-            }}
-          >
-            <Box>
-              <Typography
-                variant={isSmallScreen ? "h6" : "h5"}
-                component="h2"
-                fontWeight="bold"
-              >
-                {professorName}'s Ratings
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                Recent {ratings.length} reviews
-              </Typography>
-            </Box>
-            <IconButton
-              onClick={onClose}
-              size={isSmallScreen ? "medium" : "large"}
-              sx={{ borderRadius: "8px" }}
+  const renderReviewCard = (rating: Rating, index: number) => (
+    <Fade in={true} key={index} timeout={300}>
+      <Paper sx={{ p: 2, borderRadius: "8px" }} elevation={2}>
+        <Grid container spacing={1.5}>
+          <Grid item xs={12}>
+            <Box
+              sx={{ display: "flex", justifyContent: "center", width: "100%" }}
             >
-              <CloseIcon />
-            </IconButton>
-          </Box>
-        </Box>
-
-        <Box sx={{ flexGrow: 1, overflow: "auto", p: isSmallScreen ? 1 : 2 }}>
-          <Grid container spacing={isSmallScreen ? 1 : 2}>
-            <Grid item xs={6} md={3}>
-              <StatCard elevation={2}>
-                <CardContent>
-                  <Typography
-                    variant={isSmallScreen ? "h5" : "h4"}
-                    color="success.main"
-                    fontWeight="bold"
-                  >
-                    {calculateAverage(ratings, "clarity_rating")}
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary">
-                    Avg. Clarity
-                  </Typography>
-                </CardContent>
-              </StatCard>
-            </Grid>
-            <Grid item xs={6} md={3}>
-              <StatCard elevation={2}>
-                <CardContent>
-                  <Typography
-                    variant={isSmallScreen ? "h5" : "h4"}
-                    color="primary.main"
-                    fontWeight="bold"
-                  >
-                    {calculateAverage(ratings, "helpful_rating")}
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary">
-                    Avg. Helpfulness
-                  </Typography>
-                </CardContent>
-              </StatCard>
-            </Grid>
-            <Grid item xs={6} md={3}>
-              <StatCard elevation={2}>
-                <CardContent>
-                  <Typography
-                    variant={isSmallScreen ? "h5" : "h4"}
-                    color="warning.main"
-                    fontWeight="bold"
-                  >
-                    {calculateAverage(ratings, "difficulty_rating")}
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary">
-                    Avg. Difficulty
-                  </Typography>
-                </CardContent>
-              </StatCard>
-            </Grid>
-            <Grid item xs={6} md={3}>
-              <StatCard elevation={2}>
-                <CardContent>
-                  <Typography
-                    variant={isSmallScreen ? "h5" : "h4"}
-                    color="secondary.main"
-                    fontWeight="bold"
-                  >
-                    {ratings.length}
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary">
-                    Total Reviews
-                  </Typography>
-                </CardContent>
-              </StatCard>
-            </Grid>
+              <RatingCard
+                overallRating={rating.overall_rating ?? 0}
+                difficultyRating={rating.difficulty_rating ?? 0}
+                getRatingColor={getRatingColor}
+              />
+            </Box>
           </Grid>
-
-          <Paper
-            sx={{
-              p: isSmallScreen ? 1 : 2,
-              mb: isSmallScreen ? 2 : 3,
-              borderRadius: "8px",
-            }}
-          >
-            <Grid container spacing={isSmallScreen ? 1 : 2}>
-              <Grid item xs={12} md={6}>
-                <TextField
-                  fullWidth
-                  placeholder={"Search reviews..."}
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  slotProps={{
-                    input: {
-                      sx: {
-                        "&::placeholder": {
-                          ...theme.typography.body1,
-                        },
-                      },
-                      startAdornment: (
-                        <SearchIcon sx={{ mr: 1, color: "text.secondary" }} />
-                      ),
-                      style: { borderRadius: "8px" },
-                    },
+          <Grid item xs={12}>
+            <Typography variant="body2" sx={{ mb: 1.5 }}>
+              {he.decode(rating.comment ?? "")}
+            </Typography>
+          </Grid>
+          <Grid item xs={12}>
+            <Box
+              sx={{
+                display: "flex",
+                flexWrap: "wrap",
+                gap: 0.75,
+                mb: 1.5,
+                justifyContent: "space-between",
+                alignItems: "center",
+              }}
+            >
+              <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.75 }}>
+                {rating.is_online && (
+                  <Chip
+                    label="Online"
+                    color="primary"
+                    variant="outlined"
+                    size="small"
+                    sx={{ borderRadius: "4px", height: "20px" }}
+                  />
+                )}
+                {rating.attendance_mandatory === "mandatory" && (
+                  <Chip
+                    label="Attendance Required"
+                    color="secondary"
+                    variant="outlined"
+                    size="small"
+                    sx={{ borderRadius: "4px", height: "20px" }}
+                  />
+                )}
+                {(rating.textbook_use ?? 0) > 0 && (
+                  <Chip
+                    label="Textbooks Used"
+                    color="success"
+                    variant="outlined"
+                    size="small"
+                    sx={{ borderRadius: "4px", height: "20px" }}
+                  />
+                )}
+                {rating.would_take_again && (
+                  <Chip
+                    label="Would Take Again"
+                    color="info"
+                    size="small"
+                    variant="outlined"
+                    sx={{ borderRadius: "4px", height: "20px" }}
+                  />
+                )}
+              </Box>
+            </Box>
+            {rating.tags && (
+              <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.75 }}>
+                {rating.tags.split("--").map((tag, tagIndex) => (
+                  <Chip
+                    key={tagIndex}
+                    label={tag}
+                    size="small"
+                    icon={<LocalOffer sx={{ fontSize: "0.875rem" }} />}
+                    variant="filled"
+                    sx={{
+                      borderRadius: "4px",
+                      height: "20px",
+                      bgcolor: `${theme.palette.primary.main}15`,
+                      color: "primary.main",
+                      "& .MuiChip-icon": { color: "primary.main" },
+                    }}
+                  />
+                ))}
+              </Box>
+            )}
+          </Grid>
+          <Grid item xs={12}>
+            <Box
+              sx={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                flexWrap: isSmallScreen ? "wrap" : "nowrap",
+                gap: 0.75,
+                pt: 1.5,
+                borderTop: 1,
+                borderColor: "divider",
+              }}
+            >
+              <Stack
+                direction={isSmallScreen ? "column" : "row"}
+                spacing={isSmallScreen ? 0.25 : 1.5}
+                alignItems={isSmallScreen ? "flex-start" : "center"}
+              >
+                <Stack direction="row" spacing={0.5} alignItems="center">
+                  <School
+                    sx={{ fontSize: "0.875rem", color: "text.secondary" }}
+                  />
+                  <Typography variant="caption" color="text.secondary">
+                    {rating.class_name}
+                  </Typography>
+                </Stack>
+                <Typography variant="caption" color="text.secondary">
+                  {new Date(rating.date ?? new Date()).toLocaleDateString(
+                    undefined,
+                    { year: "numeric", month: "short", day: "numeric" }
+                  )}
+                </Typography>
+              </Stack>
+              {rating.flag_status && rating.flag_status !== "UNFLAGGED" && (
+                <Chip
+                  icon={<OutlinedFlag sx={{ fontSize: "0.875rem" }} />}
+                  color="error"
+                  size="small"
+                  label="Flagged"
+                  sx={{
+                    ml: "auto",
+                    borderRadius: "4px",
+                    height: "20px",
+                    "& .MuiChip-icon": { color: "inherit" },
                   }}
                 />
-              </Grid>
-              <Grid item xs={12} md={6}>
-                <ResponsiveStack
-                  direction={isSmallScreen ? "column" : "row"}
-                  spacing={2}
+              )}
+              <Stack direction="row" spacing={1.5} sx={{ ml: "auto" }}>
+                <Stack direction="row" spacing={0.5} alignItems="center">
+                  <ThumbUpOutlined color="success" sx={{ fontSize: "1rem" }} />
+                  <Typography variant="caption" color="text.secondary">
+                    {rating.thumbs_up ?? 0}
+                  </Typography>
+                </Stack>
+                <Stack direction="row" spacing={0.5} alignItems="center">
+                  <ThumbDownOutlined color="error" sx={{ fontSize: "1rem" }} />
+                  <Typography variant="caption" color="text.secondary">
+                    {rating.thumbs_down ?? 0}
+                  </Typography>
+                </Stack>
+              </Stack>
+            </Box>
+          </Grid>
+        </Grid>
+      </Paper>
+    </Fade>
+  );
+
+  return (
+    <StyledModal
+      open={isOpen}
+      onClose={onClose}
+      sx={{
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        p: theme.spacing(1),
+      }}
+    >
+      <Fade in={isOpen} appear={true} timeout={{ enter: 300, exit: 0 }}>
+        <ModalContent>
+          <Box
+            sx={{
+              p: isSmallScreen ? 1.5 : 2,
+              borderBottom: 1,
+              borderColor: "divider",
+            }}
+          >
+            <Box
+              sx={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+              }}
+            >
+              <Box>
+                <Typography
+                  variant={isSmallScreen ? "subtitle1" : "h6"}
+                  fontWeight="bold"
                 >
-                  <FormControl fullWidth>
-                    <InputLabel>
-                      <Typography>Sort By</Typography>
-                    </InputLabel>
-                    <Select
-                      value={sortBy}
-                      onChange={handleSortChange}
-                      label="Sort By"
-                      sx={{ borderRadius: "8px" }}
+                  {professorName}'s Ratings
+                </Typography>
+                <Typography variant="caption" color="text.secondary">
+                  {isLoading ? (
+                    <Stack direction="row" spacing={0.5} alignItems="center">
+                      <CircularProgress size={12} />
+                      <span>Loading ratings...</span>
+                    </Stack>
+                  ) : (
+                    `${ratings?.length ?? 0} reviews`
+                  )}
+                </Typography>
+              </Box>
+              <IconButton
+                onClick={onClose}
+                size="small"
+                sx={{ borderRadius: "6px" }}
+              >
+                <Close fontSize="small" />
+              </IconButton>
+            </Box>
+          </Box>
+
+          <Box
+            sx={{ flexGrow: 1, overflow: "auto", p: isSmallScreen ? 1.5 : 2 }}
+          >
+            <Grid container spacing={1.5} sx={{ mb: 2 }}>
+              <Grid item xs={12} md={4}>
+                <StatCard
+                  elevation={2}
+                  sx={{ background: COLORS.GRAY_50, mb: 1.5 }}
+                >
+                  <CardContent>
+                    <Typography
+                      variant="h5"
+                      color={getRatingColor(Number(stats.overall))}
+                      fontWeight="bold"
+                      sx={{ lineHeight: 1 }}
                     >
-                      <MenuItem value="date">
-                        <Typography>Most Recent</Typography>
-                      </MenuItem>
-                      <MenuItem value="helpful_rating">
-                        <Typography>Most Helpful</Typography>
-                      </MenuItem>
-                      <MenuItem value="clarity_rating">
-                        <Typography>Highest Clarity</Typography>
-                      </MenuItem>
-                      <MenuItem value="difficulty_rating">
-                        <Typography>Most Difficult</Typography>
-                      </MenuItem>
-                    </Select>
-                  </FormControl>
-                  <FormControl fullWidth>
-                    <InputLabel>
-                      <Typography>Filter By</Typography>
-                    </InputLabel>
-                    <Select
-                      value={filterBy}
-                      onChange={handleFilterChange}
-                      label="Filter By"
-                      sx={{ borderRadius: "8px" }}
+                      {isLoading ? <Skeleton width={40} /> : stats.overall}
+                    </Typography>
+                    <MuiRating
+                      value={Number(stats.overall)}
+                      precision={0.1}
+                      readOnly
+                      size="small"
+                      sx={{ my: 0.5 }}
+                    />
+                    <Typography
+                      variant="caption"
+                      color="text.secondary"
+                      fontWeight="medium"
                     >
-                      <MenuItem value="all">All Courses</MenuItem>
-                      {ratings
-                        ?.map((rating) => (
-                          <MenuItem
-                            key={rating.class_name}
-                            value={rating.class_name}
-                          >
-                            {rating.class_name}
-                          </MenuItem>
-                        ))
-                        ?.filter(isUnique)}
-                    </Select>
-                  </FormControl>
-                </ResponsiveStack>
+                      Average Rating
+                    </Typography>
+                  </CardContent>
+                </StatCard>
+              </Grid>
+              <Grid item xs={12} md={4}>
+                <StatCard
+                  elevation={2}
+                  sx={{ background: COLORS.GRAY_50, mb: 1.5 }}
+                >
+                  <CardContent>
+                    <Typography
+                      variant="h5"
+                      color={getRatingColor(
+                        Math.abs(Number(stats.difficulty) - 7)
+                      )}
+                      fontWeight="bold"
+                      sx={{ lineHeight: 1 }}
+                    >
+                      {isLoading ? <Skeleton width={40} /> : stats.difficulty}
+                    </Typography>
+
+                    <Typography
+                      variant="caption"
+                      color="text.secondary"
+                      fontWeight="medium"
+                    >
+                      Average Difficulty
+                    </Typography>
+                  </CardContent>
+                </StatCard>
+              </Grid>
+              <Grid item xs={12} md={4}>
+                <StatCard
+                  elevation={2}
+                  sx={{ background: COLORS.GRAY_50, mb: 1.5 }}
+                >
+                  <CardContent>
+                    <Typography
+                      variant="h5"
+                      color={getRatingColor(
+                        Math.ceil(Number(stats.wouldTakeAgain) / 20)
+                      )}
+                      fontWeight="bold"
+                      sx={{ lineHeight: 1 }}
+                    >
+                      {isLoading ? (
+                        <Skeleton width={40} />
+                      ) : (
+                        `${stats.wouldTakeAgain}%`
+                      )}
+                    </Typography>
+                    <Box sx={{ my: 0.5 }}>
+                      <CircularProgress
+                        variant="determinate"
+                        value={Number(stats.wouldTakeAgain)}
+                        size={32}
+                        thickness={4}
+                        sx={{ color: "success.main" }}
+                      />
+                    </Box>
+                    <Typography
+                      variant="caption"
+                      color="text.secondary"
+                      fontWeight="medium"
+                    >
+                      Would Take Again
+                    </Typography>
+                  </CardContent>
+                </StatCard>
               </Grid>
             </Grid>
-          </Paper>
 
-          <Stack spacing={isSmallScreen ? 1 : 2}>
-            {processedRatings?.map((rating, index) => (
-              <Paper
-                key={index}
-                sx={{ p: isSmallScreen ? 2 : 3, borderRadius: "8px" }}
-              >
-                <Grid
-                  container
-                  spacing={isSmallScreen ? 1 : 2}
-                  sx={{ pb: isSmallScreen ? 1 : 2 }}
-                >
-                  <Grid item xs={12} sm={4}>
-                    <Stack direction="row" alignItems="center" spacing={1}>
-                      <GlassesIcon
-                        sx={{ color: getRatingColor(rating.clarity_rating) }}
-                      />
-                      <Typography
-                        fontWeight="bold"
-                        color={getRatingColor(rating.clarity_rating)}
-                      >
-                        {rating.clarity_rating}/5
-                      </Typography>
-                      <Typography variant="body2" color="text.secondary">
-                        clarity
-                      </Typography>
-                    </Stack>
-                  </Grid>
-                  <Grid item xs={12} sm={4}>
-                    <Stack direction="row" alignItems="center" spacing={1}>
-                      <ThumbUpIcon
-                        sx={{ color: getRatingColor(rating.helpful_rating) }}
-                      />
-                      <Typography
-                        fontWeight="bold"
-                        color={getRatingColor(rating.helpful_rating)}
-                      >
-                        {rating.helpful_rating}/5
-                      </Typography>
-                      <Typography variant="body2" color="text.secondary">
-                        helpful
-                      </Typography>
-                    </Stack>
-                  </Grid>
-                  <Grid item xs={12} sm={4}>
-                    <Stack direction="row" alignItems="center" spacing={1}>
-                      <BrainIcon
-                        sx={{ color: getRatingColor(rating.difficulty_rating) }}
-                      />
-                      <Typography
-                        fontWeight="bold"
-                        color={getRatingColor(rating.difficulty_rating)}
-                      >
-                        {rating.difficulty_rating}/5
-                      </Typography>
-                      <Typography variant="body2" color="text.secondary">
-                        difficulty
-                      </Typography>
-                    </Stack>
-                  </Grid>
+            <Paper sx={{ p: 2, mb: 2, borderRadius: "8px" }} elevation={2}>
+              <Grid container spacing={1.5}>
+                <Grid item xs={12} md={6}>
+                  <TextField
+                    size="small"
+                    fullWidth
+                    placeholder="Search reviews..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    InputProps={{
+                      startAdornment: (
+                        <Search
+                          sx={{
+                            mr: 1,
+                            color: "text.secondary",
+                            fontSize: "1.25rem",
+                          }}
+                        />
+                      ),
+                      sx: { borderRadius: "8px" },
+                    }}
+                  />
                 </Grid>
-
-                <Typography sx={{ mb: 2 }}>
-                  {he.decode(rating.comment)}
-                </Typography>
-
-                <Box sx={{ mb: 2, display: "flex", flexWrap: "wrap", gap: 1 }}>
-                  {rating.is_online && (
-                    <Chip
-                      label="Online"
-                      color="primary"
-                      variant="outlined"
-                      sx={{ borderRadius: "4px" }}
-                    />
-                  )}
-                  {rating.attendance_mandatory === "mandatory" && (
-                    <Chip
-                      label="Attendance Required"
-                      color="secondary"
-                      variant="outlined"
-                      sx={{ borderRadius: "4px" }}
-                    />
-                  )}
-                  {rating.textbook_use > 0 && (
-                    <Chip
-                      label="Textbooks Used"
-                      color="success"
-                      variant="outlined"
-                      sx={{ borderRadius: "4px" }}
-                    />
-                  )}
-                  {!(rating?.tags === "") &&
-                    rating.tags?.split("--").map((tag, tagIndex) => (
-                      <Chip
-                        key={tagIndex}
-                        label={tag}
-                        size="small"
-                        icon={<TagIcon />}
-                        sx={{
-                          borderRadius: "4px",
-
-                          "& .MuiChip-icon": {
-                            fontSize: "0.8rem",
+                <Grid item xs={12} md={6}>
+                  <ResponsiveStack
+                    direction="row"
+                    spacing={isSmallScreen ? 0 : 1.5}
+                  >
+                    <FormControl fullWidth size="small">
+                      <InputLabel>Sort By</InputLabel>
+                      <Select
+                        value={sortBy}
+                        onChange={(e: SelectChangeEvent<SortOptions>) =>
+                          setSortBy(e.target.value as SortOptions)
+                        }
+                        label="Sort By"
+                        sx={{ borderRadius: "8px" }}
+                      >
+                        <MenuItem value="date">Recent</MenuItem>
+                        <MenuItem value="likes">Most Likes</MenuItem>
+                        <MenuItem value="rating">Highest Rating</MenuItem>
+                        <MenuItem value="difficulty_rating">
+                          Highest Difficulty
+                        </MenuItem>
+                      </Select>
+                    </FormControl>
+                    <FormControl fullWidth size="small">
+                      <InputLabel>Filter By Course</InputLabel>
+                      <Select
+                        value={filterBy}
+                        onChange={(e: SelectChangeEvent<string>) =>
+                          setFilterBy(e.target.value)
+                        }
+                        label="Filter By Course"
+                        sx={{ borderRadius: "8px" }}
+                        MenuProps={{
+                          PaperProps: {
+                            style: {
+                              maxHeight: 250,
+                              overflowY: "auto",
+                            },
+                          },
+                          anchorOrigin: {
+                            vertical: "bottom",
+                            horizontal: "left",
+                          },
+                          transformOrigin: {
+                            vertical: "top",
+                            horizontal: "left",
                           },
                         }}
-                      />
-                    ))}
-                </Box>
+                      >
+                        <MenuItem value="all">All Courses</MenuItem>
+                        {courseCodes.map((course: CourseCode) => (
+                          <MenuItem
+                            key={course.courseName}
+                            value={course.courseName}
+                          >
+                            {course.courseName} ({course.courseCount})
+                          </MenuItem>
+                        ))}
+                      </Select>
+                    </FormControl>
+                  </ResponsiveStack>
+                </Grid>
+              </Grid>
+            </Paper>
 
-                <Box
-                  sx={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "center",
-                    flexWrap: isSmallScreen ? "wrap" : "nowrap",
-                    gap: 1,
-                  }}
+            <Stack spacing={1.5}>
+              {isLoading ? (
+                <LoadingSkeleton />
+              ) : processedRatings?.length === 0 ? (
+                <Paper
+                  sx={{ p: 3, textAlign: "center", borderRadius: "8px" }}
+                  elevation={2}
                 >
-                  <Stack
-                    direction={isSmallScreen ? "column" : "row"}
-                    spacing={isSmallScreen ? 0.5 : 2}
-                    alignItems={isSmallScreen ? "flex-start" : "center"}
+                  <Typography
+                    variant="subtitle1"
+                    color="text.secondary"
+                    gutterBottom
                   >
-                    <Stack direction="row" spacing={0.5} alignItems="center">
-                      <SchoolIcon
-                        sx={{ fontSize: 16, color: "text.secondary" }}
-                      />
-                      <Typography variant="body2" color="text.secondary">
-                        {rating.class_name}
-                      </Typography>
-                    </Stack>
-                    <Typography variant="body2" color="text.secondary">
-                      {new Date(rating.date).toLocaleDateString()}
-                    </Typography>
-                  </Stack>
-                  {rating.flag_status !== "UNFLAGGED" && (
-                    <Chip
-                      icon={<OutlinedFlagIcon />}
-                      color="error"
-                      size="small"
-                      sx={{ ml: "auto" }}
-                    />
+                    No Reviews Found
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    Try adjusting your search criteria
+                  </Typography>
+                </Paper>
+              ) : (
+                <>
+                  {processedRatings.map((rating, index) =>
+                    renderReviewCard(rating, index)
                   )}
-                </Box>
-              </Paper>
-            ))}
-            {processedRatings?.length === 0 && (
-              <Paper sx={{ p: 3, textAlign: "center", borderRadius: "8px" }}>
-                <Typography color="text.secondary">
-                  No ratings found matching your criteria
-                </Typography>
-              </Paper>
-            )}
-          </Stack>
-        </Box>
-      </ModalContent>
+                  {processedRatings.length > 10 && (
+                    <Box sx={{ textAlign: "center", py: 1.5 }}>
+                      <Typography variant="caption" color="text.secondary">
+                        Showing all {processedRatings.length} reviews
+                      </Typography>
+                    </Box>
+                  )}
+                </>
+              )}
+            </Stack>
+          </Box>
+        </ModalContent>
+      </Fade>
     </StyledModal>
   );
 };
+
+export default RatingsModal;

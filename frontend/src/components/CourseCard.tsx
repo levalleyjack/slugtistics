@@ -16,7 +16,6 @@ import {
   ListItemIcon,
   ListItemText,
   Stack,
-  Button,
 } from "@mui/material";
 import RateReviewIcon from "@mui/icons-material/RateReview";
 import CancelIcon from "@mui/icons-material/Cancel";
@@ -277,7 +276,6 @@ export const CourseCard = forwardRef<HTMLDivElement, CourseCardProps>(
           isOpen={isModalOpen}
           onClose={handleModalClose}
           professorName={rmpData?.name || fullInstructorName}
-          ratings={rmpData?.all_ratings}
           currentClass={course_code.replace(" ", "")}
         />
         <CourseDistribution
