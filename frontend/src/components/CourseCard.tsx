@@ -276,16 +276,16 @@ export const CourseCard = forwardRef<HTMLDivElement, CourseCardProps>(
         <RatingsModal
           isOpen={isModalOpen}
           onClose={handleModalClose}
-          professorName={rmpData.name}
+          professorName={rmpData?.name}
           currentClass={
-            rmpData.course_codes.some(
+            rmpData?.course_codes.some(
               (code: CourseCode) =>
                 code.courseName === course_code.replace(" ", "")
             )
               ? course_code.replace(" ", "")
               : "all"
           }
-          courseCodes={rmpData.course_codes}
+          courseCodes={rmpData?.course_codes}
         />
         <CourseDistribution
           courseCode={course_code}
@@ -335,7 +335,7 @@ export const CourseCard = forwardRef<HTMLDivElement, CourseCardProps>(
                 </Box>
               </Box>
 
-              <Typography variant="h6">{course.name}</Typography>
+              <Typography variant="h6">{course?.name}</Typography>
 
               <Grid
                 sx={{
