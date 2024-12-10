@@ -119,6 +119,11 @@ interface AnimatedArrowIconProps {
   sx?: object;
 }
 
+export interface CourseCode {
+  courseCount: number;
+  courseName: string;
+}
+
 export const categories = [
   
   { id: "AnyGE", name: "All Courses", icon: <AppsIcon /> },

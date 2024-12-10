@@ -22,6 +22,7 @@ import {
   Fade,
   CircularProgress,
   Rating as MuiRating,
+  Divider,
 } from "@mui/material";
 import {
   ThumbUpOutlined,
@@ -33,16 +34,11 @@ import {
   OutlinedFlag,
 } from "@mui/icons-material";
 import he from "he";
-import { COLORS, Course, Rating } from "../Constants";
+import { COLORS, Course, CourseCode, Rating } from "../Constants";
 import { useQuery } from "@tanstack/react-query";
 import RatingCard from "./RatingCard";
-import { styled } from "@mui/material/styles";
+import { lighten, styled } from "@mui/material/styles";
 import { local } from "../pages/GetGEData";
-
-interface CourseCode {
-  courseCount: number;
-  courseName: string;
-}
 
 interface RatingsModalProps {
   isOpen: boolean;
@@ -50,6 +46,7 @@ interface RatingsModalProps {
   professorName: string;
   original_ratings?: Rating[];
   currentClass: string;
+  courseCodes: CourseCode[];
 }
 
 type SortOptions = "date" | "rating" | "difficulty_rating" | "likes";
@@ -106,14 +103,146 @@ const ResponsiveStack = styled(Stack)(({ theme }) => ({
 }));
 
 const LoadingSkeleton = () => (
-  <Stack spacing={1}>
+  <Stack spacing={1.5}>
     {[1, 2, 3].map((i) => (
-      <Paper key={i} sx={{ p: 2, borderRadius: "8px" }}>
-        <Stack spacing={1}>
-          <Skeleton variant="rectangular" height={20} width="30%" />
-          <Skeleton variant="rectangular" height={40} />
-          <Skeleton variant="rectangular" height={24} width="40%" />
-        </Stack>
+      <Paper key={i} sx={{ p: 2, borderRadius: "8px" }} elevation={2}>
+        <Grid container spacing={1.5}>
+          <Grid item xs={12}>
+            <Box
+              sx={{ display: "flex", justifyContent: "center", width: "100%" }}
+            >
+              <Box
+                sx={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: 2,
+                  p: 1.5,
+                  borderRadius: "8px",
+                  bgcolor: COLORS.GRAY_50,
+                  border: 1,
+                  borderColor: "divider",
+                  width: "100%",
+                }}
+              >
+                <Box sx={{ flex: 1, textAlign: "center" }}>
+                  <Skeleton
+                    variant="text"
+                    width={40}
+                    height={32}
+                    sx={{ mx: "auto" }}
+                  />
+                  <Skeleton
+                    variant="rectangular"
+                    width={120}
+                    height={20}
+                    sx={{ mx: "auto", my: 0.5, borderRadius: 1 }}
+                  />
+                  <Skeleton
+                    variant="text"
+                    width={80}
+                    height={16}
+                    sx={{ mx: "auto" }}
+                  />
+                </Box>
+                <Divider orientation="vertical" flexItem />
+                <Box sx={{ flex: 1, textAlign: "center" }}>
+                  <Skeleton
+                    variant="text"
+                    width={40}
+                    height={32}
+                    sx={{ mx: "auto" }}
+                  />
+                  <Box sx={{ height: 20, my: 0.5 }} />{" "}
+                  {/* Spacer to match rating component */}
+                  <Skeleton
+                    variant="text"
+                    width={80}
+                    height={16}
+                    sx={{ mx: "auto" }}
+                  />
+                </Box>
+              </Box>
+            </Box>
+          </Grid>
+          <Grid item xs={12}>
+            <Skeleton variant="text" height={20} />
+            <Skeleton variant="text" height={20} />
+            <Skeleton variant="text" height={20} width="60%" />
+          </Grid>
+          <Grid item xs={12}>
+            <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.75, mb: 1.5 }}>
+              <Skeleton
+                variant="rectangular"
+                width={80}
+                height={20}
+                sx={{ borderRadius: "4px" }}
+              />
+              <Skeleton
+                variant="rectangular"
+                width={140}
+                height={20}
+                sx={{ borderRadius: "4px" }}
+              />
+              <Skeleton
+                variant="rectangular"
+                width={120}
+                height={20}
+                sx={{ borderRadius: "4px" }}
+              />
+              <Skeleton
+                variant="rectangular"
+                width={110}
+                height={20}
+                sx={{ borderRadius: "4px" }}
+              />
+            </Box>
+            <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.75 }}>
+              <Skeleton
+                variant="rectangular"
+                width={90}
+                height={20}
+                sx={{ borderRadius: "4px" }}
+              />
+              <Skeleton
+                variant="rectangular"
+                width={100}
+                height={20}
+                sx={{ borderRadius: "4px" }}
+              />
+            </Box>
+          </Grid>
+          <Grid item xs={12}>
+            <Box
+              sx={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                pt: 1.5,
+                borderTop: 1,
+                borderColor: "divider",
+              }}
+            >
+              <Stack direction="row" spacing={1.5} alignItems="center">
+                <Stack direction="row" spacing={0.5} alignItems="center">
+                  <Skeleton variant="circular" width={14} height={14} />
+                  <Skeleton variant="text" width={100} height={16} />
+                </Stack>
+                <Skeleton variant="text" width={80} height={16} />
+              </Stack>
+              <Stack direction="row" spacing={1.5}>
+                <Stack direction="row" spacing={0.5} alignItems="center">
+                  <Skeleton variant="circular" width={16} height={16} />
+                  <Skeleton variant="text" width={20} height={16} />
+                </Stack>
+                <Stack direction="row" spacing={0.5} alignItems="center">
+                  <Skeleton variant="circular" width={16} height={16} />
+                  <Skeleton variant="text" width={20} height={16} />
+                </Stack>
+              </Stack>
+            </Box>
+          </Grid>
+        </Grid>
       </Paper>
     ))}
   </Stack>
@@ -161,6 +290,7 @@ export const RatingsModal: React.FC<RatingsModalProps> = ({
   onClose,
   professorName,
   currentClass,
+  courseCodes,
 }) => {
   const theme = useTheme();
   const isSmallScreen = useMediaQuery(theme.breakpoints.down("sm"));
@@ -170,10 +300,7 @@ export const RatingsModal: React.FC<RatingsModalProps> = ({
   );
   const [searchTerm, setSearchTerm] = useState<string>("");
 
-  const {
-    data: ratingDetails = { all_ratings: [], course_codes: [] },
-    isLoading,
-  } = useQuery({
+  const { data: ratings = [], isLoading } = useQuery<Rating[]>({
     queryKey: ["reviews", professorName, filterBy],
     queryFn: async () => {
       const response = await fetch(
@@ -183,28 +310,14 @@ export const RatingsModal: React.FC<RatingsModalProps> = ({
       );
       if (!response.ok) throw new Error("Network response was not ok");
       const data = await response.json();
-
-      if (
-        filterBy === currentClass &&
-        !data.course_codes.some(
-          (course: CourseCode) => course.courseName === currentClass
-        )
-      ) {
-        setFilterBy("all");
-      }
-      return data || { all_ratings: [], course_codes: [] };
+      return data.all_ratings ?? [];
     },
     enabled: isOpen,
     staleTime: 5 * 60 * 1000,
-    gcTime: 30 * 60 * 1000,
+    gcTime: 60 * 1000,
     refetchOnWindowFocus: false,
   });
 
-  const { all_ratings: ratings = [], course_codes: courseCodes = [] } =
-    ratingDetails as {
-      all_ratings: Rating[];
-      course_codes: CourseCode[];
-    };
   const stats = calculateStats(ratings);
 
   const getRatingColor = (score: number): string => {
@@ -409,278 +522,294 @@ export const RatingsModal: React.FC<RatingsModalProps> = ({
         p: theme.spacing(1),
       }}
     >
-      <Fade in={isOpen} appear={true} timeout={{ enter: 300, exit: 0 }}>
-        <ModalContent>
+      <ModalContent>
+        <Box
+          sx={{
+            p: isSmallScreen ? 1.5 : 2,
+            borderBottom: 1,
+            borderColor: "divider",
+          }}
+        >
           <Box
             sx={{
-              p: isSmallScreen ? 1.5 : 2,
-              borderBottom: 1,
-              borderColor: "divider",
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
             }}
           >
-            <Box
-              sx={{
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-              }}
-            >
-              <Box>
-                <Typography
-                  variant={isSmallScreen ? "subtitle1" : "h6"}
-                  fontWeight="bold"
-                >
-                  {professorName}'s Ratings
-                </Typography>
-                <Typography variant="caption" color="text.secondary">
-                  {isLoading ? (
-                    <Stack direction="row" spacing={0.5} alignItems="center">
-                      <CircularProgress size={12} />
-                      <span>Loading ratings...</span>
-                    </Stack>
-                  ) : (
-                    `${ratings?.length ?? 0} reviews`
-                  )}
-                </Typography>
-              </Box>
-              <IconButton
-                onClick={onClose}
-                size="small"
-                sx={{ borderRadius: "6px" }}
+            <Box>
+              <Typography
+                variant={isSmallScreen ? "subtitle1" : "h6"}
+                fontWeight="bold"
               >
-                <Close fontSize="small" />
-              </IconButton>
+                {professorName}'s Ratings
+              </Typography>
+              <Typography variant="caption" color="text.secondary">
+                {isLoading ? (
+                  <Stack direction="row" spacing={0.5} alignItems="center">
+                    <CircularProgress size={12} />
+                    <span>Loading ratings...</span>
+                  </Stack>
+                ) : (
+                  `${ratings?.length ?? 0} reviews`
+                )}
+              </Typography>
             </Box>
+            <IconButton
+              onClick={onClose}
+              size="small"
+              sx={{ borderRadius: "6px" }}
+            >
+              <Close fontSize="small" />
+            </IconButton>
           </Box>
+        </Box>
 
-          <Box
-            sx={{ flexGrow: 1, overflow: "auto", p: isSmallScreen ? 1.5 : 2 }}
-          >
-            <Grid container spacing={1.5} sx={{ mb: 2 }}>
-              <Grid item xs={12} md={4}>
-                <StatCard
-                  elevation={2}
-                  sx={{ background: COLORS.GRAY_50, mb: 1.5 }}
-                >
-                  <CardContent>
-                    <Typography
-                      variant="h5"
-                      color={getRatingColor(Number(stats.overall))}
-                      fontWeight="bold"
-                      sx={{ lineHeight: 1 }}
-                    >
-                      {isLoading ? <Skeleton width={40} /> : stats.overall}
-                    </Typography>
-                    <MuiRating
-                      value={Number(stats.overall)}
-                      precision={0.1}
-                      readOnly
-                      size="small"
-                      sx={{ my: 0.5 }}
+        <Box sx={{ flexGrow: 1, overflow: "auto", p: isSmallScreen ? 1.5 : 2 }}>
+          <Grid container spacing={1.5} sx={{ mb: 2 }}>
+            <Grid item xs={12} md={4}>
+              <StatCard
+                elevation={2}
+                sx={{
+                  mb: 1.5,
+                  backgroundColor: lighten(
+                    getRatingColor(Number(stats.overall)),
+                    0.7
+                  ),
+                }}
+              >
+                <CardContent>
+                  <Typography
+                    variant="h5"
+                    color={getRatingColor(Number(stats.overall))}
+                    fontWeight="bold"
+                    sx={{ lineHeight: 1 }}
+                  >
+                    {isLoading ? <Skeleton width={40} /> : stats.overall}
+                  </Typography>
+                  <MuiRating
+                    value={Number(stats.overall)}
+                    precision={0.1}
+                    readOnly
+                    size="small"
+                    sx={{ my: 0.5 }}
+                  />
+                  <Typography
+                    variant="caption"
+                    color="text.secondary"
+                    fontWeight="medium"
+                  >
+                    Average Rating
+                  </Typography>
+                </CardContent>
+              </StatCard>
+            </Grid>
+            <Grid item xs={12} md={4}>
+              <StatCard
+                elevation={2}
+                sx={{
+                  mb: 1.5,
+                  backgroundColor: lighten(
+                    getRatingColor(Math.abs(Number(stats.difficulty) - 7)),
+                    0.7
+                  ),
+                }}
+              >
+                <CardContent>
+                  <Typography
+                    variant="h5"
+                    color={getRatingColor(
+                      Math.abs(Number(stats.difficulty) - 7)
+                    )}
+                    fontWeight="bold"
+                    sx={{ lineHeight: 1 }}
+                  >
+                    {isLoading ? <Skeleton width={40} /> : stats.difficulty}
+                  </Typography>
+
+                  <Typography
+                    variant="caption"
+                    color="text.secondary"
+                    fontWeight="medium"
+                  >
+                    Average Difficulty
+                  </Typography>
+                </CardContent>
+              </StatCard>
+            </Grid>
+            <Grid item xs={12} md={4}>
+              <StatCard
+                elevation={2}
+                sx={{
+                  mb: 1.5,
+                  backgroundColor: lighten(
+                    getRatingColor(
+                      Math.ceil(Number(stats.wouldTakeAgain) / 20)
+                    ),
+                    0.7
+                  ),
+                }}
+              >
+                <CardContent>
+                  <Typography
+                    variant="h5"
+                    color={getRatingColor(
+                      Math.ceil(Number(stats.wouldTakeAgain) / 20)
+                    )}
+                    fontWeight="bold"
+                    sx={{ lineHeight: 1 }}
+                  >
+                    {isLoading ? (
+                      <Skeleton width={40} />
+                    ) : (
+                      `${stats.wouldTakeAgain}%`
+                    )}
+                  </Typography>
+                  <Box sx={{ my: 0.5 }}>
+                    <CircularProgress
+                      variant="determinate"
+                      value={Number(stats.wouldTakeAgain)}
+                      size={32}
+                      thickness={4}
+                      sx={{ color: "success.main" }}
                     />
-                    <Typography
-                      variant="caption"
-                      color="text.secondary"
-                      fontWeight="medium"
-                    >
-                      Average Rating
-                    </Typography>
-                  </CardContent>
-                </StatCard>
-              </Grid>
-              <Grid item xs={12} md={4}>
-                <StatCard
-                  elevation={2}
-                  sx={{ background: COLORS.GRAY_50, mb: 1.5 }}
-                >
-                  <CardContent>
-                    <Typography
-                      variant="h5"
-                      color={getRatingColor(
-                        Math.abs(Number(stats.difficulty) - 7)
-                      )}
-                      fontWeight="bold"
-                      sx={{ lineHeight: 1 }}
-                    >
-                      {isLoading ? <Skeleton width={40} /> : stats.difficulty}
-                    </Typography>
+                  </Box>
+                  <Typography
+                    variant="caption"
+                    color="text.secondary"
+                    fontWeight="medium"
+                  >
+                    Would Take Again
+                  </Typography>
+                </CardContent>
+              </StatCard>
+            </Grid>
+          </Grid>
 
-                    <Typography
-                      variant="caption"
-                      color="text.secondary"
-                      fontWeight="medium"
-                    >
-                      Average Difficulty
-                    </Typography>
-                  </CardContent>
-                </StatCard>
-              </Grid>
-              <Grid item xs={12} md={4}>
-                <StatCard
-                  elevation={2}
-                  sx={{ background: COLORS.GRAY_50, mb: 1.5 }}
-                >
-                  <CardContent>
-                    <Typography
-                      variant="h5"
-                      color={getRatingColor(
-                        Math.ceil(Number(stats.wouldTakeAgain) / 20)
-                      )}
-                      fontWeight="bold"
-                      sx={{ lineHeight: 1 }}
-                    >
-                      {isLoading ? (
-                        <Skeleton width={40} />
-                      ) : (
-                        `${stats.wouldTakeAgain}%`
-                      )}
-                    </Typography>
-                    <Box sx={{ my: 0.5 }}>
-                      <CircularProgress
-                        variant="determinate"
-                        value={Number(stats.wouldTakeAgain)}
-                        size={32}
-                        thickness={4}
-                        sx={{ color: "success.main" }}
+          <Paper sx={{ p: 2, mb: 2, borderRadius: "8px" }} elevation={2}>
+            <Grid container spacing={1.5}>
+              <Grid item xs={12} md={6}>
+                <TextField
+                  size="small"
+                  fullWidth
+                  placeholder="Search reviews..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  InputProps={{
+                    startAdornment: (
+                      <Search
+                        sx={{
+                          mr: 1,
+                          color: "text.secondary",
+                          fontSize: "1.25rem",
+                        }}
                       />
-                    </Box>
-                    <Typography
-                      variant="caption"
-                      color="text.secondary"
-                      fontWeight="medium"
+                    ),
+                    sx: { borderRadius: "8px" },
+                  }}
+                />
+              </Grid>
+              <Grid item xs={12} md={6}>
+                <ResponsiveStack
+                  direction="row"
+                  spacing={isSmallScreen ? 0 : 1.5}
+                >
+                  <FormControl fullWidth size="small">
+                    <InputLabel>Sort By</InputLabel>
+                    <Select
+                      value={sortBy}
+                      onChange={(e: SelectChangeEvent<SortOptions>) =>
+                        setSortBy(e.target.value as SortOptions)
+                      }
+                      label="Sort By"
+                      sx={{ borderRadius: "8px" }}
                     >
-                      Would Take Again
-                    </Typography>
-                  </CardContent>
-                </StatCard>
+                      <MenuItem value="date">Recent</MenuItem>
+                      <MenuItem value="likes">Most Likes</MenuItem>
+                      <MenuItem value="rating">Highest Rating</MenuItem>
+                      <MenuItem value="difficulty_rating">
+                        Highest Difficulty
+                      </MenuItem>
+                    </Select>
+                  </FormControl>
+                  <FormControl fullWidth size="small">
+                    <InputLabel>Filter By Course</InputLabel>
+                    <Select
+                      value={filterBy}
+                      onChange={(e: SelectChangeEvent<string>) =>
+                        setFilterBy(e.target.value)
+                      }
+                      label="Filter By Course"
+                      sx={{ borderRadius: "8px" }}
+                      MenuProps={{
+                        PaperProps: {
+                          style: {
+                            maxHeight: 250,
+                            overflowY: "auto",
+                          },
+                        },
+                        anchorOrigin: {
+                          vertical: "bottom",
+                          horizontal: "left",
+                        },
+                        transformOrigin: {
+                          vertical: "top",
+                          horizontal: "left",
+                        },
+                      }}
+                    >
+                      <MenuItem value="all">All Courses</MenuItem>
+                      {courseCodes.map((course: CourseCode) => (
+                        <MenuItem
+                          key={course.courseName}
+                          value={course.courseName}
+                        >
+                          {course.courseName} ({course.courseCount})
+                        </MenuItem>
+                      ))}
+                    </Select>
+                  </FormControl>
+                </ResponsiveStack>
               </Grid>
             </Grid>
+          </Paper>
 
-            <Paper sx={{ p: 2, mb: 2, borderRadius: "8px" }} elevation={2}>
-              <Grid container spacing={1.5}>
-                <Grid item xs={12} md={6}>
-                  <TextField
-                    size="small"
-                    fullWidth
-                    placeholder="Search reviews..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    InputProps={{
-                      startAdornment: (
-                        <Search
-                          sx={{
-                            mr: 1,
-                            color: "text.secondary",
-                            fontSize: "1.25rem",
-                          }}
-                        />
-                      ),
-                      sx: { borderRadius: "8px" },
-                    }}
-                  />
-                </Grid>
-                <Grid item xs={12} md={6}>
-                  <ResponsiveStack
-                    direction="row"
-                    spacing={isSmallScreen ? 0 : 1.5}
-                  >
-                    <FormControl fullWidth size="small">
-                      <InputLabel>Sort By</InputLabel>
-                      <Select
-                        value={sortBy}
-                        onChange={(e: SelectChangeEvent<SortOptions>) =>
-                          setSortBy(e.target.value as SortOptions)
-                        }
-                        label="Sort By"
-                        sx={{ borderRadius: "8px" }}
-                      >
-                        <MenuItem value="date">Recent</MenuItem>
-                        <MenuItem value="likes">Most Likes</MenuItem>
-                        <MenuItem value="rating">Highest Rating</MenuItem>
-                        <MenuItem value="difficulty_rating">
-                          Highest Difficulty
-                        </MenuItem>
-                      </Select>
-                    </FormControl>
-                    <FormControl fullWidth size="small">
-                      <InputLabel>Filter By Course</InputLabel>
-                      <Select
-                        value={filterBy}
-                        onChange={(e: SelectChangeEvent<string>) =>
-                          setFilterBy(e.target.value)
-                        }
-                        label="Filter By Course"
-                        sx={{ borderRadius: "8px" }}
-                        MenuProps={{
-                          PaperProps: {
-                            style: {
-                              maxHeight: 250,
-                              overflowY: "auto",
-                            },
-                          },
-                          anchorOrigin: {
-                            vertical: "bottom",
-                            horizontal: "left",
-                          },
-                          transformOrigin: {
-                            vertical: "top",
-                            horizontal: "left",
-                          },
-                        }}
-                      >
-                        <MenuItem value="all">All Courses</MenuItem>
-                        {courseCodes.map((course: CourseCode) => (
-                          <MenuItem
-                            key={course.courseName}
-                            value={course.courseName}
-                          >
-                            {course.courseName} ({course.courseCount})
-                          </MenuItem>
-                        ))}
-                      </Select>
-                    </FormControl>
-                  </ResponsiveStack>
-                </Grid>
-              </Grid>
-            </Paper>
-
-            <Stack spacing={1.5}>
-              {isLoading ? (
-                <LoadingSkeleton />
-              ) : processedRatings?.length === 0 ? (
-                <Paper
-                  sx={{ p: 3, textAlign: "center", borderRadius: "8px" }}
-                  elevation={2}
+          <Stack spacing={1.5}>
+            {isLoading ? (
+              <LoadingSkeleton />
+            ) : processedRatings?.length === 0 ? (
+              <Paper
+                sx={{ p: 3, textAlign: "center", borderRadius: "8px" }}
+                elevation={2}
+              >
+                <Typography
+                  variant="subtitle1"
+                  color="text.secondary"
+                  gutterBottom
                 >
-                  <Typography
-                    variant="subtitle1"
-                    color="text.secondary"
-                    gutterBottom
-                  >
-                    No Reviews Found
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary">
-                    Try adjusting your search criteria
-                  </Typography>
-                </Paper>
-              ) : (
-                <>
-                  {processedRatings.map((rating, index) =>
-                    renderReviewCard(rating, index)
-                  )}
-                  {processedRatings.length > 10 && (
-                    <Box sx={{ textAlign: "center", py: 1.5 }}>
-                      <Typography variant="caption" color="text.secondary">
-                        Showing all {processedRatings.length} reviews
-                      </Typography>
-                    </Box>
-                  )}
-                </>
-              )}
-            </Stack>
-          </Box>
-        </ModalContent>
-      </Fade>
+                  No Reviews Found
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  Try adjusting your search criteria
+                </Typography>
+              </Paper>
+            ) : (
+              <>
+                {processedRatings.map((rating, index) =>
+                  renderReviewCard(rating, index)
+                )}
+                {processedRatings.length > 10 && (
+                  <Box sx={{ textAlign: "center", py: 1.5 }}>
+                    <Typography variant="caption" color="text.secondary">
+                      Showing all {processedRatings.length} reviews
+                    </Typography>
+                  </Box>
+                )}
+              </>
+            )}
+          </Stack>
+        </Box>
+      </ModalContent>
     </StyledModal>
   );
 };

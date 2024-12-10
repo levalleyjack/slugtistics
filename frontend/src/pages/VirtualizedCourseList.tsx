@@ -14,8 +14,7 @@ interface DynamicCourseListProps {
   expandedCodesMap: Map<string, boolean>;
   handleExpandCard: (courseId: string) => void;
   scrollToCourseId?: string;
-  setSelectedGE?:(category: string) => void;
-
+  setSelectedGE?: (category: string) => void;
 }
 
 const ListWrapper = styled("div")({
@@ -23,29 +22,31 @@ const ListWrapper = styled("div")({
   width: "100%",
 });
 
-const ItemWrapper = styled("div")<{ isLastItem?: boolean }>(({ theme, isLastItem }) => ({
-  padding: "16px",
-  paddingBottom: isLastItem ? "16px" : 0,
-  boxSizing: "border-box",
-  
-  "&::-webkit-scrollbar": {
-    width: theme.spacing(1),
-    height: theme.spacing(1),
-  },
-  "&::-webkit-scrollbar-track": {
-    backgroundColor: theme.palette.grey[100],
-    borderRadius: theme.shape.borderRadius,
-  },
-  "&::-webkit-scrollbar-thumb": {
-    backgroundColor: theme.palette.grey[400],
-    borderRadius: theme.shape.borderRadius,
-    "&:hover": {
-      backgroundColor: theme.palette.grey[600],
+const ItemWrapper = styled("div")<{ isLastItem?: boolean }>(
+  ({ theme, isLastItem }) => ({
+    padding: "16px",
+    paddingBottom: isLastItem ? "16px" : 0,
+    boxSizing: "border-box",
+
+    "&::-webkit-scrollbar": {
+      width: theme.spacing(1),
+      height: theme.spacing(1),
     },
-  },
-  scrollbarWidth: "thin",
-  scrollbarColor: `${theme.palette.grey[400]} ${theme.palette.grey[100]}`,
-}));
+    "&::-webkit-scrollbar-track": {
+      backgroundColor: theme.palette.grey[100],
+      borderRadius: theme.shape.borderRadius,
+    },
+    "&::-webkit-scrollbar-thumb": {
+      backgroundColor: theme.palette.grey[400],
+      borderRadius: theme.shape.borderRadius,
+      "&:hover": {
+        backgroundColor: theme.palette.grey[600],
+      },
+    },
+    scrollbarWidth: "thin",
+    scrollbarColor: `${theme.palette.grey[400]} ${theme.palette.grey[100]}`,
+  })
+);
 
 export const DynamicCourseList: React.FC<DynamicCourseListProps> = ({
   filteredCourses,
@@ -73,7 +74,7 @@ export const DynamicCourseList: React.FC<DynamicCourseListProps> = ({
     });
 
     Object.keys(cardRefs.current).forEach((unique_id) => {
-      if (!filteredCourses.find(course => course.id === unique_id)) {
+      if (!filteredCourses.find((course) => course.id === unique_id)) {
         delete cardRefs.current[unique_id];
       }
     });
@@ -82,8 +83,10 @@ export const DynamicCourseList: React.FC<DynamicCourseListProps> = ({
   useEffect(() => {
     if (!scrollToCourseId || !virtuosoRef.current) return;
 
-    const courseIndex = filteredCourses.findIndex(course => course.id === scrollToCourseId);
-    
+    const courseIndex = filteredCourses.findIndex(
+      (course) => course.id === scrollToCourseId
+    );
+
     if (courseIndex === -1) return;
 
     if (scrollTimeoutRef.current) {
@@ -94,15 +97,18 @@ export const DynamicCourseList: React.FC<DynamicCourseListProps> = ({
       setLastScrolledId(null);
     }
 
-    if (scrollToCourseId !== lastScrolledId || previousFilteredCoursesRef.current !== filteredCourses) {
+    if (
+      scrollToCourseId !== lastScrolledId ||
+      previousFilteredCoursesRef.current !== filteredCourses
+    ) {
       scrollTimeoutRef.current = setTimeout(() => {
         virtuosoRef.current?.scrollToIndex({
           index: courseIndex,
-          align: 'center',
-          behavior: 'smooth'
+          align: "center",
+          behavior: "smooth",
         });
         setLastScrolledId(scrollToCourseId);
-      }, 100); 
+      }, 100);
     }
 
     return () => {
@@ -112,9 +118,12 @@ export const DynamicCourseList: React.FC<DynamicCourseListProps> = ({
     };
   }, [scrollToCourseId, filteredCourses, lastScrolledId]);
 
-  const setCardRef = useCallback((courseId: string, element: HTMLDivElement | null) => {
-    cardRefs.current[courseId] = element;
-  }, []);
+  const setCardRef = useCallback(
+    (courseId: string, element: HTMLDivElement | null) => {
+      cardRefs.current[courseId] = element;
+    },
+    []
+  );
 
   const itemContent = useCallback(
     (index: number) => {
@@ -123,7 +132,7 @@ export const DynamicCourseList: React.FC<DynamicCourseListProps> = ({
       const isLastItem = index === filteredCourses.length - 1;
 
       return (
-        <ItemWrapper 
+        <ItemWrapper
           isLastItem={isLastItem}
           ref={(el) => setCardRef(course.id, el as HTMLDivElement)}
           data-course-id={course.id}
@@ -138,7 +147,13 @@ export const DynamicCourseList: React.FC<DynamicCourseListProps> = ({
         </ItemWrapper>
       );
     },
-    [filteredCourses, isSmallScreen, expandedCodesMap, handleExpandCard, setCardRef]
+    [
+      filteredCourses,
+      isSmallScreen,
+      expandedCodesMap,
+      handleExpandCard,
+      setCardRef,
+    ]
   );
 
   return (
@@ -148,7 +163,7 @@ export const DynamicCourseList: React.FC<DynamicCourseListProps> = ({
         style={{ height: "100%" }}
         totalCount={filteredCourses.length}
         itemContent={itemContent}
-        overscan={30}
+        overscan={15}
         computeItemKey={useCallback(
           (index) => filteredCourses[index].id,
           [filteredCourses]

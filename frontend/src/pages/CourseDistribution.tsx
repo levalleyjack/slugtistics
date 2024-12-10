@@ -11,7 +11,6 @@ import {
   Button,
   Paper,
   Stack,
-  CircularProgress,
   SelectChangeEvent,
   useTheme,
   useMediaQuery,
@@ -19,6 +18,7 @@ import {
   Fade,
   Skeleton,
 } from "@mui/material";
+
 import { Close as CloseIcon } from "@mui/icons-material";
 import { Bar } from "react-chartjs-2";
 import { useQuery } from "@tanstack/react-query";
@@ -234,6 +234,7 @@ export const CourseDistribution: React.FC<CourseDistributionProps> = ({
 
   const [term, setTerm] = useState<string>("All");
   const [showPercentage, setShowPercentage] = useState<boolean>(false);
+  const [selectedInstructor, setSelectedInstructor] = useState<string>(professorName);
 
   const { data: instructors = [], isLoading: isInstructorsLoading } = useQuery({
     queryKey: ["instructors", courseCode],
@@ -241,12 +242,10 @@ export const CourseDistribution: React.FC<CourseDistributionProps> = ({
     enabled: isOpen,
   });
 
-  const initialInstructor = useMemo(() => {
-    if (!instructors?.length) return professorName;
-    return instructors.includes(professorName) ? professorName : "All";
-  }, [instructors, professorName]);
-
-  const [instructor, setInstructor] = useState<string>(initialInstructor);
+  const instructor = useMemo(() => {
+    if (!instructors?.length) return "All";
+    return instructors.includes(selectedInstructor) ? selectedInstructor : "All";
+  }, [instructors, selectedInstructor]);
 
   const { data: distribution, isLoading: isDistributionLoading } = useQuery({
     queryKey: ["gradeDistribution", courseCode, instructor, term],
@@ -332,141 +331,139 @@ export const CourseDistribution: React.FC<CourseDistributionProps> = ({
 
   return (
     <StyledModal open={isOpen} onClose={onClose} closeAfterTransition={false}>
-      <Fade in={isOpen} timeout={{ enter: 300, exit: 0 }}>
-        <ModalContent>
-          <Box
+      <ModalContent>
+        <Box
+          sx={{
+            p: 2,
+            borderBottom: 1,
+            borderColor: "divider",
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+          }}
+        >
+          <Box>
+            <Typography variant="h5" fontWeight="bold">
+              {courseCode}
+            </Typography>
+            <Typography variant="body2" color="text.secondary">
+              {instructor === "All" ? "All Instructors" : instructor}
+            </Typography>
+          </Box>
+          <IconButton
+            onClick={onClose}
+            size="small"
             sx={{
-              p: 2,
-              borderBottom: 1,
-              borderColor: "divider",
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
+              borderRadius: "8px",
+              "&:hover": {
+                backgroundColor: theme.palette.action.hover,
+              },
             }}
           >
-            <Box>
-              <Typography variant="h5" fontWeight="bold">
-                {courseCode}
+            <CloseIcon />
+          </IconButton>
+        </Box>
+
+        <Fade in={!isLoading} timeout={300}>
+          <StatsBar>
+            <StatItem>
+              <Typography variant="h6" fontWeight="bold">
+                {isLoading ? <Skeleton width={40} /> : totalStudents}
               </Typography>
               <Typography variant="body2" color="text.secondary">
-                {instructor === "All" ? "All Instructors" : instructor}
+                students
               </Typography>
-            </Box>
-            <IconButton
-              onClick={onClose}
-              size="small"
-              sx={{
-                borderRadius: "8px",
-                "&:hover": {
-                  backgroundColor: theme.palette.action.hover,
-                },
-              }}
-            >
-              <CloseIcon />
-            </IconButton>
-          </Box>
+            </StatItem>
+            <StatItem>
+              <Typography variant="h6" fontWeight="bold">
+                {isLoading ? (
+                  <Skeleton width={40} />
+                ) : distribution ? (
+                  calculateGPA(distribution)
+                ) : (
+                  "N/A"
+                )}
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                GPA
+              </Typography>
+            </StatItem>
+            <StatItem>
+              <Typography variant="h6" fontWeight="bold">
+                {isLoading ? <Skeleton width={40} /> : instructors.length}
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                instructors
+              </Typography>
+            </StatItem>
+          </StatsBar>
+        </Fade>
 
-          <Fade in={!isLoading} timeout={300}>
-            <StatsBar>
-              <StatItem>
-                <Typography variant="h6" fontWeight="bold">
-                  {isLoading ? <Skeleton width={40} /> : totalStudents}
-                </Typography>
-                <Typography variant="body2" color="text.secondary">
-                  students
-                </Typography>
-              </StatItem>
-              <StatItem>
-                <Typography variant="h6" fontWeight="bold">
-                  {isLoading ? (
-                    <Skeleton width={40} />
-                  ) : distribution ? (
-                    calculateGPA(distribution)
-                  ) : (
-                    "N/A"
-                  )}
-                </Typography>
-                <Typography variant="body2" color="text.secondary">
-                  GPA
-                </Typography>
-              </StatItem>
-              <StatItem>
-                <Typography variant="h6" fontWeight="bold">
-                  {isLoading ? <Skeleton width={40} /> : instructors.length}
-                </Typography>
-                <Typography variant="body2" color="text.secondary">
-                  instructors
-                </Typography>
-              </StatItem>
-            </StatsBar>
-          </Fade>
-
-          <Box sx={{ p: 2, flexGrow: 1, overflow: "auto" }}>
-            {isLoading ? (
-              <LoadingSkeleton />
-            ) : (
-              <Fade in={!isLoading} timeout={300}>
-                <Box>
-                  <FilterContainer>
-                    <Stack
-                      direction={{ xs: "column", sm: "row" }}
-                      spacing={2}
-                      alignItems="center"
-                    >
-                      <StyledFormControl size="small">
-                        <InputLabel>Instructor</InputLabel>
-                        <Select
-                          value={instructor}
-                          label="Instructor"
-                          onChange={(e: SelectChangeEvent<string>) =>
-                            setInstructor(e.target.value)
-                          }
-                        >
-                          <MenuItem value="All">All Instructors</MenuItem>
-                          {instructors.map((inst) => (
-                            <MenuItem key={inst} value={inst}>
-                              {inst}
-                            </MenuItem>
-                          ))}
-                        </Select>
-                      </StyledFormControl>
-
-                      <StyledFormControl size="small">
-                        <InputLabel>Term</InputLabel>
-                        <Select
-                          value={term}
-                          label="Term"
-                          onChange={(e: SelectChangeEvent<string>) =>
-                            setTerm(e.target.value)
-                          }
-                        >
-                          <MenuItem value="All">All Terms</MenuItem>
-                          {quarters.map((quarter) => (
-                            <MenuItem key={quarter} value={quarter}>
-                              {quarter}
-                            </MenuItem>
-                          ))}
-                        </Select>
-                      </StyledFormControl>
-
-                      <StyledButton
-                        variant="contained"
-                        onClick={() => setShowPercentage((prev) => !prev)}
+        <Box sx={{ p: 2, flexGrow: 1, overflow: "auto" }}>
+          {isLoading ? (
+            <LoadingSkeleton />
+          ) : (
+            <Fade in={!isLoading} timeout={300}>
+              <Box>
+                <FilterContainer>
+                  <Stack
+                    direction={{ xs: "column", sm: "row" }}
+                    spacing={2}
+                    alignItems="center"
+                  >
+                    <StyledFormControl size="small">
+                      <InputLabel>Instructor</InputLabel>
+                      <Select
+                        value={instructor}
+                        label="Instructor"
+                        onChange={(e: SelectChangeEvent<string>) => 
+                          setSelectedInstructor(e.target.value)
+                        }
                       >
-                        Show {showPercentage ? "Count" : "Percentage"}
-                      </StyledButton>
-                    </Stack>
-                  </FilterContainer>
+                        <MenuItem value="All">All Instructors</MenuItem>
+                        {instructors.map((inst) => (
+                          <MenuItem key={inst} value={inst}>
+                            {inst}
+                          </MenuItem>
+                        ))}
+                      </Select>
+                    </StyledFormControl>
 
-                  <ChartContainer>
-                    <Bar data={chartData} options={chartOptions} />
-                  </ChartContainer>
-                </Box>
-              </Fade>
-            )}
-          </Box>
-        </ModalContent>
-      </Fade>
+                    <StyledFormControl size="small">
+                      <InputLabel>Term</InputLabel>
+                      <Select
+                        value={term}
+                        label="Term"
+                        onChange={(e: SelectChangeEvent<string>) =>
+                          setTerm(e.target.value)
+                        }
+                      >
+                        <MenuItem value="All">All Terms</MenuItem>
+                        {quarters.map((quarter) => (
+                          <MenuItem key={quarter} value={quarter}>
+                            {quarter}
+                          </MenuItem>
+                        ))}
+                      </Select>
+                    </StyledFormControl>
+
+                    <StyledButton
+                      variant="contained"
+                      onClick={() => setShowPercentage((prev) => !prev)}
+                    >
+                      Show {showPercentage ? "Count" : "Percentage"}
+                    </StyledButton>
+                  </Stack>
+                </FilterContainer>
+
+                <ChartContainer>
+                  <Bar data={chartData} options={chartOptions} />
+                </ChartContainer>
+              </Box>
+            </Fade>
+          )}
+        </Box>
+      </ModalContent>
     </StyledModal>
   );
 };

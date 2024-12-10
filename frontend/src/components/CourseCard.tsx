@@ -38,6 +38,7 @@ import { useTheme } from "@mui/material/styles";
 import {
   COLORS,
   Course,
+  CourseCode,
   DifficultyChipProps,
   getLetterGrade,
   GradeChipProps,
@@ -104,7 +105,7 @@ export const CourseCard = forwardRef<HTMLDivElement, CourseCardProps>(
             if (course.instructor === "Staff" && apiInstructor === "Staff") {
               return true;
             }
-
+            console;
             if (apiInstructor.includes(",")) {
               const [apiLastName] = apiInstructor.split(",");
               const courseLastName = course.instructor.split(" ").pop() || "";
@@ -275,8 +276,16 @@ export const CourseCard = forwardRef<HTMLDivElement, CourseCardProps>(
         <RatingsModal
           isOpen={isModalOpen}
           onClose={handleModalClose}
-          professorName={rmpData?.name || fullInstructorName}
-          currentClass={course_code.replace(" ", "")}
+          professorName={rmpData.name}
+          currentClass={
+            rmpData.course_codes.some(
+              (code: CourseCode) =>
+                code.courseName === course_code.replace(" ", "")
+            )
+              ? course_code.replace(" ", "")
+              : "all"
+          }
+          courseCodes={rmpData.course_codes}
         />
         <CourseDistribution
           courseCode={course_code}
