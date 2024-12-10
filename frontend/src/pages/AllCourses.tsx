@@ -8,6 +8,7 @@ import {
   styled,
   Drawer,
   Grid2,
+  Box,
 } from "@mui/material";
 import { useMediaQuery } from "@mui/material";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
@@ -24,6 +25,7 @@ import FilterDropdown from "../components/FilterDropdown";
 import GlobalSearch from "../components/GlobalSearchDropdownList";
 import { DynamicCourseList } from "./VirtualizedCourseList";
 import { useQuery } from "@tanstack/react-query";
+import { LoadingCourseCard } from "../components/LoadingCourseCard";
 
 const Root = styled("div")(({ theme }) => ({
   display: "flex",
@@ -169,7 +171,6 @@ const ControlsContainer = styled("div")(({ theme }) => ({
     rowGap: theme.spacing(1),
   },
 }));
-
 
 const ExpandButton = styled(Button)(({ theme }) => ({
   height: "36px",
@@ -677,7 +678,7 @@ const AllCourses = () => {
               </>
             ) : (
               <>
-               <ExpandButton
+                <ExpandButton
                   variant="contained"
                   color="primary"
                   onClick={handleExpandAll}
@@ -707,9 +708,11 @@ const AllCourses = () => {
         </HeaderContainer>
 
         {isFetchLoading ? (
-          <CenterContent>
-            <CircularProgress color="inherit" disableShrink />
-          </CenterContent>
+          <Box sx={{ p: 2, display: "flex", flexDirection: "column", gap: 2 }}>
+            {[1, 2, 3, 4, 5].map((i) => (
+              <LoadingCourseCard key={i} />
+            ))}
+          </Box>
         ) : filteredCourses?.length === 0 ? (
           <CenterContent>
             <NoResults color="textSecondary">

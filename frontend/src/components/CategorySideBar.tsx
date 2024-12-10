@@ -72,10 +72,7 @@ const CategoryItem: React.FC<CategoryItemProps> = memo(
     const isSmallScreen = useMediaQuery(theme.breakpoints.down("sm"));
     const isMediumScreen = useMediaQuery(theme.breakpoints.down("md"));
 
-    const displayText =
-      category.id !== "AnyGE"
-        ? `${category.id} - ${category.name}`
-        : "All Courses";
+    const displayText = `${category.id} - ${category.name}`;
 
     return (
       <StyledListItem

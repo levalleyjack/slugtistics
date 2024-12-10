@@ -18,6 +18,8 @@
   display: none !important;
 }
 
+
+
 /* Base Styles */
 body {
   font-family: var(--font-geist);
@@ -33,6 +35,8 @@ textarea,
   font-size: inherit;
 }
 
+
+
 input::placeholder,
 textarea::placeholder,
 .MuiInputBase-input::placeholder {
@@ -46,6 +50,33 @@ textarea::placeholder,
   font-family: var(--font-geist) !important;
   font-size: inherit;
 }
+
+/* Dropdown Styles */
+.MuiSelect-select,
+.MuiMenuItem-root {
+  font-family: var(--font-geist) !important;
+  font-size: 0.875rem !important;
+}
+
+
+.MuiSelect-icon {
+  color: #6b7280 !important;
+  right: 12px !important;
+}
+
+.MuiMenu-paper {
+  margin-top: 8px !important;
+  border-radius: 12px !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+
+}
+
+.MuiMenuItem-root {
+  padding: 12px 16px !important;
+  min-height: unset !important;
+}
+
+
 
 .container {
   display: flex;
