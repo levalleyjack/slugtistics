@@ -9,7 +9,7 @@ import {
 } from "@mui/material";
 import { useMediaQuery } from "@mui/material";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
-import { AnimatedArrowIcon, COLORS, Course } from "../Constants";
+import { AnimatedArrowIcon, COLORS, Course, PanelData } from "../Constants";
 import { useAllCourseData, useSessionStorage } from "./GetGEData";
 import { fetchLastUpdate } from "./FetchLastUpdate";
 import { CourseList } from "./VirtualizedCourseList";
@@ -128,10 +128,14 @@ const AllCourses = () => {
   const [expandedCodesMap, setExpandedCodesMap] = useState<
     Map<string, boolean>
   >(new Map());
-  const [panelData, setPanelData] = useState(null);
-  const [activePanel, setActivePanel] = useState<
+  const [panelData, setPanelData] = useSessionStorage<PanelData | null>(
+    "allPanelData",
+    null
+  );
+  const [activePanel, setActivePanel] = useSessionStorage<
     "distribution" | "ratings" | "courseDetails" | null
-  >(null);
+  >("allActivePanel", null);
+
   const [isOpen, setIsOpen] = useState(false);
 
   const handleDrawerToggle = () => {
@@ -228,6 +232,7 @@ const AllCourses = () => {
         setIsCategoriesVisible={setIsDrawerOpen}
         filteredCourses={filteredCourses}
         activePanel={activePanel}
+        isDistributionDrawer={isDistributionDrawer}
       />
       <CourseContainer>
         <SearchControls

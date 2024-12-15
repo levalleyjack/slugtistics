@@ -92,12 +92,15 @@ const GeSearch: React.FC = () => {
   );
   const isSmallScreen = useMediaQuery(theme.breakpoints.down("sm"));
 
-  // State management
   const [search, setSearch] = useState("");
-  const [panelData, setPanelData] = useState<PanelData | null>(null);
-  const [activePanel, setActivePanel] = useState<
+  const [panelData, setPanelData] = useSessionStorage<PanelData | null>(
+    "gePanelData",
+    null
+  );
+  const [activePanel, setActivePanel] = useSessionStorage<
     "distribution" | "ratings" | "courseDetails" | null
-  >(null);
+  >("geActivePanel", null);
+
   const [isOpen, setIsOpen] = useState(false);
   const [scrollToCourseId, setScrollToCourseId] = useState<string>();
   const [expandedCodesMap, setExpandedCodesMap] = useState(
@@ -105,7 +108,6 @@ const GeSearch: React.FC = () => {
   );
   const isAllExpanded = useRef(false);
 
-  // Session storage state
   const [sortBy, setSortBy] = useSessionStorage("sortBy", "DEFAULT");
   const [selectedGE, setSelectedGE] = useSessionStorage("selectedGE", "AnyGE");
   const [selectedClassTypes, setSelectedClassTypes] = useSessionStorage<
@@ -146,7 +148,6 @@ const GeSearch: React.FC = () => {
     [currentCourses]
   );
 
-  // Handlers
   const handleClearFilters = useCallback(() => {
     setSelectedEnrollmentStatuses([]);
     setSelectedSubjects([]);
@@ -179,7 +180,6 @@ const GeSearch: React.FC = () => {
     );
   }, [currentCourses]);
 
-  // Filtered courses computation
   const filteredCourses = useMemo(() => {
     const searchFiltered = filterCourses(currentCourses, search);
     return filterBySort(

@@ -11,13 +11,11 @@ import {
   Chip,
   Alert,
   Divider,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableRow,
   Tooltip,
   IconButton as MuiIconButton,
+  useTheme,
+  Grid,
+  useMediaQuery,
 } from "@mui/material";
 import {
   ArrowForward as ArrowForwardIcon,
@@ -28,50 +26,39 @@ import {
   Info as InfoIcon,
   Class as ClassIcon,
   CheckCircleOutline as CheckCircleOutlineIcon,
+  Schedule as ScheduleIcon,
+  LocationOn as LocationIcon,
+  People as PeopleIcon,
+  GradeRounded as GradeIcon,
+  Person as PersonIcon,
+  Warning as WarningIcon,
 } from "@mui/icons-material";
 import { useQuery } from "@tanstack/react-query";
-import { Course } from "../Constants";
-
-interface CourseDetailsProps {
-  course: Course;
-  onClose?: () => void;
-}
-
-interface DiscussionSection {
-  class_count: number;
-  class_status: string;
-  code: string;
-  enroll_num: number;
-  instructor: string;
-  location: string;
-  schedule: string;
-  wait_count: string;
-}
-
-interface CourseApiResponse {
-  data?: {
-    id: number;
-    description: string;
-    class_notes: string;
-    enrollment_reqs: string;
-    discussion_sections: DiscussionSection[];
-  };
-  success: boolean;
-  error?: string;
-  message?: string;
-}
+import {
+  ClassStatusEnum,
+  COLORS,
+  Course,
+  CourseApiResponse,
+  CourseDetailsProps,
+  getStatusColor,
+  GradientChipProps,
+  GradientType,
+} from "../Constants";
+import StatusIcon from "./StatusIcon";
 
 const ContentContainer = styled(Box)(({ theme }) => ({
   display: "flex",
   flexDirection: "column",
   height: "100%",
+  width: "100%",
   overflow: "hidden",
   backgroundColor: theme.palette.background.default,
+  maxWidth: "100%",
 }));
 
 const InfoSection = styled(Paper)(({ theme }) => ({
   borderRadius: "12px",
-  padding: theme.spacing(3),
+  padding: theme.spacing(2),
   marginBottom: theme.spacing(2),
   backgroundColor: theme.palette.background.paper,
   boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
@@ -81,64 +68,122 @@ const InfoSection = styled(Paper)(({ theme }) => ({
   },
 }));
 
+const gradientStyles = {
+  primary: "linear-gradient(45deg, #2196F3 30%, #21CBF3 90%)",
+  secondary: "linear-gradient(45deg, #9c27b0 30%, #d23ddf 90%)",
+  info: "linear-gradient(45deg, #00bcd4 30%, #00e5ff 90%)",
+  success: "linear-gradient(45deg, #4caf50 30%, #6fbf73 90%)",
+  error: "linear-gradient(45deg, #f44336 30%, #ff7961 90%)",
+  warning: "linear-gradient(45deg, #ff9800 30%, #ffc947 90%)"
+} as const;
+const StyledChip = styled(Chip)<{ gradientType: GradientType }>(
+  ({ gradientType }) => ({
+    background: gradientStyles[gradientType],
+    color: "white",
+    borderRadius: "8px",
+  })
+);
+const GradientChip: React.FC<GradientChipProps> = ({ gradientType, label }) => (
+  <StyledChip label={label} gradientType={gradientType} size="medium" />
+);
+
 const StatsChip = styled(Chip)(({ theme }) => ({
   borderRadius: "8px",
-  backgroundColor: theme.palette.primary.main,
-  color: theme.palette.primary.contrastText,
-  fontWeight: "bold",
-  padding: theme.spacing(0.5, 1),
+  height: "24px",
+  fontSize: "0.75rem",
   "& .MuiChip-label": {
-    padding: theme.spacing(0.5, 1),
+    padding: "0 8px",
+  },
+  [theme.breakpoints.up("sm")]: {
+    height: "28px",
+    fontSize: "0.8125rem",
   },
 }));
 
 const SectionHeader = styled(Typography)(({ theme }) => ({
-  fontSize: "1.1rem",
+  fontSize: "1rem",
   fontWeight: 600,
-  marginBottom: theme.spacing(2),
-  color: theme.palette.text.primary,
+  marginBottom: theme.spacing(1.5),
   display: "flex",
   alignItems: "center",
   gap: theme.spacing(1),
   "& svg": {
+    fontSize: "1.25rem",
     color: theme.palette.primary.main,
   },
+  [theme.breakpoints.up("sm")]: {
+    fontSize: "1.125rem",
+    marginBottom: theme.spacing(2),
+    "& svg": {
+      fontSize: "1.5rem",
+    },
+  },
 }));
-const DiscussionRow = styled(Box)(({ theme }) => ({
-  padding: theme.spacing(2),
-  borderRadius: theme.shape.borderRadius,
+
+const DiscussionRow = styled(Paper)(({ theme }) => ({
+  padding: theme.spacing(1.5),
+  borderRadius: "12px",
+  backgroundColor: theme.palette.background.default,
+  transition: "background-color 0.2s ease",
   "&:hover": {
     backgroundColor: theme.palette.action.hover,
   },
   "& + &": {
-    marginTop: theme.spacing(2),
+    marginTop: theme.spacing(1.5),
+  },
+  [theme.breakpoints.up("sm")]: {
+    padding: theme.spacing(2),
+    "& + &": {
+      marginTop: theme.spacing(2),
+    },
   },
 }));
 
-const ChipsContainer = styled(Stack)(({ theme }) => ({
-  flexDirection: "row",
-  flexWrap: "wrap",
+const EnrollmentStats = styled(Box)(({ theme }) => ({
+  display: "flex",
+  alignItems: "center",
   gap: theme.spacing(1),
-  marginTop: theme.spacing(2),
-  "& > *": {
-    margin: "0 !important", // Override default Stack spacing
+  padding: theme.spacing(1),
+  borderRadius: "8px",
+  backgroundColor: COLORS.GRAY_50,
+  fontSize: "0.875rem",
+  width: "fit-content",
+  [theme.breakpoints.up("sm")]: {
+    padding: theme.spacing(1.5),
+    fontSize: "1rem",
   },
 }));
 
 const DetailItem: React.FC<{
   label: string;
   value?: string | number | null;
-}> = ({ label, value }) => {
+  icon: React.ReactNode;
+}> = ({ label, value, icon }) => {
   if (!value) return null;
 
   return (
-    <Box sx={{ mb: 1.5 }}>
-      <Typography variant="subtitle2" color="text.secondary" gutterBottom>
-        {label}
-      </Typography>
-      <Typography variant="body1" sx={{ fontWeight: 500 }}>
-        {value}
-      </Typography>
+    <Box sx={{ mb: 1.5, display: "flex", alignItems: "flex-start", gap: 1.5 }}>
+      <Box sx={{ color: "primary.main", mt: 0.5 }}>{icon}</Box>
+      <Box sx={{ flex: 1, minWidth: 0 }}>
+        <Typography
+          variant="caption"
+          color="text.secondary"
+          display="block"
+          gutterBottom
+        >
+          {label}
+        </Typography>
+        <Typography
+          variant="body2"
+          sx={{
+            fontWeight: 500,
+            wordBreak: "break-word",
+            fontSize: { xs: "0.875rem", sm: "1rem" },
+          }}
+        >
+          {value}
+        </Typography>
+      </Box>
     </Box>
   );
 };
@@ -152,9 +197,7 @@ const CopyButton: React.FC<{ copyString: string; tooltip?: string }> = ({
   const handleCopy = () => {
     navigator.clipboard.writeText(copyString);
     setCopied(true);
-    setTimeout(() => {
-      setCopied(false);
-    }, 2000);
+    setTimeout(() => setCopied(false), 2000);
   };
 
   return (
@@ -163,10 +206,9 @@ const CopyButton: React.FC<{ copyString: string; tooltip?: string }> = ({
         size="small"
         onClick={handleCopy}
         sx={{
-          ml: 1,
-          color: copied ? "success.main" : "inherit",
-          transition: "color 0.2s ease",
+          p: 1,
           borderRadius: "8px",
+          color: copied ? "success.main" : "inherit",
         }}
       >
         {copied ? (
@@ -182,7 +224,11 @@ const CopyButton: React.FC<{ copyString: string; tooltip?: string }> = ({
 export const CourseDetailsPanel: React.FC<CourseDetailsProps> = ({
   course,
   onClose,
+  maxWidth = "100%",
 }) => {
+  const theme = useTheme();
+  const isSmall = useMediaQuery(theme.breakpoints.down("sm"));
+
   const {
     data: response,
     isLoading,
@@ -205,14 +251,10 @@ export const CourseDetailsPanel: React.FC<CourseDetailsProps> = ({
       );
 
       if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(
-          `Failed to fetch course details (${response.status}): ${errorText}`
-        );
+        throw new Error(`Failed to fetch course details (${response.status})`);
       }
 
       const data = await response.json();
-
       if (!data.success) {
         throw new Error(data.message || "Failed to fetch course details");
       }
@@ -226,99 +268,143 @@ export const CourseDetailsPanel: React.FC<CourseDetailsProps> = ({
   if (!course) {
     return (
       <ContentContainer>
-        <Box sx={{ p: 3 }}>
-          <Alert severity="error" variant="filled">
-            No course data provided
-          </Alert>
-        </Box>
+        <Alert severity="error" sx={{ m: 2 }}>
+          No course data provided
+        </Alert>
       </ContentContainer>
     );
   }
-
-  const LoadingSkeleton = () => (
-    <Stack spacing={3}>
-      {[1, 2, 3].map((i) => (
-        <Skeleton
-          key={i}
-          variant="rounded"
-          height={120}
-          sx={{
-            borderRadius: "12px",
-            opacity: 1 - i * 0.2,
-          }}
-        />
-      ))}
-    </Stack>
-  );
-
   const getValidChips = () => {
-    const chips = [];
-    if (course.credits) chips.push({ label: `${course.credits} Credits` });
-    if (course.career) chips.push({ label: course.career });
-    if (course.ge) chips.push({ label: `GE: ${course.ge}` });
-    if (course.class_status) chips.push({ label: course.class_status });
+    const chips: { label: string; gradientType: GradientType }[] = [];
+
+    if (course.credits) {
+      chips.push({
+        label: `${course.credits} Credits`,
+        gradientType: "primary",
+      });
+    }
+    if (course.ge) {
+      chips.push({ label: course.ge, gradientType: "secondary" });
+    }
+    if (course.career) {
+      chips.push({ label: course.career, gradientType: "info" });
+    }
+    if (course.class_status) {
+      chips.push({
+        label: course.class_status,
+        gradientType: course.class_status.toLowerCase().includes("open")
+          ? "success"
+          : course.class_status.toLowerCase().includes("wait list")
+          ? "warning"
+          : "error",
+      });
+    }
     return chips;
   };
 
   return (
-    <ContentContainer>
+    <ContentContainer sx={{ maxWidth }}>
       <Box
         sx={{
-          p: 3,
+          p: { xs: 1.5, sm: 2 },
           borderBottom: 1,
           borderColor: "divider",
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
           backgroundColor: "background.paper",
+          position: "sticky",
+          top: 0,
+          zIndex: 1,
         }}
       >
-        <Box>
-          <Typography variant="h5" fontWeight="bold" gutterBottom>
-            {course.subject} {course.catalog_num}
-            <CopyButton
-              copyString={String(course.enroll_num)}
-              tooltip="Copy course code"
-            />
-          </Typography>
-          {course.name && (
-            <Typography variant="subtitle1" color="text.secondary">
-              {course.name}
+        <Box
+          sx={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "flex-start",
+            gap: 1,
+          }}
+        >
+          <Box sx={{ flex: 1, minWidth: 0 }}>
+            <Typography
+              variant="h6"
+              sx={{
+                fontWeight: "bold",
+                fontSize: { xs: "1rem", sm: "1.25rem" },
+                wordBreak: "break-word",
+                display: "flex",
+                alignItems: "center",
+                gap: 0.5,
+              }}
+            >
+              {course.subject} {course.catalog_num}
+              <CopyButton
+                copyString={String(course.enroll_num)}
+                tooltip="Copy Enrollment Number"
+              />
             </Typography>
+            {course.name && (
+              <Typography
+                color="text.secondary"
+                sx={{
+                  mt: 0.5,
+                  fontSize: { xs: "0.875rem", sm: "1rem" },
+                  wordBreak: "break-word",
+                }}
+              >
+                {course.name}
+              </Typography>
+            )}
+          </Box>
+          {onClose && (
+            <IconButton
+              onClick={onClose}
+              size="small"
+              sx={{ borderRadius: "8px" }}
+            >
+              <ArrowForwardIcon />
+            </IconButton>
           )}
-          <ChipsContainer>
-            {getValidChips().map((chip, index) => (
-              <StatsChip key={index} label={chip.label} size="medium" />
-            ))}
-          </ChipsContainer>
         </Box>
-        {onClose && (
-          <IconButton
-            onClick={onClose}
-            size="medium"
-            sx={{
-              borderRadius: "12px",
-              "&:hover": {
-                backgroundColor: "action.hover",
-              },
-            }}
-          >
-            <ArrowForwardIcon />
-          </IconButton>
-        )}
+
+        <Stack direction="row" flexWrap="wrap" gap={1} sx={{ mt: 1.5 }}>
+          {getValidChips().map((chip, index) => (
+            <GradientChip
+              key={index}
+              label={chip.label}
+              gradientType={chip.gradientType}
+            />
+          ))}
+        </Stack>
       </Box>
 
-      <Box sx={{ p: 3, flexGrow: 1, overflow: "auto" }}>
+      <Box
+        sx={{
+          p: { xs: 1.5, sm: 2 },
+          flexGrow: 1,
+          overflow: "auto",
+          "& > *:last-child": {
+            mb: 0,
+          },
+        }}
+      >
         {isLoading ? (
-          <LoadingSkeleton />
+          <Stack spacing={2}>
+            {[1, 2, 3].map((i) => (
+              <Skeleton
+                key={i}
+                variant="rounded"
+                height={120}
+                sx={{ borderRadius: "12px" }}
+              />
+            ))}
+          </Stack>
         ) : isError ? (
-          <Alert severity="error" variant="filled" sx={{ mb: 3 }}>
+          <Alert severity="error" sx={{ mb: 2 }}>
             {error instanceof Error
               ? error.message
               : "Failed to load course details"}
           </Alert>
         ) : (
-          <Fade in={!isLoading} timeout={400}>
+          <Fade in={!isLoading}>
             <Stack spacing={3}>
               {response?.data?.enrollment_reqs && (
                 <InfoSection>
@@ -326,7 +412,7 @@ export const CourseDetailsPanel: React.FC<CourseDetailsProps> = ({
                     <AssignmentIcon />
                     Prerequisites & Requirements
                   </SectionHeader>
-                  <Typography variant="body1" sx={{ lineHeight: 1.7 }}>
+                  <Typography variant="body1" sx={{ lineHeight: 1.8 }}>
                     {response.data.enrollment_reqs}
                   </Typography>
                 </InfoSection>
@@ -338,8 +424,19 @@ export const CourseDetailsPanel: React.FC<CourseDetailsProps> = ({
                     <DescriptionIcon />
                     Description
                   </SectionHeader>
-                  <Typography variant="body1" sx={{ lineHeight: 1.7 }}>
+                  <Typography variant="body1" sx={{ lineHeight: 1.8 }}>
                     {response.data.description}
+                  </Typography>
+                </InfoSection>
+              )}
+              {response?.data?.class_notes && (
+                <InfoSection>
+                  <SectionHeader>
+                    <SchoolIcon />
+                    Class Notes
+                  </SectionHeader>
+                  <Typography variant="body1" sx={{ lineHeight: 1.8 }}>
+                    {response.data.class_notes}
                   </Typography>
                 </InfoSection>
               )}
@@ -349,43 +446,46 @@ export const CourseDetailsPanel: React.FC<CourseDetailsProps> = ({
                   <InfoIcon />
                   Course Information
                 </SectionHeader>
-                <Stack spacing={2} divider={<Divider flexItem />}>
-                  <DetailItem label="Instructor" value={course.instructor} />
-                  <DetailItem label="Schedule" value={course.schedule} />
-                  <DetailItem label="Location" value={course.location} />
-                  <DetailItem label="Class Type" value={course.class_type} />
+                <Stack spacing={3} divider={<Divider flexItem />}>
+                  <DetailItem
+                    label="Instructor"
+                    value={course.instructor}
+                    icon={<PersonIcon />}
+                  />
+                  <DetailItem
+                    label="Meeting Times"
+                    value={course.schedule}
+                    icon={<ScheduleIcon />}
+                  />
+                  <DetailItem
+                    label="Location"
+                    value={course.location}
+                    icon={<LocationIcon />}
+                  />
+                  <DetailItem
+                    label="Class Type"
+                    value={course.class_type}
+                    icon={<ClassIcon />}
+                  />
                   {course.gpa && (
                     <DetailItem
                       label="Average GPA"
                       value={course.gpa.toFixed(2)}
+                      icon={<GradeIcon />}
                     />
                   )}
-
                   <DetailItem
                     label="Enrolled Students"
                     value={course.class_count}
+                    icon={<PeopleIcon />}
                   />
-
-                 
-                    <DetailItem
-                      label="Grading Type"
-                      value={course.grading}
-                    />
-                
+                  <DetailItem
+                    label="Grading Type"
+                    value={course.grading}
+                    icon={<SchoolIcon />}
+                  />
                 </Stack>
               </InfoSection>
-
-              {response?.data?.class_notes && (
-                <InfoSection>
-                  <SectionHeader>
-                    <SchoolIcon />
-                    Class Notes
-                  </SectionHeader>
-                  <Typography variant="body1" sx={{ lineHeight: 1.7 }}>
-                    {response.data.class_notes}
-                  </Typography>
-                </InfoSection>
-              )}
 
               {response?.data?.discussion_sections &&
                 response.data.discussion_sections.length > 0 && (
@@ -397,84 +497,150 @@ export const CourseDetailsPanel: React.FC<CourseDetailsProps> = ({
                     <Stack spacing={2}>
                       {response.data.discussion_sections.map(
                         (section, index) => (
-                          <DiscussionRow key={index}>
+                          <DiscussionRow key={index} elevation={2}>
                             <Box
                               sx={{
                                 display: "flex",
-                                justifyContent: "space-between",
-                                mb: 1,
+                                flexDirection: { xs: "column", sm: "row" },
+                                gap: { xs: 1, sm: 2 },
+                                mb: 2,
                               }}
                             >
-                              <Typography
-                                variant="subtitle2"
-                                color="primary"
-                                sx={{ display: "flex", alignItems: "center" }}
-                              >
-                                Section {section.code}
-                                <CopyButton
-                                  copyString={section.enroll_num.toString()}
-                                  tooltip="Copy enrollment number"
-                                />
-                              </Typography>
-                              <Box sx={{ textAlign: "right" }}>
-                                <Typography
-                                  variant="body2"
-                                  sx={{
-                                    color: "text.secondary",
-                                    maxWidth: "40%",
-                                    textAlign: "right",
-                                  }}
-                                >
-                                  {section.instructor}
-                                </Typography>
-                              </Box>
-                            </Box>
-
-                            <Box
-                              sx={{
-                                display: "flex",
-                                justifyContent: "space-between",
-                                alignItems: "flex-start",
-                              }}
-                            >
-                              <Box>
-                                <Typography
-                                  variant="body2"
-                                  color="text.secondary"
-                                  sx={{ mb: 0.5 }}
-                                >
-                                  {section.schedule}
-                                </Typography>
-                                <Typography
-                                  variant="body2"
-                                  color="text.secondary"
-                                >
-                                  {section.location}
-                                </Typography>
-                              </Box>
                               <Box
                                 sx={{
                                   display: "flex",
-                                  flexDirection: "column",
-                                  alignItems: "flex-end",
+                                  alignItems: "center",
+                                  justifyContent: "space-between",
+                                  width: "100%",
                                 }}
                               >
-                                <Typography
-                                  variant="body2"
-                                  sx={{ fontWeight: 500 }}
+                                <Box
+                                  sx={{
+                                    display: "flex",
+                                    alignItems: "center",
+                                    gap: 1,
+                                  }}
                                 >
-                                  {section.class_count}
-                                </Typography>
-                                {section.wait_count && (
                                   <Typography
-                                    variant="caption"
-                                    color="warning.main"
+                                    variant="h6"
+                                    color="primary"
+                                    sx={{
+                                      display: "flex",
+                                      alignItems: "center",
+                                      fontSize: { xs: "1rem", sm: "1.25rem" },
+                                    }}
                                   >
-                                    ({section.wait_count} waitlisted)
+                                    {section.code}
                                   </Typography>
-                                )}
+                                  <CopyButton
+                                    copyString={section.enroll_num.toString()}
+                                    tooltip="Copy Enrollment Number"
+                                  />
+                                </Box>
+                                <Chip
+                                  icon={
+                                    <StatusIcon status={section.class_status} />
+                                  }
+                                  label={section.class_status}
+                                  size="small"
+                                  variant="outlined"
+                                  sx={{
+                                    color: getStatusColor(section.class_status),
+                                    fontWeight: 500,
+                                    "& .MuiChip-icon": {
+                                      marginLeft: "8px",
+                                    },
+                                    backgroundColor: "transparent",
+                                    border: "none",
+                                    height: 24,
+                                    marginLeft: "auto",
+                                  }}
+                                />
                               </Box>
                             </Box>
+
+                            <Grid container spacing={2}>
+                              <Grid item xs={12} md={6}>
+                                <Stack spacing={1.5}>
+                                  <Box
+                                    sx={{
+                                      display: "flex",
+                                      gap: 1.5,
+                                      alignItems: "center",
+                                    }}
+                                  >
+                                    <PersonIcon color="primary" />
+                                    <Typography variant="body1">
+                                      {section.instructor}
+                                    </Typography>
+                                  </Box>
+                                  <Box
+                                    sx={{
+                                      display: "flex",
+                                      gap: 1.5,
+                                      alignItems: "center",
+                                    }}
+                                  >
+                                    <ScheduleIcon color="primary" />
+                                    <Typography variant="body1">
+                                      {section.schedule}
+                                    </Typography>
+                                  </Box>
+                                  <Box
+                                    sx={{
+                                      display: "flex",
+                                      gap: 1.5,
+                                      alignItems: "center",
+                                    }}
+                                  >
+                                    <LocationIcon color="primary" />
+                                    <Typography variant="body1">
+                                      {section.location}
+                                    </Typography>
+                                  </Box>
+                                </Stack>
+                              </Grid>
+                              <Grid item xs={12} md={6}>
+                                <Box
+                                  sx={{
+                                    display: "flex",
+                                    flexDirection: "column",
+                                    gap: 1.5,
+                                    height: "100%",
+                                    justifyContent: "center",
+                                  }}
+                                >
+                                  <EnrollmentStats>
+                                    <PeopleIcon color="primary" />
+                                    <Typography
+                                      variant="body1"
+                                      sx={{ fontWeight: 500 }}
+                                    >
+                                      {section.class_count} enrolled
+                                    </Typography>
+                                  </EnrollmentStats>
+
+                                  {section.wait_count &&
+                                    parseInt(section.wait_count) > 0 && (
+                                      <EnrollmentStats
+                                        sx={{
+                                          backgroundColor:
+                                            theme.palette.warning.light + "20",
+                                          color: theme.palette.warning.dark,
+                                        }}
+                                      >
+                                        <WarningIcon color="warning" />
+                                        <Typography
+                                          variant="body1"
+                                          sx={{ fontWeight: 500 }}
+                                        >
+                                          {section.wait_count} waitlisted
+                                        </Typography>
+                                      </EnrollmentStats>
+                                    )}
+                                </Box>
+                              </Grid>
+                            </Grid>
                           </DiscussionRow>
                         )
                       )}

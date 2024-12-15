@@ -1,34 +1,11 @@
 import React from "react";
 import { Box, IconButton, styled } from "@mui/material";
-import { AnimatedArrowIcon, COLORS } from "../Constants";
+import { AnimatedArrowIcon, COLORS, SearchControlsProps } from "../Constants";
 import GlobalSearch from "./GlobalSearchDropdownList";
 import ExpandButton from "./ExpandButton";
 import FilterDropdown from "./FilterDropdown";
 
-interface SearchControlsProps {
-  isSmallScreen: boolean;
-  isCategoryDrawer: boolean;
-  handleCategoryToggle: () => void;
-  isCategoriesVisible: boolean;
-  courses: any;
-  handleGlobalCourseSelect: (courseId: string, category?: string) => void;
-  selectedGE: string;
-  isAllExpanded: boolean;
-  handleExpandAll: () => void;
-  codes: string[];
-  GEs: string[];
-  sortBy: string;
-  setSortBy: (sort: string) => void;
-  selectedClassTypes: string[];
-  setSelectedClassTypes: (types: string[]) => void;
-  selectedSubjects: string[];
-  setSelectedSubjects: (subjects: string[]) => void;
-  selectedEnrollmentStatuses: string[];
-  setSelectedEnrollmentStatuses: (statuses: string[]) => void;
-  selectedGEs: string[];
-  setSelectedGEs: (ges: string[]) => void;
-  lastUpdated: string;
-}
+
 
 const HeaderContainer = styled("div")(({ theme }) => ({
   display: "flex",

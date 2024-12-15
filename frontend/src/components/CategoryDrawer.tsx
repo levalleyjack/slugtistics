@@ -13,26 +13,9 @@ import {
   useTheme,
 } from "@mui/material";
 import { styled } from "@mui/material/styles";
-import { categories, CategoryDrawerProps, COLORS } from "../Constants";
+import { categories, CategoryDrawerProps, CategoryItemProps, CategorySidebarProps, COLORS } from "../Constants";
 import { ArrowForward } from "@mui/icons-material";
 
-interface Category {
-  id: string;
-  name?: string;
-  icon: React.ReactNode;
-}
-
-interface CategoryItemProps {
-  category: Category;
-  isSelected: boolean;
-  onSelect: (id: string) => void;
-}
-
-interface CategorySidebarProps {
-  selectedCategory: string;
-  onCategorySelect: (id: string) => void;
-  isOpen?: boolean;
-}
 
 const StyledListItem = styled(ListItem)(({ theme }) => ({
   borderRadius: "8px",
@@ -79,7 +62,6 @@ const DrawerHeader = styled(Box)(({ theme }) => ({
   borderBottom: `1px solid ${theme.palette.divider}`,
   backgroundColor: COLORS.WHITE,
 }));
-
 
 const HoverTrigger = styled(Box)(({ theme }) => ({
   position: "fixed",
@@ -247,7 +229,7 @@ const CategoryDrawer = ({
         anchor="left"
         open={
           (isOpen || isCategoriesVisible) &&
-          (isDistributionDrawer ? !Boolean(activePanel) : true)
+          (!isDistributionDrawer || !activePanel)
         }
         onClose={handleClose}
         SlideProps={{

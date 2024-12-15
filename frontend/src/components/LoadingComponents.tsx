@@ -1,9 +1,7 @@
 import { Box, Card, Fade, Skeleton, styled } from "@mui/material";
+import { LoadingSkeletonProps } from "../Constants";
 
-interface LoadingSkeletonProps {
-  courseCodes: Array<{ courseName: string; courseCount: number }>;
-  filterBy: string;
-}
+
 
 const StyledCard = styled(Card)(({ theme }) => ({
   border: `1px solid ${theme.palette.divider}`,

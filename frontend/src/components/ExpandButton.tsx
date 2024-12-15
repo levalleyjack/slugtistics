@@ -1,19 +1,8 @@
 import React from "react";
 import { Button, styled } from "@mui/material";
-import { StyledExpandIcon } from "../Constants";
+import { ExpandButtonProps, StyledButtonProps, StyledExpandIcon } from "../Constants";
 
-//Types
-interface ExpandButtonProps {
-  isExpanded: boolean;
-  onToggle: () => void;
-  fullWidth?: boolean;
-}
 
-interface StyledButtonProps {
-  fullWidth?: boolean;
-}
-
-//Styles
 const StyledButton = styled(Button, {
   shouldForwardProp: (prop) => prop !== "fullWidth",
 })<StyledButtonProps>(({ theme, fullWidth }) => ({

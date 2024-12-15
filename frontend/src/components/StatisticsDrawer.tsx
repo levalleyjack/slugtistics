@@ -8,7 +8,7 @@ import {
   IconButton,
 } from "@mui/material";
 import MenuIcon from "@mui/icons-material/Menu";
-import { Course } from "../Constants";
+import { Course, StatisticsDrawerProps } from "../Constants";
 import { ArrowForward } from "@mui/icons-material";
 
 const StatisticsCard = styled("div")(({ theme }) => ({
@@ -64,15 +64,7 @@ const StatisticsContent = styled(Box)(({ theme }) => ({
   },
 }));
 
-interface StatisticsDrawerProps {
-  isOpen: boolean;
-  isCategoriesVisible: boolean;
-  isMediumScreen: boolean;
-  setIsOpen: (open: boolean) => void;
-  setIsCategoriesVisible: (visible: boolean) => void;
-  filteredCourses: Course[];
-  activePanel: string | null;
-}
+
 
 const StatisticsDrawer = ({
   isOpen,
@@ -82,6 +74,7 @@ const StatisticsDrawer = ({
   setIsCategoriesVisible,
   filteredCourses,
   activePanel,
+  isDistributionDrawer,
 }: StatisticsDrawerProps) => {
   const timeoutRef = useRef<NodeJS.Timeout>();
   const theme = useTheme();
@@ -174,10 +167,8 @@ const StatisticsDrawer = ({
       <Drawer
         variant={variant}
         anchor="left"
-        open={
-          (isOpen || isCategoriesVisible) &&
-          (activePanel ? !Boolean(activePanel) : true)
-        }
+        open={(isOpen || isCategoriesVisible) && (!isDistributionDrawer || !activePanel)}
+
         onClose={handleClose}
         SlideProps={{
           onMouseEnter: handleMouseEnter,
@@ -206,8 +197,13 @@ const StatisticsDrawer = ({
             Course Statistics
           </Typography>
           {isMediumScreen && (
-            <IconButton edge="end" onClick={handleClose} size="small" sx={{ borderRadius: "8px" }}>
-              <ArrowForward  />
+            <IconButton
+              edge="end"
+              onClick={handleClose}
+              size="small"
+              sx={{ borderRadius: "8px" }}
+            >
+              <ArrowForward />
             </IconButton>
           )}
         </DrawerHeader>

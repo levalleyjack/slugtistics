@@ -18,16 +18,10 @@ import {
 } from "@mui/material";
 import SearchIcon from "@mui/icons-material/Search";
 import React, { useState, useMemo, useRef } from "react";
-import { COLORS, Course } from "../Constants";
+import { COLORS, Course, getStatusColor, GlobalSearchDropdownProps } from "../Constants";
 import StatusIcon from "./StatusIcon";
 
-interface Props {
-  courses: Course[] | Record<string, Course[]>;
-  onCourseSelect: (courseId: string, category?: string) => void;
-  selectedGE?: string;
-  lastUpdated: string;
-  isSmallScreen: boolean;
-}
+
 
 const StyledPopper = styled(Popper)(({ theme }) => ({
   width: 400,
@@ -102,7 +96,7 @@ const GlobalSearch = ({
   selectedGE,
   lastUpdated,
   isSmallScreen,
-}: Props) => {
+}: GlobalSearchDropdownProps) => {
   const [search, setSearch] = useState("");
   const [isSearching, setIsSearching] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
@@ -251,18 +245,6 @@ const GlobalSearch = ({
     setSearch("");
   };
 
-  const getStatusColor = (status: string) => {
-    switch (status.toLowerCase()) {
-      case "open":
-        return theme.palette.success.main;
-      case "closed":
-        return theme.palette.error.main;
-      case "waitlist":
-        return theme.palette.warning.main;
-      default:
-        return theme.palette.text.secondary;
-    }
-  };
 
   const CourseListItem = ({ course }: { course: Course }) => (
     <StyledListItem

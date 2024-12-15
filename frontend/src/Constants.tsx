@@ -12,7 +12,7 @@ import VolunteerActivismIcon from "@mui/icons-material/VolunteerActivism";
 import AppsIcon from "@mui/icons-material/Apps";
 import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
 import BookIcon from "@mui/icons-material/Book";
-import { ChipProps, styled } from "@mui/material";
+import { ChipProps, styled, useTheme } from "@mui/material";
 import Diversity2Icon from "@mui/icons-material/Diversity2";
 import HandshakeIcon from "@mui/icons-material/Handshake";
 import Diversity3Icon from "@mui/icons-material/Diversity3";
@@ -67,15 +67,22 @@ export interface Course {
   ge_category: string;
   credits: string;
   career: string;
-  grading:string;
+  grading: string;
 }
-export interface CourseDistributionProps {
-  courseCode: string;
-  professorName?: string;
-  isOpen?: boolean;
-  onClose?: (e: React.MouseEvent) => void;
-  inPanel?: boolean;
-}
+export const getStatusColor = (status: string) => {
+  const theme = useTheme();
+
+  switch (status.toLowerCase()) {
+    case "open":
+      return theme.palette.success.main;
+    case "closed":
+      return theme.palette.error.main;
+    case "wait list":
+      return theme.palette.warning.main;
+    default:
+      return theme.palette.text.secondary;
+  }
+};
 
 export interface PanelData {
   courseCode?: string;
@@ -172,12 +179,183 @@ interface AnimatedArrowIconProps {
   isSmallScreen: boolean;
   sx?: object;
 }
+export interface CourseDetailsProps {
+  course: Course;
+  onClose?: () => void;
+  maxWidth?: string | number;
+}
+
+export interface DiscussionSection {
+  class_count: number;
+  class_status: ClassStatusEnum;
+  code: string;
+  enroll_num: number;
+  instructor: string;
+  location: string;
+  schedule: string;
+  wait_count: string;
+}
+export interface FilterDropdownProps {
+  codes: string[];
+  selectedSubjects: string[];
+  GEs: string[];
+  sortBy: string;
+  selectedGEs: string[];
+  selectedClassTypes: string[];
+  selectedEnrollmentStatuses: string[];
+  onSortBy: (value: string) => void;
+  onSelectedSubjectsChange: (value: string[]) => void;
+  onClassTypesChange: (value: string[]) => void;
+  onEnrollmentStatusesChange: (value: string[]) => void;
+  onSelectedGEs: (value: string[]) => void;
+}
+export interface ExpandButtonProps {
+  isExpanded: boolean;
+  onToggle: () => void;
+  fullWidth?: boolean;
+}
+
+export interface StyledButtonProps {
+  fullWidth?: boolean;
+}
+export type GradientType =
+  | "primary"
+  | "secondary"
+  | "info"
+  | "success"
+  | "warning"
+  | "error";
+export interface GradientChipProps {
+  gradientType: GradientType;
+  label: string;
+}
+export interface CourseApiResponse {
+  data?: {
+    id: number;
+    description: string;
+    class_notes: string;
+    enrollment_reqs: string;
+    discussion_sections: DiscussionSection[];
+  };
+  success: boolean;
+  error?: string;
+  message?: string;
+}
+export interface CourseCardProps {
+  course: Course;
+  isSmallScreen: boolean;
+  expanded: boolean;
+  onExpandChange: (courseCode: string) => void;
+  setSelectedGE?: (category: string) => void;
+  onDistributionOpen: (courseCode: string, professorName: string) => void;
+  onRatingsOpen: (
+    professorName: string,
+    courseCode: string,
+    courseCodes: CourseCode[]
+  ) => void;
+  onCourseDetailsOpen: (course: Course) => void;
+}
 
 export interface CourseCode {
   courseCount: number;
   courseName: string;
 }
+export interface LoadingSkeletonProps {
+  courseCodes: Array<{ courseName: string; courseCount: number }>;
+  filterBy: string;
+}
+export interface PanelDrawerProps {
+  activePanel: "distribution" | "ratings" | "courseDetails" | null;
+  panelData: any;
+  isDistributionDrawer: boolean;
+  isSmallScreen: boolean;
+  onClose: () => void;
+}
+export interface CourseDistributionProps {
+  courseCode: string;
+  professorName?: string;
+  isOpen?: boolean;
+  onClose?: (e: React.MouseEvent) => void;
+  inPanel?: boolean;
+}
 
+export interface GradeDistribution {
+  [key: string]: number;
+}
+
+export interface ChartData {
+  labels: string[];
+  datasets: {
+    label: string;
+    data: number[];
+    backgroundColor: string;
+    borderRadius: number;
+  }[];
+}
+
+export interface distributionAPIResponse {
+  [key: string]: number;
+}
+export interface StatisticsDrawerProps {
+  isOpen: boolean;
+  isCategoriesVisible: boolean;
+  isMediumScreen: boolean;
+  setIsOpen: (open: boolean) => void;
+  setIsCategoriesVisible: (visible: boolean) => void;
+  filteredCourses: Course[];
+  activePanel: string | null;
+  isDistributionDrawer: boolean;
+}
+export interface SearchControlsProps {
+  isSmallScreen: boolean;
+  isCategoryDrawer: boolean;
+  handleCategoryToggle: () => void;
+  isCategoriesVisible: boolean;
+  courses: any;
+  handleGlobalCourseSelect: (courseId: string, category?: string) => void;
+  selectedGE: string;
+  isAllExpanded: boolean;
+  handleExpandAll: () => void;
+  codes: string[];
+  GEs: string[];
+  sortBy: string;
+  setSortBy: (sort: string) => void;
+  selectedClassTypes: string[];
+  setSelectedClassTypes: (types: string[]) => void;
+  selectedSubjects: string[];
+  setSelectedSubjects: (subjects: string[]) => void;
+  selectedEnrollmentStatuses: string[];
+  setSelectedEnrollmentStatuses: (statuses: string[]) => void;
+  selectedGEs: string[];
+  setSelectedGEs: (ges: string[]) => void;
+  lastUpdated: string;
+}
+export interface RatingsPanelProps {
+  professorName: string;
+  currentClass: string;
+  courseCodes: Array<{ courseName: string; courseCount: number }>;
+  onClose?: () => void;
+}
+
+export interface RatingCardProps {
+  overallRating: number;
+  difficultyRating: number;
+  getRatingColor: (score: number, type?: "difficulty" | "rating") => string;
+}
+export const classTypeOptions = [
+  "In Person",
+  "Hybrid",
+  "Synchronous Online",
+  "Asynchronous Online",
+];
+export const enrollmentStatusOptions = ["Open", "Wait List", "Closed"];
+export interface GlobalSearchDropdownProps {
+  courses: Course[] | Record<string, Course[]>;
+  onCourseSelect: (courseId: string, category?: string) => void;
+  selectedGE?: string;
+  lastUpdated: string;
+  isSmallScreen: boolean;
+}
 export const categories = [
   { id: "AnyGE", name: "All Courses", icon: <AppsIcon /> },
   { id: "C", name: "Composition", icon: <BookIcon /> },

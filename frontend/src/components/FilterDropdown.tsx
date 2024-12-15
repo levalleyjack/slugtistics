@@ -31,7 +31,7 @@ import LockIcon from "@mui/icons-material/Lock";
 import ComputerIcon from "@mui/icons-material/Computer";
 import SchoolIcon from "@mui/icons-material/School";
 import CategoryIcon from "@mui/icons-material/Category";
-import { StyledExpandIcon } from "../Constants";
+import { classTypeOptions, enrollmentStatusOptions, FilterDropdownProps, StyledExpandIcon } from "../Constants";
 
 const StyledFormControl = styled(FormControl)(({ theme }) => ({
   width: "100%",
@@ -177,28 +177,8 @@ const MenuProps: SelectProps["MenuProps"] = {
   variant: "menu",
 };
 
-const classTypeOptions = [
-  "In Person",
-  "Hybrid",
-  "Synchronous Online",
-  "Asynchronous Online",
-];
-const enrollmentStatusOptions = ["Open", "Wait List", "Closed"];
 
-interface FilterDropdownProps {
-  codes: string[];
-  selectedSubjects: string[];
-  GEs: string[];
-  sortBy: string;
-  selectedGEs: string[];
-  selectedClassTypes: string[];
-  selectedEnrollmentStatuses: string[];
-  onSortBy: (value: string) => void;
-  onSelectedSubjectsChange: (value: string[]) => void;
-  onClassTypesChange: (value: string[]) => void;
-  onEnrollmentStatusesChange: (value: string[]) => void;
-  onSelectedGEs: (value: string[]) => void;
-}
+
 
 const FilterDropdown: React.FC<FilterDropdownProps> = ({
   codes,
