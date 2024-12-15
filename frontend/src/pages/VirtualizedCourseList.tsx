@@ -1,9 +1,10 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { Virtuoso } from "react-virtuoso";
-import { styled } from "@mui/material";
+import { Box, styled, Typography } from "@mui/material";
 import { CourseCard } from "../components/CourseCard";
-import { Course } from "../Constants";
-
+import { COLORS, Course, CourseCode } from "../Constants";
+import { LoadingCourseCard } from "../components/LoadingComponents";
+import SentimentVeryDissatisfiedIcon from "@mui/icons-material/SentimentVeryDissatisfied";
 interface CardRefs {
   [key: string]: HTMLDivElement | null;
 }
@@ -15,13 +16,32 @@ interface DynamicCourseListProps {
   handleExpandCard: (courseId: string) => void;
   scrollToCourseId?: string;
   setSelectedGE?: (category: string) => void;
+  onDistributionOpen: (courseCode: string, professorName: string) => void;
+  onRatingsOpen: (
+    professorName: string,
+    courseCode: string,
+    courseCodes: CourseCode[]
+  ) => void;
+  onCourseDetailsOpen: (course: Course) => void;
 }
 
 const ListWrapper = styled("div")({
   height: "100%",
   width: "100%",
 });
-
+const CenterContent = styled("div")({
+  display: "flex",
+  justifyContent: "center",
+  alignItems: "center",
+  height: "100%",
+  width: "100%",
+});
+const NoResults = styled(Typography)(({ theme }) => ({
+  display: "flex",
+  alignItems: "center",
+  gap: theme.spacing(1),
+  color: COLORS.GRAY_400,
+}));
 const ItemWrapper = styled("div")<{ isLastItem?: boolean }>(
   ({ theme, isLastItem }) => ({
     padding: "16px",
@@ -55,6 +75,9 @@ export const DynamicCourseList: React.FC<DynamicCourseListProps> = ({
   handleExpandCard,
   scrollToCourseId,
   setSelectedGE,
+  onDistributionOpen,
+  onRatingsOpen,
+  onCourseDetailsOpen,
 }) => {
   const cardRefs = useRef<CardRefs>({});
   const virtuosoRef = useRef<any>(null);
@@ -130,6 +153,7 @@ export const DynamicCourseList: React.FC<DynamicCourseListProps> = ({
       const course = filteredCourses[index];
       const isExpanded = expandedCodesMap.get(course.id);
       const isLastItem = index === filteredCourses.length - 1;
+      const isFirstItem = index === 0;
 
       return (
         <ItemWrapper
@@ -142,7 +166,10 @@ export const DynamicCourseList: React.FC<DynamicCourseListProps> = ({
             isSmallScreen={isSmallScreen}
             expanded={!!isExpanded}
             onExpandChange={() => handleExpandCard(course.id)}
-            setSelectedGE={setSelectedGE}
+            {...(setSelectedGE ? { setSelectedGE } : {})} // Conditionally add setSelectedGE
+            onDistributionOpen={onDistributionOpen}
+            onRatingsOpen={onRatingsOpen}
+            onCourseDetailsOpen={onCourseDetailsOpen}
           />
         </ItemWrapper>
       );
@@ -170,5 +197,89 @@ export const DynamicCourseList: React.FC<DynamicCourseListProps> = ({
         )}
       />
     </ListWrapper>
+  );
+};
+
+interface CourseListProps {
+  isFetchLoading: boolean;
+  filteredCourses: Course[];
+  isSmallScreen: boolean;
+  expandedCodesMap: Map<string, boolean>;
+  setExpandedCodesMap: (value: Map<string, boolean>) => void;
+  scrollToCourseId?: string;
+  selectedGE: string;
+  setSelectedGE: (ge: string) => void;
+  setPanelData: (data: any) => void;
+  setActivePanel: (
+    panel: "distribution" | "ratings" | "courseDetails" | null
+  ) => void;
+  handleClearFilters: () => void;
+}
+
+export const CourseList: React.FC<CourseListProps> = ({
+  isFetchLoading,
+  filteredCourses,
+  isSmallScreen,
+  expandedCodesMap,
+  setExpandedCodesMap,
+  scrollToCourseId,
+  selectedGE,
+  setSelectedGE,
+  setPanelData,
+  setActivePanel,
+  handleClearFilters,
+}) => {
+  if (isFetchLoading) {
+    return (
+      <Box sx={{ p: 0 }}>
+        {Array.from({ length: 5 }).map((_, i) => (
+          <LoadingCourseCard key={i} />
+        ))}
+      </Box>
+    );
+  }
+
+  if (!filteredCourses?.length) {
+    return (
+      <CenterContent>
+        <NoResults>
+          No courses found <SentimentVeryDissatisfiedIcon />
+          <Box
+            component="span"
+            sx={{ cursor: "pointer", textDecoration: "underline" }}
+            onClick={handleClearFilters}
+          >
+            Clear Filters
+          </Box>
+        </NoResults>
+      </CenterContent>
+    );
+  }
+
+  return (
+    <DynamicCourseList
+      filteredCourses={filteredCourses}
+      isSmallScreen={isSmallScreen}
+      expandedCodesMap={expandedCodesMap}
+      handleExpandCard={(id) =>
+        setExpandedCodesMap(
+          new Map(expandedCodesMap.set(id, !expandedCodesMap.get(id)))
+        )
+      }
+      scrollToCourseId={scrollToCourseId}
+      {...(selectedGE === "AnyGE" && { setSelectedGE })}
+      onDistributionOpen={(courseCode, professorName) => {
+        setPanelData({ courseCode, professorName });
+        setActivePanel("distribution");
+      }}
+      onRatingsOpen={(professorName, currentClass, courseCodes) => {
+        setPanelData({ professorName, currentClass, courseCodes });
+        setActivePanel("ratings");
+      }}
+      onCourseDetailsOpen={(course) => {
+        setPanelData(course);
+        setActivePanel("courseDetails");
+      }}
+    />
   );
 };

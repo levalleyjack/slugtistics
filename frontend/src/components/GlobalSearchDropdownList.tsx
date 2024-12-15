@@ -289,15 +289,17 @@ const GlobalSearch = ({
                 color: getStatusColor(course.class_status),
                 fontWeight: 500,
               }}
-            ></Typography>
+            >
+              {course.class_status}
+            </Typography>
           </div>
         }
         secondary={
           <>
-            <Typography variant="body2" color="textPrimary">
+            <Typography variant="body2" color="textPrimary" component="div">
               {course.name}
             </Typography>
-            <Typography variant="caption" color="textSecondary">
+            <Typography variant="caption" color="textSecondary" component="div">
               {course.instructor} • {course.class_type}
             </Typography>
           </>
@@ -305,7 +307,6 @@ const GlobalSearch = ({
       />
     </StyledListItem>
   );
-
   return (
     <SearchWrapper>
       <ClickAwayListener onClickAway={() => setIsOpen(false)}>
