@@ -17,12 +17,15 @@ import {
   ListItemText,
   Stack,
 } from "@mui/material";
+import CancelOutlinedIcon from "@mui/icons-material/CancelOutlined";
+import WarningAmberIcon from "@mui/icons-material/WarningAmber";
 import RateReviewIcon from "@mui/icons-material/RateReview";
 import CancelIcon from "@mui/icons-material/Cancel";
 import EqualizerIcon from "@mui/icons-material/Equalizer";
 import Grid from "@mui/material/Grid";
 import ShoppingCartIcon from "@mui/icons-material/ShoppingCart";
 import LocationOnIcon from "@mui/icons-material/LocationOn";
+import RefreshIcon from "@mui/icons-material/Refresh";
 import {
   ContentCopy as ContentCopyIcon,
   CheckCircleOutline as CheckCircleOutlineIcon,
@@ -33,6 +36,8 @@ import {
   Star as StarIcon,
   MoreVert as MoreVertIcon,
   OpenInNew as OpenInNewIcon,
+  School as SchoolIcon,
+  CreditCard as CreditCardIcon,
 } from "@mui/icons-material";
 import { useTheme } from "@mui/material/styles";
 import {
@@ -44,11 +49,8 @@ import {
   GradeChipProps,
   StyledExpandIcon,
 } from "../Constants";
-import { RatingsModal } from "./RatingsModal";
 import StatusIcon from "./StatusIcon";
 import { useQuery } from "@tanstack/react-query";
-import RefreshIcon from "@mui/icons-material/Refresh";
-import { CourseDistribution } from "../pages/CourseDistribution";
 
 interface CourseCardProps {
   course: Course;
@@ -56,6 +58,13 @@ interface CourseCardProps {
   expanded: boolean;
   onExpandChange: (courseCode: string) => void;
   setSelectedGE?: (category: string) => void;
+  onDistributionOpen: (courseCode: string, professorName: string) => void;
+  onRatingsOpen: (
+    professorName: string,
+    courseCode: string,
+    courseCodes: CourseCode[]
+  ) => void;
+  onCourseDetailsOpen: (course:Course) => void;
 }
 
 export const CourseCard = forwardRef<HTMLDivElement, CourseCardProps>(
@@ -66,13 +75,14 @@ export const CourseCard = forwardRef<HTMLDivElement, CourseCardProps>(
       expanded,
       onExpandChange,
       setSelectedGE,
-    }: CourseCardProps,
+      onDistributionOpen,
+      onRatingsOpen,
+      onCourseDetailsOpen,
+    },
     ref
   ) => {
     const [copied, setCopied] = useState(false);
-    const [isModalOpen, setIsModalOpen] = useState(false);
     const [isDistributionOpen, setIsDistributionOpen] = useState(false);
-
     const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
     const theme = useTheme();
     const {
@@ -88,6 +98,7 @@ export const CourseCard = forwardRef<HTMLDivElement, CourseCardProps>(
         course.subject,
         course.catalog_num,
         course.instructor,
+        course.enroll_num,
       ],
       queryFn: async () => {
         try {
@@ -100,26 +111,7 @@ export const CourseCard = forwardRef<HTMLDivElement, CourseCardProps>(
             return { enrollment: course.class_count, waitlist: null };
 
           const matchingClass = data.classes.find((classInfo: any) => {
-            const apiInstructor = classInfo.instructors[0]?.name || "Staff";
-
-            if (course.instructor === "Staff" && apiInstructor === "Staff") {
-              return true;
-            }
-            console;
-            if (apiInstructor.includes(",")) {
-              const [apiLastName] = apiInstructor.split(",");
-              const courseLastName = course.instructor.split(" ").pop() || "";
-              const courseMiddleName = course.instructor.split(" ")[1] || "";
-
-              const isMatch =
-                apiLastName.toLowerCase() === courseLastName.toLowerCase() ||
-                courseMiddleName.toLowerCase() ===
-                  apiLastName.toLowerCase().split(" ")[0];
-
-              return isMatch;
-            }
-
-            return false;
+            return String(classInfo.class_nbr) === String(course.enroll_num);
           });
 
           if (matchingClass) {
@@ -149,41 +141,46 @@ export const CourseCard = forwardRef<HTMLDivElement, CourseCardProps>(
         onExpandChange(course_code);
       }
     };
-    const handleOpenModal = (e: React.MouseEvent) => {
+    const handleRatingsOpen = (e: React.MouseEvent) => {
       e.preventDefault();
+      e.stopPropagation();
 
-      e.stopPropagation();
-      setIsModalOpen(true);
-    };
-    const handleModalClose = (e: React.MouseEvent) => {
-      e.preventDefault();
-      e.stopPropagation();
-      setIsModalOpen(false);
+      onRatingsOpen(
+        rmpData?.name,
+        rmpData?.course_codes.some(
+          (code: CourseCode) => code.courseName === course_code.replace(" ", "")
+        )
+          ? course_code.replace(" ", "")
+          : "all",
+        rmpData?.course_codes
+      );
     };
 
     const handleCopyClick = async () => {
       try {
-        await navigator.clipboard.writeText(course.enroll_num);
+        await navigator.clipboard.writeText(String(course.enroll_num));
         setCopied(true);
         setTimeout(() => setCopied(false), 2000);
       } catch (err) {
         console.error("Failed to copy enrollment number:", err);
       }
     };
+
     const handleDistributionOpen = (e: React.MouseEvent) => {
       e.stopPropagation();
-
-      setIsDistributionOpen(true);
+      onDistributionOpen(course_code, fullInstructorName);
     };
-    const handleDistributionClose = (e: React.MouseEvent) => {
+    const handleCourseDetailsOpen = (e: React.MouseEvent) => {
+      e.preventDefault();
       e.stopPropagation();
-      setIsDistributionOpen(false);
-    };
 
+      onCourseDetailsOpen(course);
+    };
     const handleMenuClick = (event: React.MouseEvent<HTMLElement>) => {
       event.stopPropagation();
       setAnchorEl(event.currentTarget);
     };
+
     const handleRefreshEnrollment = (e: React.MouseEvent) => {
       e.stopPropagation();
       enrollmentQuery.refetch();
@@ -258,7 +255,7 @@ export const CourseCard = forwardRef<HTMLDivElement, CourseCardProps>(
               label={`${rmpData?.num_ratings} ${
                 rmpData?.num_ratings > 1 ? "reviews" : "review"
               }`}
-              onClick={handleOpenModal}
+              onClick={handleRatingsOpen}
               size="small"
             />
           )}
@@ -273,30 +270,6 @@ export const CourseCard = forwardRef<HTMLDivElement, CourseCardProps>(
         onClick={handleExpandClick}
         sx={{ cursor: "pointer" }}
       >
-        <RatingsModal
-          isOpen={isModalOpen}
-          onClose={handleModalClose}
-          professorName={rmpData?.name}
-          currentClass={
-            rmpData?.course_codes.some(
-              (code: CourseCode) =>
-                code.courseName === course_code.replace(" ", "")
-            )
-              ? course_code.replace(" ", "")
-              : "all"
-          }
-          courseCodes={rmpData?.course_codes}
-        />
-        <CourseDistribution
-          courseCode={course_code}
-          professorName={
-            course.instructor.indexOf(".") == -1 && !isStaffOrLoading
-              ? course.instructor
-              : "All"
-          }
-          isOpen={isDistributionOpen}
-          onClose={handleDistributionClose}
-        />
         <CardContent sx={{ pb: 1, "&:last-child": { pb: 1 } }}>
           <HeaderContent>
             <CourseInfo>
@@ -304,24 +277,11 @@ export const CourseCard = forwardRef<HTMLDivElement, CourseCardProps>(
                 sx={{ display: "flex", alignItems: "center", gap: 1, mb: 1 }}
               >
                 <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                  <Link
-                    href={course.link}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    onClick={(e) => e.stopPropagation()}
-                    sx={{
-                      textDecoration: "none",
-                      "&:hover": {
-                        textDecoration: "none",
-                      },
-                    }}
-                  >
-                    <CourseCodeChip
-                      label={course_code}
-                      size="small"
-                      onClick={(e) => e.stopPropagation()}
-                    />
-                  </Link>
+                  <CourseCodeChip
+                    label={course_code}
+                    size="small"
+                    onClick={handleCourseDetailsOpen}
+                  />
                   {course.ge && (
                     <GECategoryChip
                       label={course.ge}
@@ -337,13 +297,7 @@ export const CourseCard = forwardRef<HTMLDivElement, CourseCardProps>(
 
               <Typography variant="h6">{course?.name}</Typography>
 
-              <Grid
-                sx={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 0.5,
-                }}
-              >
+              <Grid sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
                 <PersonIcon sx={{ fontSize: 18 }} />
                 {fullInstructorName !== "Staff" ? (
                   <Grid
@@ -361,9 +315,7 @@ export const CourseCard = forwardRef<HTMLDivElement, CourseCardProps>(
                         noWrap
                         sx={{
                           textDecoration: "none",
-                          "&:hover": {
-                            textDecoration: "underline",
-                          },
+                          "&:hover": { textDecoration: "underline" },
                         }}
                       >
                         {fullInstructorName}
@@ -376,7 +328,7 @@ export const CourseCard = forwardRef<HTMLDivElement, CourseCardProps>(
                           label={`${rmpData?.num_ratings} ${
                             rmpData?.num_ratings > 1 ? "reviews" : "review"
                           }`}
-                          onClick={handleOpenModal}
+                          onClick={handleRatingsOpen}
                           size="small"
                         />
                       )}
@@ -387,9 +339,7 @@ export const CourseCard = forwardRef<HTMLDivElement, CourseCardProps>(
                 )}
               </Grid>
 
-              <>
-                <RenderRMPContent />
-              </>
+              <RenderRMPContent />
             </CourseInfo>
 
             <ActionContainer>
@@ -457,7 +407,6 @@ export const CourseCard = forwardRef<HTMLDivElement, CourseCardProps>(
                 slotProps={{
                   paper: {
                     elevation: 3,
-
                     sx: {
                       borderRadius: "8px",
                       minWidth: 200,
@@ -485,6 +434,7 @@ export const CourseCard = forwardRef<HTMLDivElement, CourseCardProps>(
                   onClick={(e) => {
                     e.stopPropagation();
                     handleDistributionOpen(e);
+                    handleMenuClose();
                   }}
                 >
                   <ListItemIcon>
@@ -492,7 +442,6 @@ export const CourseCard = forwardRef<HTMLDivElement, CourseCardProps>(
                   </ListItemIcon>
                   <ListItemText>View Course Distribution</ListItemText>
                 </MenuItem>
-
                 <MenuItem
                   onClick={(e) => {
                     e.stopPropagation();
@@ -516,9 +465,9 @@ export const CourseCard = forwardRef<HTMLDivElement, CourseCardProps>(
                   }}
                 >
                   <ListItemIcon>
-                    <ShoppingCartIcon fontSize="small" />
+                    <OpenInNewIcon fontSize="small" />
                   </ListItemIcon>
-                  <ListItemText>Add to UCSC Cart</ListItemText>
+                  <ListItemText>Go to UCSC Cart</ListItemText>
                 </MenuItem>
               </Menu>
 
@@ -544,24 +493,32 @@ export const CourseCard = forwardRef<HTMLDivElement, CourseCardProps>(
                 p: 1.5,
                 mt: 1,
                 borderRadius: "8px",
-
                 background: COLORS.GRAY_50,
               }}
             >
               <Grid container spacing={2}>
-                <Grid item xs={6}>
+                <Grid item xs={5}>
                   <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
                     <LocationOnIcon sx={{ fontSize: 18 }} />
                     <Typography variant="body2">{course.location}</Typography>
                   </Box>
                 </Grid>
-                <Grid item xs={6}>
+                <Grid item xs={4}>
                   <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
                     <AccessTimeIcon sx={{ fontSize: 18 }} />
                     <Typography variant="body2">{course.schedule}</Typography>
                   </Box>
                 </Grid>
-                <Grid item xs={6}>
+
+                <Grid item xs={3}>
+                  <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                    <CategoryIcon sx={{ fontSize: 18 }} />
+                    <Typography variant="body2" noWrap>
+                      {course.class_type}
+                    </Typography>
+                  </Box>
+                </Grid>
+                <Grid item xs={5}>
                   <Stack direction="row" spacing={1} alignItems="center">
                     <GroupsIcon sx={{ fontSize: 18 }} />
                     <Stack direction="row" spacing={1} alignItems="center">
@@ -600,11 +557,39 @@ export const CourseCard = forwardRef<HTMLDivElement, CourseCardProps>(
                     </Tooltip>
                   </Stack>
                 </Grid>
-                <Grid item xs={6}>
+                <Grid item xs={4}>
                   <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                    <CategoryIcon sx={{ fontSize: 18 }} />
-                    <Typography variant="body2" noWrap>
-                      {course.class_type}
+                    <CreditCardIcon sx={{ fontSize: 18 }} />
+                    <Typography variant="body2">{`${course.credits} units`}</Typography>
+                  </Box>
+                </Grid>
+                <Grid item xs={3}>
+                  <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                    <Typography
+                      variant="body2"
+                      noWrap
+                      sx={{ display: "flex", alignItems: "center" }}
+                      color={course.has_enrollment_reqs ? "warning" : "success"}
+                    >
+                      {course.has_enrollment_reqs ? (
+                        <>
+                          <WarningAmberIcon
+                            color="warning"
+                            fontSize="small"
+                            sx={{ mr: 0.5 }}
+                          />
+                          Has Prerequisites
+                        </>
+                      ) : (
+                        <>
+                          <CheckCircleOutlineIcon
+                            color="success"
+                            fontSize="small"
+                            sx={{ mr: 0.5 }}
+                          />
+                          No Prerequisites
+                        </>
+                      )}
                     </Typography>
                   </Box>
                 </Grid>
@@ -617,13 +602,11 @@ export const CourseCard = forwardRef<HTMLDivElement, CourseCardProps>(
   }
 );
 
-//styles
 const BaseChip = styled(Chip)(({ theme }) => ({
   borderRadius: "8px",
   transition: "all 0.2s ease-in-out",
   height: "28px",
   fontWeight: "bold",
-
   "&.MuiChip-clickable": {
     boxShadow: "0 2px 8px rgba(0, 0, 0, 0.15)",
     "&:hover": {
@@ -702,7 +685,6 @@ const GradeChip = styled(BaseChip)<GradeChipProps>(({ theme, grade }) => {
 
   return {
     background: getGradient(grade),
-
     color: theme.palette.common.white,
     "& .MuiChip-icon": {
       color: "inherit",
@@ -715,7 +697,6 @@ const DifficultyChip = styled(BaseChip)<DifficultyChipProps>(
     background: "white",
     height: "26px",
     fontWeight: "bolder",
-
     borderWidth: 1,
     borderStyle: "solid",
     borderColor:
@@ -741,6 +722,7 @@ const RatingChip = styled(BaseChip)(({ theme }) => ({
   height: "26px",
   color: "white",
 }));
+
 const ReviewCountChip = styled(BaseChip)(({ theme }) => ({
   height: "24px",
   fontWeight: "lighter",
@@ -771,7 +753,7 @@ const StyledCard = styled(Card)(({ theme }) => ({
   border: `1px solid ${theme.palette.divider}`,
   borderRadius: "8px",
   position: "relative",
-  transition: "transform 0.2s ease-in-out",
+  transition: "transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out",
   paddingBottom: theme.spacing(2),
   "&:hover": {
     "& .MuiChip-clickable": {

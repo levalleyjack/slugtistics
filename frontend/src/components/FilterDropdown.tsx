@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useRef, useCallback } from "react";
 import {
   Button,
   Popover,
@@ -9,7 +9,6 @@ import {
   MenuItem,
   Chip,
   OutlinedInput,
-  Checkbox,
   ListItemText,
   styled,
   alpha,
@@ -22,7 +21,6 @@ import {
 } from "@mui/material";
 import CheckIcon from "@mui/icons-material/Check";
 import FilterAltIcon from "@mui/icons-material/FilterAlt";
-import { StyledExpandIcon } from "../Constants";
 import DeleteForeverIcon from "@mui/icons-material/DeleteForever";
 import SelectAllIcon from "@mui/icons-material/SelectAll";
 import SortByAlphaIcon from "@mui/icons-material/SortByAlpha";
@@ -33,10 +31,15 @@ import LockIcon from "@mui/icons-material/Lock";
 import ComputerIcon from "@mui/icons-material/Computer";
 import SchoolIcon from "@mui/icons-material/School";
 import CategoryIcon from "@mui/icons-material/Category";
+import { StyledExpandIcon } from "../Constants";
+
 const StyledFormControl = styled(FormControl)(({ theme }) => ({
   width: "100%",
   marginBottom: theme.spacing(2),
   "& .MuiOutlinedInput-root": {
+    backgroundColor: "white",
+
+    borderRadius: "8px",
     transition: "all 0.2s ease-in-out",
     "&:hover": {
       backgroundColor: alpha(theme.palette.primary.main, 0.04),
@@ -60,30 +63,61 @@ const StyledFilterButton = styled(Button)(({ theme }) => ({
     borderColor: theme.palette.primary.main,
   },
   [theme.breakpoints.down("sm")]: {
-    marginRight: theme.spacing(3),
+    marginRight: theme.spacing(1),
   },
 }));
 
 const StyledChip = styled(Chip)(({ theme }) => ({
   height: 24,
   borderRadius: 4,
+  backgroundColor: alpha(theme.palette.primary.main, 0.08),
   "& .MuiChip-label": {
     fontSize: "0.75rem",
     padding: "0 8px",
+  },
+  "& .MuiChip-deleteIcon": {
+    fontSize: "16px",
+    color: theme.palette.text.secondary,
+    "&:hover": {
+      color: theme.palette.error.main,
+    },
+  },
+}));
+
+const StyledPopover = styled(Popover)(({ theme }) => ({
+  "& .MuiPopover-paper": {
+    overflow: "visible",
+    backgroundColor: "transparent",
+    borderRadius:"8px"
   },
 }));
 
 const StyledPopoverContent = styled(Box)(({ theme }) => ({
   padding: theme.spacing(3),
-  borderRadius: "8px",
+  borderRadius: "12px",
   width: 320,
+  maxHeight: "calc(100vh - 100px)",
   overflow: "auto",
+  backgroundColor: "rgba(255, 255, 255, 0.85)",
+  backdropFilter: "blur(8px)",
+  WebkitBackdropFilter: "blur(8px)",
+  boxShadow: "0 8px 32px rgba(0, 0, 0, 0.08)",
   "&::-webkit-scrollbar": {
     width: 6,
   },
   "&::-webkit-scrollbar-thumb": {
-    backgroundColor: theme.palette.divider,
+    backgroundColor: alpha(theme.palette.divider, 0.8),
     borderRadius: 3,
+  },
+  "& .MuiTypography-root": {
+    textShadow: "0 0 1px rgba(255, 255, 255, 0.5)",
+  },
+  [theme.breakpoints.down("sm")]: {
+    width: "calc(100vw - 32px)",
+    maxHeight: "calc(100vh - 80px)",
+    backdropFilter: "none",
+    WebkitBackdropFilter: "none",
+    backgroundColor: theme.palette.background.paper,
   },
 }));
 
@@ -93,6 +127,7 @@ const StyledToggleButtonGroup = styled(ToggleButtonGroup)(({ theme }) => ({
     borderRadius: "8px",
     flex: 1,
     border: `1px solid ${theme.palette.divider}`,
+    backgroundColor: "white",
     "&.Mui-selected": {
       backgroundColor: theme.palette.primary.main,
       color: theme.palette.primary.contrastText,
@@ -104,29 +139,9 @@ const StyledToggleButtonGroup = styled(ToggleButtonGroup)(({ theme }) => ({
       marginLeft: theme.spacing(1),
       borderLeft: `1px solid ${theme.palette.divider}`,
     },
-    "&:first-of-type": {},
   },
 }));
 
-const MenuProps: SelectProps["MenuProps"] = {
-  PaperProps: {
-    style: {
-      borderRadius: "12px",
-      maxHeight: 300,
-      boxShadow: "0px 5px 15px rgba(0,0,0,0.08)",
-    },
-    elevation: 3,
-  },
-  anchorOrigin: {
-    vertical: "bottom",
-    horizontal: "left",
-  },
-  transformOrigin: {
-    vertical: "top",
-    horizontal: "left",
-  },
-  variant: "menu",
-};
 const StyledMenuItem = styled(MenuItem)(({ theme }) => ({
   margin: "4px 8px",
   borderRadius: "8px",
@@ -141,27 +156,33 @@ const StyledMenuItem = styled(MenuItem)(({ theme }) => ({
       backgroundColor: alpha(theme.palette.primary.main, 0.16),
     },
   },
-  display: "flex",
-  justifyContent: "space-between",
-  alignItems: "center",
-  gap: "8px",
 }));
-const StyledCheckbox = styled(Checkbox)(({ theme }) => ({
-  padding: "4px",
-  "& .MuiSvgIcon-root": {
-    fontSize: 20,
+
+const MenuProps: SelectProps["MenuProps"] = {
+  PaperProps: {
+    style: {
+      borderRadius: "8px",
+      maxHeight: 300,
+    },
+    elevation: 3,
   },
-  "&.Mui-checked": {
-    color: theme.palette.primary.main,
+  anchorOrigin: {
+    vertical: "bottom",
+    horizontal: "left",
   },
-}));
+  transformOrigin: {
+    vertical: "top",
+    horizontal: "left",
+  },
+  variant: "menu",
+};
+
 const classTypeOptions = [
   "In Person",
   "Hybrid",
   "Synchronous Online",
   "Asynchronous Online",
 ];
-
 const enrollmentStatusOptions = ["Open", "Wait List", "Closed"];
 
 interface FilterDropdownProps {
@@ -177,7 +198,6 @@ interface FilterDropdownProps {
   onClassTypesChange: (value: string[]) => void;
   onEnrollmentStatusesChange: (value: string[]) => void;
   onSelectedGEs: (value: string[]) => void;
-  currentSort?: string;
 }
 
 const FilterDropdown: React.FC<FilterDropdownProps> = ({
@@ -195,114 +215,142 @@ const FilterDropdown: React.FC<FilterDropdownProps> = ({
   onSelectedGEs,
 }) => {
   const [anchorEl, setAnchorEl] = useState<HTMLButtonElement | null>(null);
-  const [scrollPosition, setScrollPosition] = useState(0);
-  const menuRef = React.useRef<HTMLUListElement>(null);
-  const handleClick = (event: React.MouseEvent<HTMLButtonElement>) => {
-    setAnchorEl(event.currentTarget);
-  };
-
-  const handleClose = () => {
-    setAnchorEl(null);
-  };
-
   const open = Boolean(anchorEl);
   const id = open ? "filter-popover" : undefined;
 
-  const handleChipDelete = (
-    selectedItems: string[],
-    setSeletedItems: any,
-    event: React.MouseEvent,
-    value: string
-  ) => {
-    event.stopPropagation();
-    const updatedSelection = selectedItems.filter((item) => item !== value);
-    setSeletedItems(updatedSelection);
-  };
+  const handleClick = useCallback(
+    (event: React.MouseEvent<HTMLButtonElement>) => {
+      setAnchorEl(event.currentTarget);
+    },
+    []
+  );
 
-  const getButtonLabel = () => {
+  const handleClose = useCallback(() => {
+    setAnchorEl(null);
+  }, []);
+
+  const handleChipDelete = useCallback(
+    (
+      selectedItems: string[],
+      setSelectedItems: (items: string[]) => void,
+      event: React.MouseEvent,
+      value: string
+    ) => {
+      event.stopPropagation();
+      setSelectedItems(selectedItems.filter((item) => item !== value));
+    },
+    []
+  );
+
+  const getButtonLabel = useCallback(() => {
     const totalFilters =
       selectedSubjects.length +
       selectedClassTypes.length +
       selectedEnrollmentStatuses.length +
       (GEs.length > 1 ? selectedGEs.length : 0);
     return `Filters ${totalFilters > 0 ? `(${totalFilters})` : ""}`;
-  };
+  }, [
+    selectedSubjects,
+    selectedClassTypes,
+    selectedEnrollmentStatuses,
+    selectedGEs,
+    GEs,
+  ]);
 
-  const handleSortChange = (
-    event: React.MouseEvent<HTMLElement>,
-    newSort: string | null
-  ) => {
-    if (newSort !== null && onSortBy) {
-      onSortBy(newSort);
-    }
-  };
+  const handleSortChange = useCallback(
+    (event: React.MouseEvent<HTMLElement>, newSort: string | null) => {
+      if (newSort !== null && onSortBy) {
+        onSortBy(newSort);
+      }
+    },
+    [onSortBy]
+  );
 
-  const renderFilterHeader = (
-    title: string,
-    selectedItems: string[],
-    onSelectedItems: (value: string[]) => void,
-    allItems: string[],
-    icon: React.ReactElement
-  ) => (
-    <Box
-      sx={{
-        display: "flex",
-        justifyContent: "space-between",
-        alignItems: "center",
-        mb: 1,
-      }}
-    >
-      <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-        {icon}
-        <Typography
-          variant="subtitle2"
-          sx={{ fontWeight: 600, color: "text.primary" }}
-        >
-          {title}
-        </Typography>
-      </Box>
-
-      <Box sx={{ display: "flex" }}>
-        <Tooltip title="Select All">
-          <IconButton
-            size="small"
-            onClick={() => onSelectedItems(allItems)}
-            sx={{ p: 0.5, borderRadius: "8px" }}
-          >
-            <SelectAllIcon fontSize="small" />
-          </IconButton>
-        </Tooltip>
-
-        {selectedItems.length > 0 && (
-          <Tooltip title="Clear">
+  const renderFilterHeader = useCallback(
+    (
+      title: string,
+      selectedItems: string[],
+      onSelectedItems: (value: string[]) => void,
+      allItems: string[],
+      icon: React.ReactElement
+    ) => (
+      <Box
+        sx={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          mb: 1,
+        }}
+      >
+        <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+          {icon}
+          <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
+            {title}
+          </Typography>
+        </Box>
+        <Box sx={{ display: "flex", gap: 0.5 }}>
+          <Tooltip title="Select All">
             <IconButton
               size="small"
-              onClick={() => onSelectedItems([])}
-              sx={{ p: 0.5, borderRadius: "8px" }}
+              onClick={() => onSelectedItems(allItems)}
+              sx={{ borderRadius: "8px" }}
             >
-              <DeleteForeverIcon fontSize="small" />
+              <SelectAllIcon fontSize="small" />
             </IconButton>
           </Tooltip>
-        )}
+          {selectedItems.length > 0 && (
+            <Tooltip title="Clear">
+              <IconButton
+                size="small"
+                onClick={() => onSelectedItems([])}
+                sx={{ borderRadius: "8px" }}
+              >
+                <DeleteForeverIcon fontSize="small" />
+              </IconButton>
+            </Tooltip>
+          )}
+        </Box>
       </Box>
-    </Box>
+    ),
+    []
   );
+
+  const renderSelectContent = useCallback(
+    (selected: string[], onDelete: (value: string[]) => void) => {
+      
+      if (!selected || selected.length === 0) {
+        return <Typography>All</Typography>;
+      }
+      return (
+        <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.5 }}>
+          {selected.map((value) => (
+            <StyledChip
+              key={value}
+              label={value}
+              onMouseDown={(e) => e.stopPropagation()}
+              onDelete={(event) => handleChipDelete(selected, onDelete, event, value)}
+            />
+          ))}
+        </Box>
+      );
+    },
+    []
+  );
+  
 
   return (
     <>
-      <Box sx={{ display: "flex", alignItems: "center" }}>
-        <StyledFilterButton
-          aria-describedby={id}
-          onClick={handleClick}
-          variant="outlined"
-          startIcon={<FilterAltIcon />}
-          endIcon={<StyledExpandIcon expanded={open} />}
-        >
-          {getButtonLabel()}
-        </StyledFilterButton>
-      </Box>
+      <StyledFilterButton
+        aria-describedby={id}
+        onClick={handleClick}
+        variant="outlined"
+        startIcon={<FilterAltIcon />}
+        endIcon={<StyledExpandIcon expanded={open} />}
+      >
+        {getButtonLabel()}
+      </StyledFilterButton>
 
-      <Popover
+      <StyledPopover
         id={id}
         open={open}
         anchorEl={anchorEl}
@@ -315,57 +363,31 @@ const FilterDropdown: React.FC<FilterDropdownProps> = ({
           vertical: "top",
           horizontal: "right",
         }}
-        slotProps={{
-          paper: {
-            elevation: 2,
-            sx: { mt: 1, borderRadius: "8px" },
-          },
-        }}
+        elevation={1}
       >
-        <StyledPopoverContent>
+        <StyledPopoverContent >
           <Box sx={{ mb: 2 }}>
-            <Typography
-              variant="subtitle2"
-              sx={{ fontWeight: 600, color: "text.primary", mb: 1 }}
-            >
+            <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1 }}>
               Sort By
             </Typography>
             <StyledToggleButtonGroup
               value={sortBy}
               exclusive
               onChange={handleSortChange}
-              aria-label="sort order"
               size="small"
             >
-              <Tooltip title="Default (GPA and Ratings)">
-                <ToggleButton
-                  value="DEFAULT"
-                  aria-label="default order (gpa + ratings)"
-                >
-                  <TuneIcon />
-                </ToggleButton>
-              </Tooltip>
-              <Tooltip title="GPA">
-                <ToggleButton value="GPA" aria-label="default order (gpa)">
-                  <EqualizerIcon />
-                </ToggleButton>
-              </Tooltip>
-              <Tooltip title="Instructor Ratings">
-                <ToggleButton
-                  value="INSTRUCTOR"
-                  aria-label="order by instructor ratings"
-                >
-                  <StarIcon />
-                </ToggleButton>
-              </Tooltip>
-              <Tooltip title="Alphabetical">
-                <ToggleButton
-                  value="ALPHANUMERIC"
-                  aria-label="alphanumeric order"
-                >
-                  <SortByAlphaIcon />
-                </ToggleButton>
-              </Tooltip>
+              <ToggleButton value="DEFAULT">
+                <TuneIcon />
+              </ToggleButton>
+              <ToggleButton value="GPA">
+                <EqualizerIcon />
+              </ToggleButton>
+              <ToggleButton value="INSTRUCTOR">
+                <StarIcon />
+              </ToggleButton>
+              <ToggleButton value="ALPHANUMERIC">
+                <SortByAlphaIcon />
+              </ToggleButton>
             </StyledToggleButtonGroup>
           </Box>
 
@@ -387,45 +409,20 @@ const FilterDropdown: React.FC<FilterDropdownProps> = ({
                 onEnrollmentStatusesChange(e.target.value as string[])
               }
               input={<OutlinedInput />}
-              displayEmpty
-              sx={{ borderRadius: "8px" }}
-              renderValue={(selected) => {
-                if ((selected as string[]).length === 0) {
-                  return <Typography color="text.secondary">All</Typography>;
-                }
-                return (
-                  <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.5 }}>
-                    {(selected as string[]).map((value) => (
-                      <StyledChip
-                        key={value}
-                        label={value}
-                        onMouseDown={(e) => e.stopPropagation()}
-                        onDelete={(event) =>
-                          handleChipDelete(
-                            selectedEnrollmentStatuses,
-                            onEnrollmentStatusesChange,
-                            event,
-                            value
-                          )
-                        }
-                      />
-                    ))}
-                  </Box>
-                );
-              }}
+              label="All"
+              renderValue={(selected) =>
+                renderSelectContent(
+                  selected as string[],
+                  onEnrollmentStatusesChange
+                )
+              }
               MenuProps={MenuProps}
             >
               {enrollmentStatusOptions.map((option) => (
                 <StyledMenuItem key={option} value={option}>
-                  <ListItemText primary={option} sx={{ ml: 1 }} />
+                  <ListItemText primary={option} />
                   {selectedEnrollmentStatuses.includes(option) && (
-                    <CheckIcon
-                      sx={{
-                        fontSize: 18,
-                        color: "primary.main",
-                        marginLeft: "auto",
-                      }}
-                    />
+                    <CheckIcon sx={{ ml: 1 }} />
                   )}
                 </StyledMenuItem>
               ))}
@@ -443,48 +440,21 @@ const FilterDropdown: React.FC<FilterDropdownProps> = ({
             <Select
               multiple
               size="small"
+              label="All"
+
               value={selectedClassTypes}
-              sx={{ borderRadius: "8px" }}
               onChange={(e) => onClassTypesChange(e.target.value as string[])}
               input={<OutlinedInput />}
-              displayEmpty
-              renderValue={(selected) => {
-                if ((selected as string[]).length === 0) {
-                  return <Typography color="text.secondary">All</Typography>;
-                }
-                return (
-                  <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.5 }}>
-                    {(selected as string[]).map((value) => (
-                      <StyledChip
-                        key={value}
-                        label={value}
-                        onMouseDown={(e) => e.stopPropagation()}
-                        onDelete={(event) =>
-                          handleChipDelete(
-                            selectedClassTypes,
-                            onClassTypesChange,
-                            event,
-                            value
-                          )
-                        }
-                      />
-                    ))}
-                  </Box>
-                );
-              }}
+              renderValue={(selected) =>
+                renderSelectContent(selected as string[], onClassTypesChange)
+              }
               MenuProps={MenuProps}
             >
               {classTypeOptions.map((option) => (
                 <StyledMenuItem key={option} value={option}>
-                  <ListItemText primary={option} sx={{ ml: 1 }} />
+                  <ListItemText primary={option} />
                   {selectedClassTypes.includes(option) && (
-                    <CheckIcon
-                      sx={{
-                        fontSize: 18,
-                        color: "primary.main",
-                        marginLeft: "auto",
-                      }}
-                    />
+                    <CheckIcon sx={{ ml: 1 }} />
                   )}
                 </StyledMenuItem>
               ))}
@@ -501,51 +471,27 @@ const FilterDropdown: React.FC<FilterDropdownProps> = ({
             )}
             <Select
               multiple
+              label="All"
+
               size="small"
               value={selectedSubjects}
               onChange={(e) =>
                 onSelectedSubjectsChange(e.target.value as string[])
               }
-              sx={{ borderRadius: "8px" }}
               input={<OutlinedInput />}
-              displayEmpty
-              renderValue={(selected) => {
-                if ((selected as string[]).length === 0) {
-                  return <Typography color="text.secondary">All</Typography>;
-                }
-                return (
-                  <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.5 }}>
-                    {(selected as string[]).map((value) => (
-                      <StyledChip
-                        key={value}
-                        label={value}
-                        onMouseDown={(e) => e.stopPropagation()}
-                        onDelete={(event) =>
-                          handleChipDelete(
-                            selectedSubjects,
-                            onSelectedSubjectsChange,
-                            event,
-                            value
-                          )
-                        }
-                      />
-                    ))}
-                  </Box>
-                );
-              }}
+              renderValue={(selected) =>
+                renderSelectContent(
+                  selected as string[],
+                  onSelectedSubjectsChange
+                )
+              }
               MenuProps={MenuProps}
             >
               {codes?.map((option) => (
                 <StyledMenuItem key={option} value={option}>
-                  <ListItemText primary={option} sx={{ ml: 1 }} />
+                  <ListItemText primary={option} />
                   {selectedSubjects.includes(option) && (
-                    <CheckIcon
-                      sx={{
-                        fontSize: 18,
-                        color: "primary.main",
-                        marginLeft: "auto",
-                      }}
-                    />
+                    <CheckIcon sx={{ ml: 1 }} />
                   )}
                 </StyledMenuItem>
               ))}
@@ -563,49 +509,22 @@ const FilterDropdown: React.FC<FilterDropdownProps> = ({
               )}
               <Select
                 multiple
+                label="All"
+
                 size="small"
-                sx={{ borderRadius: "8px" }}
                 value={selectedGEs}
                 onChange={(e) => onSelectedGEs(e.target.value as string[])}
                 input={<OutlinedInput />}
-                displayEmpty
-                renderValue={(selected) => {
-                  if ((selected as string[]).length === 0) {
-                    return <Typography color="text.secondary">None</Typography>;
-                  }
-                  return (
-                    <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.5 }}>
-                      {(selected as string[]).map((value) => (
-                        <StyledChip
-                          key={value}
-                          label={value}
-                          onMouseDown={(e) => e.stopPropagation()}
-                          onDelete={(event) =>
-                            handleChipDelete(
-                              selectedGEs,
-                              onSelectedGEs,
-                              event,
-                              value
-                            )
-                          }
-                        />
-                      ))}
-                    </Box>
-                  );
-                }}
+                renderValue={(selected) =>
+                  renderSelectContent(selected as string[], onSelectedGEs)
+                }
                 MenuProps={MenuProps}
               >
                 {GEs?.map((option) => (
                   <StyledMenuItem key={option} value={option}>
-                    <ListItemText primary={option} sx={{ ml: 1 }} />
+                    <ListItemText primary={option} />
                     {selectedGEs.includes(option) && (
-                      <CheckIcon
-                        sx={{
-                          fontSize: 18,
-                          color: "primary.main",
-                          marginLeft: "auto",
-                        }}
-                      />
+                      <CheckIcon sx={{ ml: 1 }} />
                     )}
                   </StyledMenuItem>
                 ))}
@@ -613,7 +532,7 @@ const FilterDropdown: React.FC<FilterDropdownProps> = ({
             </StyledFormControl>
           )}
         </StyledPopoverContent>
-      </Popover>
+      </StyledPopover>
     </>
   );
 };

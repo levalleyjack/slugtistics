@@ -15,7 +15,7 @@ import BookIcon from "@mui/icons-material/Book";
 import { ChipProps, styled } from "@mui/material";
 import Diversity2Icon from "@mui/icons-material/Diversity2";
 import HandshakeIcon from "@mui/icons-material/Handshake";
-import Diversity3Icon from '@mui/icons-material/Diversity3';
+import Diversity3Icon from "@mui/icons-material/Diversity3";
 
 export const COLORS = {
   WHITE: "#ffffff",
@@ -48,11 +48,12 @@ export enum ClassStatusEnum {
 }
 
 export interface Course {
-  id: any;
+  has_enrollment_reqs: boolean;
+  id: string;
   subject: string;
   catalog_num: string;
   link: string;
-  enroll_num: string;
+  enroll_num: number;
   name: string;
   instructor: string;
   class_count: string;
@@ -60,10 +61,34 @@ export interface Course {
   ge: string;
   schedule: string;
   location: string;
-  gpa: string;
+  gpa: number;
   instructor_ratings: any;
   class_status: ClassStatusEnum;
   ge_category: string;
+  credits: string;
+  career: string;
+  grading:string;
+}
+export interface CourseDistributionProps {
+  courseCode: string;
+  professorName?: string;
+  isOpen?: boolean;
+  onClose?: (e: React.MouseEvent) => void;
+  inPanel?: boolean;
+}
+
+export interface PanelData {
+  courseCode?: string;
+  professorName?: string;
+  currentClass?: string;
+  courseCodes?: CourseCode[];
+}
+
+export interface FilterOptions {
+  subjects: string[];
+  classTypes: string[];
+  enrollmentStatuses: string[];
+  GEs: string[];
 }
 
 export interface RMPResponse {
@@ -74,6 +99,35 @@ export interface RMPResponse {
   average_difficulty: number;
   first_name: string;
   last_name: string;
+}
+export interface Category {
+  id: string;
+  name?: string;
+  icon: React.ReactNode;
+}
+
+export interface CategoryItemProps {
+  category: Category;
+  isSelected: boolean;
+  onSelect: (id: string) => void;
+}
+
+export interface CategorySidebarProps {
+  selectedCategory: string;
+  onCategorySelect: (id: string) => void;
+  isOpen?: boolean;
+}
+
+export interface CategoryDrawerProps {
+  isOpen: boolean;
+  isCategoriesVisible: boolean;
+  isCategoryDrawer: boolean;
+  isDistributionDrawer: boolean;
+  selectedGE: string;
+  setSelectedGE: (ge: string) => void;
+  setIsOpen: (open: boolean) => void;
+  setIsCategoriesVisible: (visible: boolean) => void;
+  activePanel: "distribution" | "ratings" | "courseDetails" | null;
 }
 
 export interface RMPData {
@@ -125,7 +179,6 @@ export interface CourseCode {
 }
 
 export const categories = [
-  
   { id: "AnyGE", name: "All Courses", icon: <AppsIcon /> },
   { id: "C", name: "Composition", icon: <BookIcon /> },
 
@@ -168,14 +221,13 @@ export const categories = [
   },
 ];
 
-export const StyledExpandIcon = styled(KeyboardArrowDownIcon)<{
-  expanded: boolean;
-}>(({ theme, expanded }) => ({
+export const StyledExpandIcon = styled(KeyboardArrowDownIcon, {
+  shouldForwardProp: (prop) => prop !== "expanded",
+})<{ expanded: boolean }>(({ theme, expanded }) => ({
   transform: expanded ? "rotate(180deg)" : "rotate(0deg)",
   transition: theme.transitions.create("transform", {
     duration: theme.transitions.duration.shortest,
   }),
-  
 }));
 import { ArrowBackIosNew, ArrowForwardIos } from "@mui/icons-material";
 
@@ -194,14 +246,14 @@ export const AnimatedArrowIcon: React.FC<AnimatedArrowIconProps> = ({
   const IconComponent = isSmallScreen ? ArrowForwardIos : ArrowBackIosNew;
 
   return (
-    <AnimatedIcon isVisible={isVisible} >
+    <AnimatedIcon isVisible={isVisible}>
       <IconComponent sx={{ fontSize: 20, ...sx }} />
     </AnimatedIcon>
   );
 };
 
-export const getLetterGrade = (gpa: string) => {
-  const gpaNum = parseFloat(gpa);
+export const getLetterGrade = (gpa: number) => {
+  const gpaNum = gpa;
   if (gpaNum >= 4.0) return "A";
   if (gpaNum >= 3.7) return "A-";
   if (gpaNum >= 3.3) return "B+";
@@ -215,5 +267,3 @@ export const getLetterGrade = (gpa: string) => {
   if (gpaNum >= 0.7) return "D-";
   return "F";
 };
-
-

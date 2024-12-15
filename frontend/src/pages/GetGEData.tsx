@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import axios from "axios";
-import React from "react";
+import React, { useCallback, useState } from "react";
 import { Course } from "../Constants";
 
 export const local = "https://api.slugtistics.com/api/pyback";
@@ -59,6 +59,7 @@ export const useAllCourseData = () => {
     queryKey: ["all_courses"],
     queryFn: async () => {
       const response = await axios.get<{ data: Course[] }>(All_COURSES_URL);
+      console.log("got course")
       return response.data?.data ?? {};
     },
     staleTime: CONFIG.staleTime,
@@ -74,4 +75,24 @@ export const useAllCourseData = () => {
     isError: courseQuery.isError,
     error: courseQuery.error,
   };
+};
+
+export const useSessionStorage = <T,>(key: string, defaultValue: T) => {
+  const [state, setState] = useState<T>(() => {
+    const stored = sessionStorage.getItem(key);
+    return stored ? JSON.parse(stored) : defaultValue;
+  });
+
+  const setStateWithStorage = useCallback(
+    (value: T | ((prev: T) => T)) => {
+      setState((prev) => {
+        const newValue = value instanceof Function ? value(prev) : value;
+        sessionStorage.setItem(key, JSON.stringify(newValue));
+        return newValue;
+      });
+    },
+    [key]
+  );
+
+  return [state, setStateWithStorage] as const;
 };

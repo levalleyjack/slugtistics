@@ -1,239 +1,197 @@
-import {
-  Typography,
-  IconButton,
-  CircularProgress,
-  Button,
-  useTheme,
-  styled,
-  Drawer,
-  Grid2,
-  Box,
-} from "@mui/material";
-import {
-  AnimatedArrowIcon,
-  COLORS,
-  Course,
-  StyledExpandIcon,
-} from "../Constants";
-import React, { useState, useCallback, useMemo } from "react";
-import { useMediaQuery } from "@mui/material";
-import ArrowBackIcon from "@mui/icons-material/ArrowBack";
-import { useGECourseData } from "./GetGEData";
-import SentimentDissatisfiedIcon from "@mui/icons-material/SentimentDissatisfied";
-import { CategorySidebar } from "../components/CategorySideBar";
+import React, { useState, useCallback, useMemo, useRef } from "react";
+import { useTheme, useMediaQuery, styled } from "@mui/material";
+import { COLORS, Course, FilterOptions, PanelData } from "../Constants";
+import { useGECourseData, useSessionStorage } from "./GetGEData";
+import CategoryDrawer from "../components/CategoryDrawer";
 import { fetchLastUpdate } from "./FetchLastUpdate";
-import FilterDropdown from "../components/FilterDropdown";
-import GlobalSearch from "../components/GlobalSearchDropdownList";
-import { DynamicCourseList } from "./VirtualizedCourseList";
-import { useQuery } from "@tanstack/react-query";
-import { LoadingCourseCard } from "../components/LoadingCourseCard";
+import { SearchControls } from "../components/SearchControls";
+import { CourseList } from "./VirtualizedCourseList";
+import { PanelDrawer } from "../components/PanelDrawer";
 
-const filterCourses = (courses: Course[], search: string) => {
+const BREAKPOINT_CATEGORY = 1340;
+const BREAKPOINT_DISTRIBUTION = 990;
+
+const filterCourses = (courses: Course[] = [], search: string) => {
   if (!search) return courses;
   const searchLower = search.toLowerCase();
-  return courses.filter(
-    (course: Course) =>
+  return courses.filter((course) => {
+    const courseCode = `${course.subject} ${course.catalog_num}`.toLowerCase();
+    return (
       course.name.toLowerCase().includes(searchLower) ||
-      (course.subject + " " + course.catalog_num)
-        .toLowerCase()
-        .includes(searchLower) ||
+      courseCode.includes(searchLower) ||
       course.instructor.toLowerCase().includes(searchLower)
-  );
+    );
+  });
 };
 
-const filterBySort = (
-  sortBy: string,
-  selectedSubjects: string[],
-  selectedClassTypes: string[],
-  selectedEnrollmentStatuses: string[],
-  currentCourses: Course[],
-  currentGE: string,
-  selectedGEs: string[]
-): Course[] => {
-  if (!currentCourses || currentCourses.length === 0) return [];
+const calculateCourseScore = (course: Course) => {
+  const gpa = course.gpa === null ? 0 : course.gpa;
+  const normalizedGPA = (gpa / 4.0) * 5.0;
+  const rating = course.instructor_ratings?.avg_rating ?? 2.5;
+  return normalizedGPA * 0.6 + rating * 0.4;
+};
 
-  const filteredCourses = currentCourses.filter((course) => {
-    const matchSubject =
-      selectedSubjects.length === 0 ||
-      selectedSubjects.includes(course.subject);
-
-    const matchType =
-      selectedClassTypes.length === 0 ||
-      selectedClassTypes.includes(course.class_type);
-
-    const matchStatus =
-      selectedEnrollmentStatuses.length === 0 ||
-      selectedEnrollmentStatuses.includes(course.class_status);
-
-    const matchGEs =
-      currentGE === "AnyGE"
-        ? selectedGEs.length === 0 || selectedGEs.includes(course.ge)
-        : currentCourses;
-
-    return matchSubject && matchType && matchStatus && matchGEs;
-  });
-
-  return filteredCourses.sort((a, b) => {
+const sortCourses = (courses: Course[], sortBy: string) => {
+  return [...courses].sort((a, b) => {
     switch (sortBy) {
       case "DEFAULT":
-        const getScore = (course: Course) => {
-          //gpa to 5.0
-          const gpa = course.gpa === null ? 0 : parseFloat(course.gpa);
-          const normalizedGPA = (gpa / 4.0) * 5.0;
-
-          const rating = course.instructor_ratings?.avg_rating ?? 0;
-
-          //60 / 40 rmp
-          return normalizedGPA * 0.6 + rating * 0.4;
-        };
-
-        const scoreA = getScore(a);
-        const scoreB = getScore(b);
-
-        return scoreB - scoreA;
-
+        return calculateCourseScore(b) - calculateCourseScore(a);
       case "GPA":
-        const gpaA = a.gpa === null ? -Infinity : parseFloat(a.gpa);
-        const gpaB = b.gpa === null ? -Infinity : parseFloat(b.gpa);
+        const gpaA = a.gpa === null ? -Infinity : a.gpa;
+        const gpaB = b.gpa === null ? -Infinity : b.gpa;
         return gpaB - gpaA;
       case "INSTRUCTOR":
-        const ratingA =
-          (a.instructor_ratings && a.instructor_ratings.avg_rating) ??
-          -Infinity;
-        const ratingB =
-          (b.instructor_ratings && b.instructor_ratings.avg_rating) ??
-          -Infinity;
-        return ratingA === ratingB &&
-          b.instructor_ratings &&
-          a.instructor_ratings
-          ? b.instructor_ratings.num_ratings - a.instructor_ratings.num_ratings
-          : ratingB - ratingA;
+        const ratingA = a.instructor_ratings?.avg_rating ?? -Infinity;
+        const ratingB = b.instructor_ratings?.avg_rating ?? -Infinity;
+        return ratingB - ratingA;
       case "ALPHANUMERIC":
-        const aCourseCode = `${a.subject} ${a.catalog_num}`;
-        const bCourseCode = `${b.subject} ${b.catalog_num}`;
-        return aCourseCode.localeCompare(bCourseCode, "en", { numeric: true });
+        return `${a.subject} ${a.catalog_num}`.localeCompare(
+          `${b.subject} ${b.catalog_num}`,
+          "en",
+          { numeric: true }
+        );
       default:
         return 0;
     }
   });
 };
 
-const GeSearch = () => {
+const filterBySort = (
+  sortBy: string,
+  filters: FilterOptions,
+  currentCourses: Course[],
+  currentGE: string
+): Course[] => {
+  if (!currentCourses?.length) return [];
+
+  const { subjects, classTypes, enrollmentStatuses, GEs } = filters;
+
+  const filteredCourses = currentCourses.filter((course) => {
+    const matchSubject = !subjects.length || subjects.includes(course.subject);
+    const matchType =
+      !classTypes.length || classTypes.includes(course.class_type);
+    const matchStatus =
+      !enrollmentStatuses.length ||
+      enrollmentStatuses.includes(course.class_status);
+    const matchGEs =
+      currentGE === "AnyGE" ? !GEs.length || GEs.includes(course.ge) : true;
+
+    return matchSubject && matchType && matchStatus && matchGEs;
+  });
+
+  return sortCourses(filteredCourses, sortBy);
+};
+
+const GeSearch: React.FC = () => {
   const theme = useTheme();
-  const isSmallScreen = useMediaQuery(theme.breakpoints.down("sm"));
-  const isMediumScreen = useMediaQuery(theme.breakpoints.down("md"));
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [search, setSearch] = useState("");
-  const [sortBy, setSortBy] = useState(() => {
-    const stored = sessionStorage.getItem("sortBy");
-    return stored !== null ? stored : "DEFAULT";
-  });
-  const [selectedGE, setSelectedGE] = useState(() => {
-    const stored = sessionStorage.getItem("selectedGE");
-    return stored !== null ? stored : "AnyGE";
-  });
-
-  const [selectedClassTypes, setSelectedClassTypes] = useState<string[]>(() => {
-    const stored = sessionStorage.getItem("selectedClassTypes");
-    return stored ? JSON.parse(stored) : [];
-  });
-  const [selectedEnrollmentStatuses, setSelectedEnrollmentStatuses] = useState<
-    string[]
-  >(() => {
-    const stored = sessionStorage.getItem("selectedEnrollmentStatuses");
-    return stored ? JSON.parse(stored) : [];
-  });
-  const [selectedGEs, setSelectedGEs] = useState<string[]>(() => {
-    const stored = sessionStorage.getItem("selectedGEs");
-    return stored ? JSON.parse(stored) : [];
-  });
-  const [selectedSubjects, setSelectedSubjects] = useState<string[]>(() => {
-    const stored = sessionStorage.getItem("selectedSubjects");
-    return stored ? JSON.parse(stored) : [];
-  });
-  const [isCategoriesVisible, setIsCategoriesVisible] = useState<boolean>(
-    () => {
-      const stored = sessionStorage.getItem("isCategoriesVisible");
-      return stored !== null ? stored === "true" : true;
-    }
+  const isCategoryDrawer = useMediaQuery(
+    `(max-width:${BREAKPOINT_CATEGORY}px)`
   );
-  const { data: lastUpdated } = useQuery({
-    queryKey: ["lastUpdate"],
-    queryFn: fetchLastUpdate,
-    refetchInterval: 300000,
-    refetchIntervalInBackground: true,
-    refetchOnWindowFocus: false,
-    refetchOnMount: false,
-  });
-  const [scrollToCourseId, setScrollToCourseId] = useState<
-    string | undefined
-  >();
-  const [expandedCodesMap, setExpandedCodesMap] = useState<
-    Map<string, boolean>
-  >(new Map());
+  const isDistributionDrawer = useMediaQuery(
+    `(max-width:${BREAKPOINT_DISTRIBUTION}px)`
+  );
+  const isSmallScreen = useMediaQuery(theme.breakpoints.down("sm"));
 
-  const isAllExpanded = React.useRef(false);
+  // State management
+  const [search, setSearch] = useState("");
+  const [panelData, setPanelData] = useState<PanelData | null>(null);
+  const [activePanel, setActivePanel] = useState<
+    "distribution" | "ratings" | "courseDetails" | null
+  >(null);
+  const [isOpen, setIsOpen] = useState(false);
+  const [scrollToCourseId, setScrollToCourseId] = useState<string>();
+  const [expandedCodesMap, setExpandedCodesMap] = useState(
+    new Map<string, boolean>()
+  );
+  const isAllExpanded = useRef(false);
 
+  // Session storage state
+  const [sortBy, setSortBy] = useSessionStorage("sortBy", "DEFAULT");
+  const [selectedGE, setSelectedGE] = useSessionStorage("selectedGE", "AnyGE");
+  const [selectedClassTypes, setSelectedClassTypes] = useSessionStorage<
+    string[]
+  >("selectedClassTypes", []);
+  const [selectedEnrollmentStatuses, setSelectedEnrollmentStatuses] =
+    useSessionStorage<string[]>("selectedEnrollmentStatuses", []);
+  const [selectedGEs, setSelectedGEs] = useSessionStorage<string[]>(
+    "selectedGEs",
+    []
+  );
+  const [selectedSubjects, setSelectedSubjects] = useSessionStorage<string[]>(
+    "selectedSubjects",
+    []
+  );
+  const [isCategoriesVisible, setIsCategoriesVisible] = useSessionStorage(
+    "isCategoriesVisible",
+    false
+  );
+
+  // Data fetching
   const { data: courses, isLoading: isFetchLoading } = useGECourseData();
   const currentCourses = courses?.[selectedGE];
+  const [lastUpdated, setLastUpdated] = useState<string>("None");
+  fetchLastUpdate()
+    .then((result) => setLastUpdated(result))
+    .catch(() => setLastUpdated("Error loading update time"));
+  const codes = useMemo(
+    () => [...new Set(currentCourses?.map((course) => course.subject))].sort(),
+    [currentCourses]
+  );
 
-  const handleGE = useCallback((category: string) => {
-    setSelectedGE(() => {
-      sessionStorage.setItem("selectedGE", category);
-      return category;
-    });
-  }, []);
-  const handleSortBy = useCallback((sortBy: string) => {
-    setSortBy(() => {
-      sessionStorage.setItem("sortBy", sortBy);
-      return sortBy;
-    });
-  }, []);
-  const handleSelectedClassTypes = (newClassTypes: string[]) => {
-    setSelectedClassTypes(newClassTypes);
-    sessionStorage.setItem("selectedClassTypes", JSON.stringify(newClassTypes));
-  };
-  const handleSelectedGEs = (newGEs: string[]) => {
-    setSelectedGEs(newGEs);
-    sessionStorage.setItem("selectedGEs", JSON.stringify(newGEs));
-  };
-  const handleSelectedSubjects = (newSubjects: string[]) => {
-    setSelectedSubjects(newSubjects);
-    sessionStorage.setItem("selectedSubjects", JSON.stringify(newSubjects));
-  };
-  const handleSelectedEnrollmentStatuses = (
-    newEnrollmentStatuses: string[]
-  ) => {
-    setSelectedEnrollmentStatuses(newEnrollmentStatuses);
-    sessionStorage.setItem(
-      "selectedEnrollmentStatuses",
-      JSON.stringify(newEnrollmentStatuses)
+  const GEs = useMemo(
+    () =>
+      [
+        ...new Set(currentCourses?.map((course) => course.ge).filter(Boolean)),
+      ].sort(),
+    [currentCourses]
+  );
+
+  // Handlers
+  const handleClearFilters = useCallback(() => {
+    setSelectedEnrollmentStatuses([]);
+    setSelectedSubjects([]);
+    setSelectedClassTypes([]);
+    setSelectedGEs([]);
+  }, [
+    setSelectedEnrollmentStatuses,
+    setSelectedSubjects,
+    setSelectedClassTypes,
+    setSelectedGEs,
+  ]);
+
+  const handleGlobalCourseSelect = useCallback(
+    (courseId: string, category?: string) => {
+      handleClearFilters();
+      setSelectedGE(category ?? "AnyGE");
+      setScrollToCourseId(courseId);
+      setExpandedCodesMap((prev) => new Map(prev).set(courseId, true));
+    },
+    [handleClearFilters, setSelectedGE]
+  );
+
+  const handleExpandAll = useCallback(() => {
+    isAllExpanded.current = !isAllExpanded.current;
+    setExpandedCodesMap(
+      new Map(
+        currentCourses?.map((course) => [course.id, isAllExpanded.current]) ??
+          []
+      )
     );
-  };
-  const handleGlobalCourseSelect = (courseId: string, category?: string) => {
-    handleClearFilters();
-    handleGE(category ?? "AnyGE");
-    setScrollToCourseId(courseId);
-    handleExpandCard(courseId, true);
-  };
+  }, [currentCourses]);
 
-  const handleCategories = useCallback(() => {
-    setIsCategoriesVisible((prev) => {
-      const newValue = !prev;
-      sessionStorage.setItem("isCategoriesVisible", String(newValue));
-      return newValue;
-    });
-  }, []);
+  // Filtered courses computation
   const filteredCourses = useMemo(() => {
     const searchFiltered = filterCourses(currentCourses, search);
     return filterBySort(
       sortBy,
-      selectedSubjects,
-      selectedClassTypes,
-      selectedEnrollmentStatuses,
+      {
+        subjects: selectedSubjects,
+        classTypes: selectedClassTypes,
+        enrollmentStatuses: selectedEnrollmentStatuses,
+        GEs: selectedGEs,
+      },
       searchFiltered,
-      selectedGE,
-      selectedGEs
+      selectedGE
     );
   }, [
     sortBy,
@@ -246,396 +204,92 @@ const GeSearch = () => {
     selectedGEs,
   ]);
 
-  const handleClearFilters = () => {
-    handleSelectedEnrollmentStatuses([]);
-    handleSelectedSubjects([]);
-    handleSelectedClassTypes([]);
-    handleSelectedGEs([]);
-  };
-
-  const handleCategorySelect = useCallback((categoryId: string) => {
-    handleGE(categoryId);
-    setExpandedCodesMap(new Map());
-    isAllExpanded.current = false;
-  }, []);
-
-  const handleExpandCard = useCallback(
-    (courseCode: string, state?: boolean) => {
-      setExpandedCodesMap((prevMap) => {
-        const newMap = new Map(prevMap);
-        newMap.set(courseCode, state ?? !prevMap.get(courseCode));
-        return newMap;
-      });
-    },
-    []
-  );
-
-  const handleExpandAll = useCallback(() => {
-    isAllExpanded.current = !isAllExpanded.current;
-    setExpandedCodesMap(
-      new Map(
-        currentCourses?.map((course) => [course.id, isAllExpanded.current]) ||
-          []
-      )
-    );
-  }, [currentCourses]);
-  const codes = [
-    ...new Set(currentCourses?.map((course) => course.subject)),
-  ].sort();
-  const GEs = [
-    ...new Set(
-      currentCourses?.map((course) => course.ge).filter((ge) => ge != null)
-    ),
-  ].sort();
-
   return (
     <Root>
-      {isSmallScreen || isMediumScreen ? (
-        <Drawer
-          anchor="left"
-          open={mobileMenuOpen}
-          onClose={() => setMobileMenuOpen(false)}
-          sx={{
-            "& .MuiDrawer-paper": {
-              width: 240,
-              boxSizing: "border-box",
-            },
-          }}
-        >
-          <DrawerHeader>
-            <Typography variant="subtitle1" fontWeight="medium">
-              Categories
-            </Typography>
-            <IconButton
-              onClick={() => setMobileMenuOpen(false)}
-              sx={{ borderRadius: "8px" }}
-            >
-              <ArrowBackIcon />
-            </IconButton>
-          </DrawerHeader>
-          <CategoryContainer>
-            <CategorySidebar
-              selectedCategory={selectedGE}
-              onCategorySelect={handleCategorySelect}
-            />
-          </CategoryContainer>
-        </Drawer>
-      ) : (
-        <GeContainer isVisible={isCategoriesVisible}>
-          <CategoryContainer>
-            <CategorySidebar
-              selectedCategory={selectedGE}
-              onCategorySelect={handleCategorySelect}
-            />
-          </CategoryContainer>
-        </GeContainer>
-      )}
+      <CategoryDrawer
+        isOpen={isOpen}
+        isCategoriesVisible={isCategoriesVisible}
+        isCategoryDrawer={isCategoryDrawer}
+        isDistributionDrawer={isDistributionDrawer}
+        selectedGE={selectedGE}
+        setSelectedGE={setSelectedGE}
+        setIsOpen={setIsOpen}
+        setIsCategoriesVisible={setIsCategoriesVisible}
+        activePanel={activePanel}
+      />
 
       <CourseContainer>
-        <HeaderContainer>
-          <SearchSection>
-            <MenuButton
-              onClick={
-                isSmallScreen || isMediumScreen
-                  ? () => setMobileMenuOpen(!mobileMenuOpen)
-                  : handleCategories
-              }
-              aria-label="Toggle Categories"
-            >
-              <AnimatedArrowIcon
-                isVisible={!isMediumScreen ? isCategoriesVisible : true}
-                isSmallScreen={isMediumScreen}
-              />
-            </MenuButton>
+        <SearchControls
+          isSmallScreen={isSmallScreen}
+          isCategoryDrawer={isCategoryDrawer}
+          handleCategoryToggle={() =>
+            setIsCategoriesVisible(!isCategoriesVisible)
+          }
+          isCategoriesVisible={isCategoriesVisible}
+          courses={courses}
+          handleGlobalCourseSelect={handleGlobalCourseSelect}
+          selectedGE={selectedGE}
+          isAllExpanded={isAllExpanded.current}
+          handleExpandAll={handleExpandAll}
+          codes={codes}
+          GEs={GEs}
+          sortBy={sortBy}
+          setSortBy={setSortBy}
+          selectedClassTypes={selectedClassTypes}
+          setSelectedClassTypes={setSelectedClassTypes}
+          selectedSubjects={selectedSubjects}
+          setSelectedSubjects={setSelectedSubjects}
+          selectedEnrollmentStatuses={selectedEnrollmentStatuses}
+          setSelectedEnrollmentStatuses={setSelectedEnrollmentStatuses}
+          selectedGEs={selectedGEs}
+          setSelectedGEs={setSelectedGEs}
+          lastUpdated={lastUpdated ?? "None"}
+        />
 
-            <GlobalSearch
-              courses={courses}
-              onCourseSelect={handleGlobalCourseSelect}
-              selectedGE={selectedGE}
-              lastUpdated={lastUpdated ?? "None"}
-              isSmallScreen={isSmallScreen}
-            />
-          </SearchSection>
-
-          <ControlsContainer>
-            {isSmallScreen ? (
-              <>
-                <ExpandButton
-                  variant="contained"
-                  color="primary"
-                  onClick={handleExpandAll}
-                  endIcon={
-                    <StyledExpandIcon expanded={isAllExpanded.current} />
-                  }
-                  fullWidth
-                >
-                  {isAllExpanded.current ? "Collapse" : "Expand"}
-                </ExpandButton>
-                <FilterDropdown
-                  codes={codes}
-                  GEs={GEs}
-                  sortBy={sortBy}
-                  selectedGEs={selectedGEs}
-                  selectedSubjects={selectedSubjects}
-                  selectedClassTypes={selectedClassTypes}
-                  selectedEnrollmentStatuses={selectedEnrollmentStatuses}
-                  onSortBy={handleSortBy}
-                  onClassTypesChange={handleSelectedClassTypes}
-                  onSelectedSubjectsChange={handleSelectedSubjects}
-                  onEnrollmentStatusesChange={handleSelectedEnrollmentStatuses}
-                  onSelectedGEs={handleSelectedGEs}
-                />
-              </>
-            ) : (
-              <>
-                <ExpandButton
-                  variant="contained"
-                  color="primary"
-                  onClick={handleExpandAll}
-                  endIcon={
-                    <StyledExpandIcon expanded={isAllExpanded.current} />
-                  }
-                >
-                  {isAllExpanded.current ? "Collapse" : "Expand"}
-                </ExpandButton>
-                <FilterDropdown
-                  codes={codes}
-                  GEs={GEs}
-                  sortBy={sortBy}
-                  selectedGEs={selectedGEs}
-                  selectedSubjects={selectedSubjects}
-                  selectedClassTypes={selectedClassTypes}
-                  selectedEnrollmentStatuses={selectedEnrollmentStatuses}
-                  onSortBy={handleSortBy}
-                  onClassTypesChange={handleSelectedClassTypes}
-                  onSelectedSubjectsChange={handleSelectedSubjects}
-                  onEnrollmentStatusesChange={handleSelectedEnrollmentStatuses}
-                  onSelectedGEs={handleSelectedGEs}
-                />
-              </>
-            )}
-          </ControlsContainer>
-        </HeaderContainer>
-
-        {isFetchLoading ? (
-            <Box sx={{ p: 2, display: "flex", flexDirection: "column", gap: 2 }}>
-            {[1, 2, 3,4,5].map((i) => (
-              <LoadingCourseCard key={i} />
-            ))}
-          </Box>
-        ) : filteredCourses?.length === 0 ? (
-          <CenterContent>
-            <NoResults color="textSecondary">
-              <Grid2 container flexDirection="column" alignItems="center">
-                <Typography
-                  sx={{
-                    display: "inline-flex",
-                    alignItems: "center",
-                    color: COLORS.GRAY_400,
-                  }}
-                >
-                  {search
-                    ? "No matching courses found "
-                    : "No courses available "}
-                  <SentimentDissatisfiedIcon
-                    sx={{ ml: 1, color: COLORS.GRAY_400 }}
-                  />
-                </Typography>
-                <Typography
-                  onClick={handleClearFilters}
-                  sx={{
-                    textDecoration: "underline",
-                    color: theme.palette.primary.dark,
-                    cursor: "pointer",
-                    mt: 1,
-                  }}
-                >
-                  {"Clear Filters"}
-                </Typography>
-              </Grid2>
-            </NoResults>
-          </CenterContent>
-        ) : (
-          <DynamicCourseList
-            filteredCourses={filteredCourses}
-            isSmallScreen={isSmallScreen}
-            expandedCodesMap={expandedCodesMap}
-            handleExpandCard={handleExpandCard}
-            scrollToCourseId={scrollToCourseId}
-            setSelectedGE={setSelectedGE}
-          />
-        )}
+        <CourseList
+          isFetchLoading={isFetchLoading}
+          filteredCourses={filteredCourses}
+          isSmallScreen={isSmallScreen}
+          expandedCodesMap={expandedCodesMap}
+          setExpandedCodesMap={setExpandedCodesMap}
+          scrollToCourseId={scrollToCourseId}
+          selectedGE={selectedGE}
+          setSelectedGE={setSelectedGE}
+          setPanelData={setPanelData}
+          setActivePanel={setActivePanel}
+          handleClearFilters={handleClearFilters}
+        />
       </CourseContainer>
+
+      <PanelDrawer
+        activePanel={activePanel}
+        panelData={panelData}
+        isDistributionDrawer={isDistributionDrawer}
+        isSmallScreen={isSmallScreen}
+        onClose={() => {
+          setActivePanel(null);
+          setPanelData(null);
+        }}
+      />
     </Root>
   );
 };
 
-const Root = styled("div")(({ theme }) => ({
+const Root = styled("div")({
   display: "flex",
   backgroundColor: COLORS.GRAY_50,
   height: "calc(100dvh - 64px)",
-
   overflow: "hidden",
-  [theme.breakpoints.down("sm")]: {
-    flexDirection: "column",
-    height: "calc(100dvh - 64px)",
-  },
-}));
-const DrawerHeader = styled("div")(({ theme }) => ({
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "space-between",
-  padding: theme.spacing(1, 2),
-  borderBottom: `1px solid ${theme.palette.divider}`,
-}));
+});
 
-const MenuButton = styled(IconButton)(({ theme }) => ({
-  backgroundColor: COLORS.WHITE,
-  boxShadow: theme.shadows[2],
-  marginRight: theme.spacing(1),
-  "&:hover": {
-    backgroundColor: COLORS.GRAY_50,
-    transform: "translateY(-2px)",
-    transition: "transform 0.2s ease-in-out",
-  },
-  transition: "transform 0.2s ease-in-out",
-}));
-
-const GeContainer = styled("div")<{ isVisible: boolean }>(
-  ({ theme, isVisible }) => ({
-    width: isVisible ? 300 : 0,
-    marginRight: isVisible? "32px" : 0,
-    height: "100%",
-    backgroundColor: COLORS.WHITE,
-    borderRight: isVisible ? `1px solid ${COLORS.GRAY_100}` : "none",
-    display: "flex",
-    flexDirection: "column",
-    transition: "all 0.3s ease-in-out",
-    overflow: "hidden",
-    position: "relative",
-    opacity: isVisible ? 1 : 0,
-    [theme.breakpoints.down("md")]: {
-      width: isVisible ? 280 : 0,
-      minWidth: isVisible ? 280 : 0,
-    },
-    [theme.breakpoints.down("sm")]: {
-      width: isVisible ? 240 : 0,
-      minWidth: isVisible ? 240 : 0,
-    },
-  })
-);
-const CategoryContainer = styled("div")(({ theme }) => ({
-  height: "100%",
-  backgroundColor: COLORS.WHITE,
-  display: "flex",
-  flexDirection: "column",
-  overflowY: "auto",
-  transition: "all 0.3s ease",
-  scrollBehavior: "smooth",
-}));
 const CourseContainer = styled("div")(({ theme }) => ({
   flex: 1,
-  borderLeft: `1px solid ${theme.palette.divider}`,
   height: "100%",
   display: "flex",
   flexDirection: "column",
   backgroundColor: COLORS.WHITE,
   minWidth: 0,
-  [theme.breakpoints.down("md")]: {
-    width: "100%",
-  },
-  [theme.breakpoints.down("sm")]: {
-    height: "100%",
-  },
-}));
-const HeaderContainer = styled("div")(({ theme }) => ({
-  display: "flex",
-  alignItems: "center",
-  padding: theme.spacing(2),
-  justifyContent: "space-between",
-  borderBottom: `1px solid ${theme.palette.divider}`,
-  backgroundColor: COLORS.WHITE,
-  flexWrap: "wrap",
-  gap: theme.spacing(1),
-
-  [theme.breakpoints.down("sm")]: {
-    padding: theme.spacing(1),
-    flexDirection: "column",
-    alignItems: "stretch",
-  },
-}));
-
-const SearchSection = styled("div")(({ theme }) => ({
-  display: "flex",
-  flexDirection: "row",
-  flex: 1,
-  alignItems: "center",
-  marginRight: theme.spacing(1),
-
-  [theme.breakpoints.down("sm")]: {
-    marginRight: theme.spacing(3),
-  },
-}));
-
-const ControlsContainer = styled("div")(({ theme }) => ({
-  display: "flex",
-  alignItems: "center",
-  gap: theme.spacing(2),
-  [theme.breakpoints.down("sm")]: {
-    width: "100%",
-    flexWrap: "wrap",
-    justifyContent: "space-between",
-    rowGap: theme.spacing(1),
-  },
-}));
-
-const ExpandButton = styled(Button)(({ theme }) => ({
-  height: "36px",
-  borderRadius: "8px",
-  padding: "6px 16px",
-  textTransform: "none",
-  backgroundColor: theme.palette.primary.main,
-  color: theme.palette.common.white,
-  fontWeight: "bold",
-  boxShadow: "0 2px 8px rgba(0, 0, 0, 0.15)",
-  background: `linear-gradient(135deg,
-    ${theme.palette.primary.dark} 0%,
-    ${theme.palette.primary.main} 100%)`,
-
-  transition: "all 0.2s ease-in-out",
-
-  "&:hover": {
-    boxShadow: "0 6px 16px rgba(0, 0, 0, 0.2)",
-    background: `linear-gradient(135deg,
-      ${theme.palette.primary.light} 0%,
-      ${theme.palette.primary.main} 100%)`,
-  },
-
-  "&:active": {
-    transform: "translateY(0)",
-    filter: "brightness(95%)",
-    boxShadow: "0 2px 8px rgba(0, 0, 0, 0.15)",
-  },
-
-  [theme.breakpoints.down("sm")]: {
-    flex: 1,
-    minWidth: "120px",
-    marginLeft: theme.spacing(1),
-  },
-}));
-const CenterContent = styled("div")({
-  display: "flex",
-  justifyContent: "center",
-  alignItems: "center",
-  height: "100%",
-  width: "100%",
-});
-
-const NoResults = styled(Typography)(({ theme }) => ({
-  display: "flex",
-  alignItems: "center",
-  gap: theme.spacing(1),
-  color: COLORS.GRAY_400,
+  transition: "margin 0.3s ease",
 }));
 
 export default GeSearch;
