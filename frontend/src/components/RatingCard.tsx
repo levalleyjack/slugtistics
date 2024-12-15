@@ -8,6 +8,7 @@ import {
   useTheme,
 } from '@mui/material';
 import { lighten } from '@mui/material/styles';
+import { RatingCardProps } from '../Constants';
 
 const RatingDisplay = styled(Box)(({ theme }) => ({
   display: 'flex',
@@ -32,11 +33,7 @@ const RatingSection = styled(Box)({
   gap: 0.5,
 });
 
-interface RatingCardProps {
-  overallRating: number;
-  difficultyRating: number;
-  getRatingColor: (score: number, type?: 'difficulty' | 'rating') => string;
-}
+
 
 export const RatingCard: React.FC<RatingCardProps> = ({
   overallRating,

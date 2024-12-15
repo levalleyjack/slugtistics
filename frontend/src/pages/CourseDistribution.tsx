@@ -24,31 +24,8 @@ import { useQuery } from "@tanstack/react-query";
 import "chart.js/auto";
 import { ChartOptions } from "chart.js";
 import { Close, ArrowForward as ArrowForwardIcon } from "@mui/icons-material";
-interface CourseDistributionProps {
-  courseCode: string;
-  professorName?: string;
-  isOpen?: boolean;
-  onClose?: (e: React.MouseEvent) => void;
-  inPanel?: boolean;
-}
+import { ChartData, CourseDistributionProps, distributionAPIResponse, GradeDistribution } from "../Constants";
 
-interface GradeDistribution {
-  [key: string]: number;
-}
-
-interface ChartData {
-  labels: string[];
-  datasets: {
-    label: string;
-    data: number[];
-    backgroundColor: string;
-    borderRadius: number;
-  }[];
-}
-
-interface APIResponse {
-  [key: string]: number;
-}
 
 const BORDER_RADIUS = "12px";
 
@@ -163,7 +140,7 @@ async function fetchGradeDistribution(
   courseCode: string,
   instructor: string,
   term: string
-): Promise<APIResponse> {
+): Promise<distributionAPIResponse> {
   const response = await fetch(
     `${API_ROUTE}grade-distribution/${courseCode}?instructor=${instructor}&term=${term}`
   );

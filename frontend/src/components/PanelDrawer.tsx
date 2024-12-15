@@ -3,14 +3,9 @@ import { Drawer } from "@mui/material";
 import { CourseDistribution } from "../pages/CourseDistribution";
 import RatingsPanel from "./RatingsPanel";
 import { CourseDetailsPanel } from "./CourseDetails";
+import { PanelDrawerProps } from "../Constants";
 
-interface PanelDrawerProps {
-  activePanel: "distribution" | "ratings" | "courseDetails" | null;
-  panelData: any;
-  isDistributionDrawer: boolean;
-  isSmallScreen: boolean;
-  onClose: () => void;
-}
+
 
 export const PanelDrawer: React.FC<PanelDrawerProps> = ({
   activePanel,
@@ -26,15 +21,15 @@ export const PanelDrawer: React.FC<PanelDrawerProps> = ({
       open={Boolean(activePanel)}
       onClose={onClose}
       sx={{
-        width: activePanel ? (isSmallScreen ? "100%" : 400) : 0,
+        width: activePanel ? (isSmallScreen ? "100%" : "min(400px, 90dvw)") : 0,
         flexShrink: 0,
         "& .MuiDrawer-paper": {
-          width: isSmallScreen ? "100%" : 400,
+          width: isSmallScreen ? "100%" : "min(400px, 90dvw)",
           marginTop: "64px",
           height: "calc(100% - 64px)",
           boxSizing: "border-box",
-          borderTopLeftRadius: "8px",
-          borderBottomLeftRadius: "8px",
+          borderTopLeftRadius: { xs: 0, sm: "8px" },
+          borderBottomLeftRadius: { xs: 0, sm: "8px" },
         },
       }}
     >

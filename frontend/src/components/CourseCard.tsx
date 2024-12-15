@@ -17,13 +17,12 @@ import {
   ListItemText,
   Stack,
 } from "@mui/material";
-import CancelOutlinedIcon from "@mui/icons-material/CancelOutlined";
+import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
 import WarningAmberIcon from "@mui/icons-material/WarningAmber";
 import RateReviewIcon from "@mui/icons-material/RateReview";
 import CancelIcon from "@mui/icons-material/Cancel";
 import EqualizerIcon from "@mui/icons-material/Equalizer";
 import Grid from "@mui/material/Grid";
-import ShoppingCartIcon from "@mui/icons-material/ShoppingCart";
 import LocationOnIcon from "@mui/icons-material/LocationOn";
 import RefreshIcon from "@mui/icons-material/Refresh";
 import {
@@ -43,6 +42,7 @@ import { useTheme } from "@mui/material/styles";
 import {
   COLORS,
   Course,
+  CourseCardProps,
   CourseCode,
   DifficultyChipProps,
   getLetterGrade,
@@ -52,20 +52,7 @@ import {
 import StatusIcon from "./StatusIcon";
 import { useQuery } from "@tanstack/react-query";
 
-interface CourseCardProps {
-  course: Course;
-  isSmallScreen: boolean;
-  expanded: boolean;
-  onExpandChange: (courseCode: string) => void;
-  setSelectedGE?: (category: string) => void;
-  onDistributionOpen: (courseCode: string, professorName: string) => void;
-  onRatingsOpen: (
-    professorName: string,
-    courseCode: string,
-    courseCodes: CourseCode[]
-  ) => void;
-  onCourseDetailsOpen: (course:Course) => void;
-}
+
 
 export const CourseCard = forwardRef<HTMLDivElement, CourseCardProps>(
   (
@@ -430,6 +417,18 @@ export const CourseCard = forwardRef<HTMLDivElement, CourseCardProps>(
                     {copied ? "Copied!" : "Copy Enrollment Number"}
                   </ListItemText>
                 </MenuItem>
+                <MenuItem
+                  onClick={(e) => {
+                    handleCourseDetailsOpen(e);
+                    handleMenuClose();
+                  }}
+                >
+                  <ListItemIcon>
+                  <InfoOutlinedIcon />
+                  </ListItemIcon>
+                  <ListItemText>Additional Course Information</ListItemText>
+                </MenuItem>
+                
                 <MenuItem
                   onClick={(e) => {
                     e.stopPropagation();
