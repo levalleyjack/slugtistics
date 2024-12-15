@@ -96,6 +96,8 @@ export interface FilterOptions {
   classTypes: string[];
   enrollmentStatuses: string[];
   GEs: string[];
+  careers: string[];
+  prereqs: string[];
 }
 
 export interface RMPResponse {
@@ -197,17 +199,22 @@ export interface DiscussionSection {
 }
 export interface FilterDropdownProps {
   codes: string[];
+
   selectedSubjects: string[];
   GEs: string[];
   sortBy: string;
   selectedGEs: string[];
   selectedClassTypes: string[];
   selectedEnrollmentStatuses: string[];
+  selectedCareers: string[];
+  selectedPrereqs: string[];
   onSortBy: (value: string) => void;
   onSelectedSubjectsChange: (value: string[]) => void;
   onClassTypesChange: (value: string[]) => void;
   onEnrollmentStatusesChange: (value: string[]) => void;
   onSelectedGEs: (value: string[]) => void;
+  onSelectedCareersChange: (value: string[]) => void;
+  onSelectedPrereqsChange: (value: string[]) => void;
 }
 export interface ExpandButtonProps {
   isExpanded: boolean;
@@ -326,8 +333,13 @@ export interface SearchControlsProps {
   setSelectedSubjects: (subjects: string[]) => void;
   selectedEnrollmentStatuses: string[];
   setSelectedEnrollmentStatuses: (statuses: string[]) => void;
+  selectedCareers: string[];
+  setSelectedCareers: (careers: string[]) => void;
+  selectedPrereqs: string[];
+  setSelectedPrereqs: (prereqs: string[]) => void;
   selectedGEs: string[];
   setSelectedGEs: (ges: string[]) => void;
+
   lastUpdated: string;
 }
 export interface RatingsPanelProps {
@@ -349,6 +361,9 @@ export const classTypeOptions = [
   "Asynchronous Online",
 ];
 export const enrollmentStatusOptions = ["Open", "Wait List", "Closed"];
+export const careersOptions = ["Graduate", "Undergraduate"];
+export const prereqOptions = ["Has Prerequisites", "No Prerequisites"];
+
 export interface GlobalSearchDropdownProps {
   courses: Course[] | Record<string, Course[]>;
   onCourseSelect: (courseId: string, category?: string) => void;

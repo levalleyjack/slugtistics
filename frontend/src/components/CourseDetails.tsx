@@ -17,6 +17,7 @@ import {
   Grid,
   useMediaQuery,
 } from "@mui/material";
+import AssignmentTurnedInIcon from '@mui/icons-material/AssignmentTurnedIn';
 import {
   ArrowForward as ArrowForwardIcon,
   School as SchoolIcon,
@@ -25,7 +26,6 @@ import {
   Assignment as AssignmentIcon,
   Info as InfoIcon,
   Class as ClassIcon,
-  CheckCircleOutline as CheckCircleOutlineIcon,
   Schedule as ScheduleIcon,
   LocationOn as LocationIcon,
   People as PeopleIcon,
@@ -58,6 +58,7 @@ const ContentContainer = styled(Box)(({ theme }) => ({
 
 const InfoSection = styled(Paper)(({ theme }) => ({
   borderRadius: "12px",
+  
   padding: theme.spacing(2),
   marginBottom: theme.spacing(2),
   backgroundColor: theme.palette.background.paper,
@@ -212,7 +213,7 @@ const CopyButton: React.FC<{ copyString: string; tooltip?: string }> = ({
         }}
       >
         {copied ? (
-          <CheckCircleOutlineIcon fontSize="small" />
+          <AssignmentTurnedInIcon fontSize="small" />
         ) : (
           <ContentCopyIcon fontSize="small" />
         )}

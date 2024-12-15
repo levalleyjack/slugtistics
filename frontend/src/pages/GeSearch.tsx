@@ -64,7 +64,8 @@ const filterBySort = (
 ): Course[] => {
   if (!currentCourses?.length) return [];
 
-  const { subjects, classTypes, enrollmentStatuses, GEs } = filters;
+  const { subjects, classTypes, enrollmentStatuses, GEs, careers, prereqs } =
+    filters;
 
   const filteredCourses = currentCourses.filter((course) => {
     const matchSubject = !subjects.length || subjects.includes(course.subject);
@@ -75,8 +76,22 @@ const filterBySort = (
       enrollmentStatuses.includes(course.class_status);
     const matchGEs =
       currentGE === "AnyGE" ? !GEs.length || GEs.includes(course.ge) : true;
-
-    return matchSubject && matchType && matchStatus && matchGEs;
+    const matchCareers = !careers.length || careers.includes(course.career);
+    const matchPrereqs =
+      !prereqs.length ||
+      prereqs.some((prereq) =>
+        prereq === "Has Prerequisites"
+          ? course.has_enrollment_reqs === true
+          : course.has_enrollment_reqs === false
+      );
+    return (
+      matchSubject &&
+      matchType &&
+      matchStatus &&
+      matchGEs &&
+      matchCareers &&
+      matchPrereqs
+    );
   });
 
   return sortCourses(filteredCourses, sortBy);
@@ -113,6 +128,15 @@ const GeSearch: React.FC = () => {
   const [selectedClassTypes, setSelectedClassTypes] = useSessionStorage<
     string[]
   >("selectedClassTypes", []);
+  const [selectedPrereqs, setSelectedPrereqs] = useSessionStorage<string[]>(
+    "selectedPrereqs",
+    []
+  );
+  const [selectedCareers, setSelectedCareers] = useSessionStorage<string[]>(
+    "selectedPrereqs",
+    []
+  );
+
   const [selectedEnrollmentStatuses, setSelectedEnrollmentStatuses] =
     useSessionStorage<string[]>("selectedEnrollmentStatuses", []);
   const [selectedGEs, setSelectedGEs] = useSessionStorage<string[]>(
@@ -128,7 +152,6 @@ const GeSearch: React.FC = () => {
     false
   );
 
-  // Data fetching
   const { data: courses, isLoading: isFetchLoading } = useGECourseData();
   const currentCourses = courses?.[selectedGE];
   const [lastUpdated, setLastUpdated] = useState<string>("None");
@@ -153,11 +176,15 @@ const GeSearch: React.FC = () => {
     setSelectedSubjects([]);
     setSelectedClassTypes([]);
     setSelectedGEs([]);
+    setSelectedPrereqs([]);
+    setSelectedCareers([]);
   }, [
     setSelectedEnrollmentStatuses,
     setSelectedSubjects,
     setSelectedClassTypes,
     setSelectedGEs,
+    setSelectedCareers,
+    setSelectedPrereqs,
   ]);
 
   const handleGlobalCourseSelect = useCallback(
@@ -189,6 +216,8 @@ const GeSearch: React.FC = () => {
         classTypes: selectedClassTypes,
         enrollmentStatuses: selectedEnrollmentStatuses,
         GEs: selectedGEs,
+        careers: selectedCareers,
+        prereqs: selectedPrereqs,
       },
       searchFiltered,
       selectedGE
@@ -202,6 +231,8 @@ const GeSearch: React.FC = () => {
     selectedEnrollmentStatuses,
     selectedGE,
     selectedGEs,
+    selectedCareers,
+    selectedPrereqs,
   ]);
 
   return (
@@ -243,6 +274,10 @@ const GeSearch: React.FC = () => {
           setSelectedEnrollmentStatuses={setSelectedEnrollmentStatuses}
           selectedGEs={selectedGEs}
           setSelectedGEs={setSelectedGEs}
+          selectedCareers={selectedCareers}
+          selectedPrereqs={selectedPrereqs}
+          setSelectedCareers={setSelectedCareers}
+          setSelectedPrereqs={setSelectedPrereqs}
           lastUpdated={lastUpdated ?? "None"}
         />
 
