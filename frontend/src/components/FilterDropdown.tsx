@@ -65,7 +65,7 @@ const StyledFormControl = styled(FormControl)(({ theme }) => ({
   },
 }));
 const StyledFilterButton = styled(Button)(({ theme }) => ({
-  borderRadius: "12px",
+  borderRadius: "8px",
   padding: "6px 16px",
   height: "36px",
   marginRight: theme.spacing(2),
