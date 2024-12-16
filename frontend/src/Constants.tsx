@@ -84,12 +84,17 @@ export const getStatusColor = (status: string) => {
   }
 };
 
-export interface PanelData {
-  courseCode?: string;
-  professorName?: string;
-  currentClass?: string;
-  courseCodes?: CourseCode[];
+interface RatingsPanelData {
+  professorName: string;
+  currentClass: string;
+  courseCodes: CourseCode[];
 }
+interface DistributionPanelData {
+  courseCode: string;
+  professorName: string;
+}
+export type PanelData = DistributionPanelData | RatingsPanelData | Course;
+
 
 export interface FilterOptions {
   subjects: string[];
@@ -319,7 +324,11 @@ export interface SearchControlsProps {
   handleCategoryToggle: () => void;
   isCategoriesVisible: boolean;
   courses: any;
-  handleGlobalCourseSelect: (courseId: string, category?: string) => void;
+  handleGlobalCourseSelect: (
+    course: Course,
+    courseId: string,
+    category?: string
+  ) => void;
   selectedGE: string;
   isAllExpanded: boolean;
   handleExpandAll: () => void;
@@ -366,7 +375,7 @@ export const prereqOptions = ["Has Prerequisites", "No Prerequisites"];
 
 export interface GlobalSearchDropdownProps {
   courses: Course[] | Record<string, Course[]>;
-  onCourseSelect: (courseId: string, category?: string) => void;
+  onCourseSelect: (course: Course, courseId: string, category?: string) => void;
   selectedGE?: string;
   lastUpdated: string;
   isSmallScreen: boolean;

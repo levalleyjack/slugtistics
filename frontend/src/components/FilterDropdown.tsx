@@ -22,6 +22,8 @@ import {
   useMediaQuery,
   Slide,
   Fade,
+  Grow,
+  Zoom,
 } from "@mui/material";
 import CheckIcon from "@mui/icons-material/Check";
 import FilterAltIcon from "@mui/icons-material/FilterAlt";
@@ -98,11 +100,14 @@ const StyledChip = styled(Chip)(({ theme }) => ({
 
 const StyledPopover = styled(Popover)(({ theme }) => ({
   [theme.breakpoints.down("sm")]: {
-    backdropFilter: "blur(1px)",
+    "& .MuiPopover-paper": {
+      overflow: "visible",
+    },
+    backgroundColor: alpha(theme.palette.action.disabledBackground, 0.5),
   },
   "& .MuiPopover-paper": {
-    overflow: "visible",
     borderRadius: "8px",
+
     backgroundColor: "transparent",
     [theme.breakpoints.down("sm")]: {
       width: "calc(100dvw - 32px)",
@@ -121,6 +126,8 @@ const StyledPopover = styled(Popover)(({ theme }) => ({
 const StyledPopoverContent = styled(Box)(({ theme }) => ({
   padding: theme.spacing(3),
   width: 320,
+  overflow: "auto",
+
   backgroundColor: theme.palette.background.paper,
   [theme.breakpoints.down("sm")]: {
     width: "100%",
@@ -168,6 +175,11 @@ const StyledMenuItem = styled(MenuItem)(({ theme }) => ({
     backgroundColor: alpha(theme.palette.primary.main, 0.12),
     "&:hover": {
       backgroundColor: alpha(theme.palette.primary.main, 0.16),
+    },
+  },
+  [theme.breakpoints.down("sm")]: {
+    "&:hover": {
+      transform: "translateX(0px)",
     },
   },
 }));
@@ -351,7 +363,7 @@ const FilterDropdown: React.FC<FilterDropdownProps> = ({
       </StyledFilterButton>
 
       <StyledPopover
-        transitionDuration={200}
+        transitionDuration={{ enter: 200, exit: isMobile ? 150 : 200 }}
         id={id}
         open={open}
         anchorEl={anchorEl}
@@ -376,9 +388,8 @@ const FilterDropdown: React.FC<FilterDropdownProps> = ({
                   alignItems: "center",
                   mb: 2,
                   position: "sticky",
-                  top: 0,
-                  backgroundColor: "background.paper",
-                  backdropFilter: "blur(8px)",
+                  top: -8,
+                  backgroundColor: "white",
                   zIndex: 1,
                   py: 1,
                   borderBottom: 1,
@@ -570,7 +581,7 @@ const FilterDropdown: React.FC<FilterDropdownProps> = ({
             </Select>
           </StyledFormControl>
 
-          <StyledFormControl>
+          <StyledFormControl sx={GEs.length < 2 ? { mb: "32px" } : {}}>
             {renderFilterHeader(
               "Prerequisites",
               selectedPrereqs,
@@ -606,7 +617,7 @@ const FilterDropdown: React.FC<FilterDropdownProps> = ({
           </StyledFormControl>
 
           {GEs?.length > 1 && (
-            <StyledFormControl>
+            <StyledFormControl sx={{ mb: "32px" }}>
               {renderFilterHeader(
                 "GEs",
                 selectedGEs,

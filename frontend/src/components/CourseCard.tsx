@@ -132,13 +132,13 @@ export const CourseCard = forwardRef<HTMLDivElement, CourseCardProps>(
       e.stopPropagation();
 
       onRatingsOpen(
-        rmpData?.name,
+        rmpData.name ?? course.instructor,
         rmpData?.course_codes.some(
           (code: CourseCode) => code.courseName === course_code.replace(" ", "")
         )
           ? course_code.replace(" ", "")
           : "all",
-        rmpData?.course_codes
+        rmpData?.course_codes ?? []
       );
     };
 
@@ -430,7 +430,6 @@ export const CourseCard = forwardRef<HTMLDivElement, CourseCardProps>(
 
                 <MenuItem
                   onClick={(e) => {
-                    e.stopPropagation();
                     handleDistributionOpen(e);
                     handleMenuClose();
                   }}
@@ -439,6 +438,17 @@ export const CourseCard = forwardRef<HTMLDivElement, CourseCardProps>(
                     <EqualizerIcon fontSize="small" />
                   </ListItemIcon>
                   <ListItemText>View Course Distribution</ListItemText>
+                </MenuItem>
+                <MenuItem
+                  onClick={(e) => {
+                    handleRatingsOpen(e);
+                    handleMenuClose();
+                  }}
+                >
+                  <ListItemIcon>
+                    <RateReviewIcon fontSize="small" />
+                  </ListItemIcon>
+                  <ListItemText>See Teacher Reviews</ListItemText>
                 </MenuItem>
                 <MenuItem
                   onClick={(e) => {

@@ -193,12 +193,6 @@ const AllCourses = () => {
     [setSortBy]
   );
 
-  const handleGlobalCourseSelect = (courseId: string) => {
-    handleClearFilters();
-    setScrollToCourseId(courseId);
-    setExpandedCodesMap((prev) => new Map(prev).set(courseId, true));
-  };
-
   const handleExpandAll = useCallback(() => {
     isAllExpanded.current = !isAllExpanded.current;
     setExpandedCodesMap(
@@ -239,6 +233,17 @@ const AllCourses = () => {
     setSelectedCareers([]);
     setSelectedPrereqs([]);
   };
+  const handleGlobalCourseSelect = useCallback(
+    (course: Course, courseId: string) => {
+      handleClearFilters();
+      setScrollToCourseId(courseId);
+      setExpandedCodesMap((prev) => new Map(prev).set(courseId, true));
+
+      setPanelData(course);
+      setActivePanel("courseDetails");
+    },
+    [handleClearFilters, setPanelData, setActivePanel]
+  );
 
   const codes = useMemo(() => {
     return [...new Set(currentCourses?.map((course) => course.subject))].sort();

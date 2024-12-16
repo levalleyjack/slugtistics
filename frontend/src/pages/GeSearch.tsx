@@ -188,13 +188,16 @@ const GeSearch: React.FC = () => {
   ]);
 
   const handleGlobalCourseSelect = useCallback(
-    (courseId: string, category?: string) => {
+    (course: Course, courseId: string, category?: string) => {
       handleClearFilters();
       setSelectedGE(category ?? "AnyGE");
       setScrollToCourseId(courseId);
       setExpandedCodesMap((prev) => new Map(prev).set(courseId, true));
+      
+      setPanelData(course );
+      setActivePanel("courseDetails");
     },
-    [handleClearFilters, setSelectedGE]
+    [handleClearFilters, setSelectedGE, setPanelData, setActivePanel]
   );
 
   const handleExpandAll = useCallback(() => {

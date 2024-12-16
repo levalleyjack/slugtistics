@@ -18,10 +18,13 @@ import {
 } from "@mui/material";
 import SearchIcon from "@mui/icons-material/Search";
 import React, { useState, useMemo, useRef } from "react";
-import { COLORS, Course, getStatusColor, GlobalSearchDropdownProps } from "../Constants";
+import {
+  COLORS,
+  Course,
+  getStatusColor,
+  GlobalSearchDropdownProps,
+} from "../Constants";
 import StatusIcon from "./StatusIcon";
-
-
 
 const StyledPopper = styled(Popper)(({ theme }) => ({
   width: 400,
@@ -240,11 +243,14 @@ const GlobalSearch = ({
   };
 
   const handleCourseClick = (course: Course) => {
-    onCourseSelect(course.id, selectedGE ? course.ge_category : undefined);
+    onCourseSelect(
+      course,
+      course.id,
+      selectedGE ? course.ge_category : undefined
+    );
     setIsOpen(false);
     setSearch("");
   };
-
 
   const CourseListItem = ({ course }: { course: Course }) => (
     <StyledListItem

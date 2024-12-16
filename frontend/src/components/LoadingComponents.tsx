@@ -159,8 +159,8 @@ export const LoadingSkeleton: React.FC<LoadingSkeletonProps> = ({
 }) => {
   const getSkeletonCount = () => {
     if (filterBy === "all") {
-      const totalCount = courseCodes.reduce(
-        (sum, course) => sum + course.courseCount,
+      const totalCount = courseCodes?.reduce(
+        (sum, course) => sum + course?.courseCount,
         0
       );
       return Math.min(totalCount, 10);
