@@ -124,8 +124,9 @@ export const CourseCard = forwardRef<HTMLDivElement, CourseCardProps>(
 
     const handleExpandClick = (e: React.MouseEvent) => {
       if (
-        e.target === e.currentTarget ||
-        e.currentTarget.contains(e.target as Node)
+        (e.target === e.currentTarget ||
+          e.currentTarget.contains(e.target as Node)) &&
+        onExpandChange
       ) {
         onExpandChange(course_code);
       }
@@ -374,25 +375,25 @@ export const CourseCard = forwardRef<HTMLDivElement, CourseCardProps>(
                 />
               )}
               {!hideCompareButton && (
-                <Tooltip title="Compare Courses" >
-                <IconButton
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    if (handleAddToComparison) {
-                      handleAddToComparison(course);
-                    }
-                  }}
-                  size="small"
-                  sx={{
-                    p: 0.5,
-                    borderRadius: "8px",
-                    "&:hover": {
-                      backgroundColor: theme.palette.action.hover,
-                    },
-                  }}
-                >
-                  <CompareArrowsIcon fontSize="small" />
-                </IconButton>
+                <Tooltip title="Compare Courses">
+                  <IconButton
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (handleAddToComparison) {
+                        handleAddToComparison(course);
+                      }
+                    }}
+                    size="small"
+                    sx={{
+                      p: 0.5,
+                      borderRadius: "8px",
+                      "&:hover": {
+                        backgroundColor: theme.palette.action.hover,
+                      },
+                    }}
+                  >
+                    <CompareArrowsIcon fontSize="small" />
+                  </IconButton>
                 </Tooltip>
               )}
 
@@ -503,17 +504,18 @@ export const CourseCard = forwardRef<HTMLDivElement, CourseCardProps>(
                   <ListItemText>Go to UCSC Cart</ListItemText>
                 </MenuItem>
               </Menu>
-
-              <IconButton
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleExpandClick(e);
-                }}
-                size="small"
-                sx={{ p: 0.5, borderRadius: "8px" }}
-              >
-                <StyledExpandIcon expanded={expanded} fontSize="small" />
-              </IconButton>
+              {onExpandChange && (
+                <IconButton
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleExpandClick(e);
+                  }}
+                  size="small"
+                  sx={{ p: 0.5, borderRadius: "8px" }}
+                >
+                  <StyledExpandIcon expanded={expanded} fontSize="small" />
+                </IconButton>
+              )}
             </ActionContainer>
           </HeaderContent>
         </CardContent>

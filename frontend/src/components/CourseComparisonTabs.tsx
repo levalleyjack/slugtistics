@@ -97,15 +97,16 @@ const StyledTab = styled(Tab)(({ theme }) => ({
 const StyledButton = styled(Button)(({ theme }) => ({
   textTransform: "none",
   fontWeight: 600,
-  borderRadius: "8px",
-  padding: theme.spacing(0.75, 2),
-  backgroundColor: theme.palette.error.light + "20",
+  minWidth: 0,
+  padding: theme.spacing(0.5, 1),
   color: theme.palette.error.main,
+  backgroundColor: "transparent",
   "&:hover": {
-    backgroundColor: theme.palette.error.light + "30",
+    backgroundColor: theme.palette.error.light + "20",
   },
   "& .MuiButton-startIcon": {
-    color: theme.palette.error.main,
+    margin: 0,
+    marginRight: theme.spacing(0.5),
   },
 }));
 
@@ -144,9 +145,16 @@ const EnhancedCourseComparison: React.FC<CourseComparisonProps> = ({
   );
 
   const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
-    setActiveTab(newValue);
+    if (newValue !== activeTab) {
+      setActiveTab(newValue);
+      setIsExpanded(true);
+    }
   };
-
+  const handleTabClick = (index: number, event: React.MouseEvent) => {
+    if (index === activeTab) {
+      setIsExpanded(!isExpanded);
+    }
+  };
   const handleRemoveCourse = (index: number, e: React.MouseEvent) => {
     e.stopPropagation();
     onRemoveCourse(index);
@@ -184,7 +192,6 @@ const EnhancedCourseComparison: React.FC<CourseComparisonProps> = ({
         onClick={(e) => handleRemoveCourse(index, e)}
         sx={{
           p: 0.5,
-          borderRadius: "8px",
           opacity: 0.7,
           transition: "all 0.2s",
           "&:hover": {
@@ -231,8 +238,6 @@ const EnhancedCourseComparison: React.FC<CourseComparisonProps> = ({
                 width: isSmallScreen ? 28 : 40,
               },
             }}
-            onClick={() => setIsExpanded(!isExpanded)}
-
           >
             {courses.map((course, index) => (
               <StyledTab
@@ -240,6 +245,7 @@ const EnhancedCourseComparison: React.FC<CourseComparisonProps> = ({
                 label={<TabLabel course={course} index={index} />}
                 id={`course-tab-${index}`}
                 aria-controls={`course-tabpanel-${index}`}
+                onClick={(e) => handleTabClick(index, e)}
                 sx={{
                   minHeight: isSmallScreen ? 40 : 48,
                   px: isSmallScreen ? 1 : 2,
@@ -261,23 +267,7 @@ const EnhancedCourseComparison: React.FC<CourseComparisonProps> = ({
               </StyledButton>
             </Tooltip>
           )}
-          {courses.length > 1 && isSmallScreen && (
-            <Tooltip title="Clear all courses">
-              <IconButton
-                onClick={handleClearAll}
-                size="small"
-                sx={{
-                  color: theme.palette.error.main,
-                  backgroundColor: theme.palette.error.light + "20",
-                  "&:hover": {
-                    backgroundColor: theme.palette.error.light + "30",
-                  },
-                }}
-              >
-                <DeleteSweepIcon />
-              </IconButton>
-            </Tooltip>
-          )}
+
           <IconButton
             onClick={() => setIsExpanded(!isExpanded)}
             size="small"
@@ -306,7 +296,6 @@ const EnhancedCourseComparison: React.FC<CourseComparisonProps> = ({
                   course={course}
                   isSmallScreen={isSmallScreen}
                   expanded={true}
-                  onExpandChange={() => {}}
                   onDistributionOpen={onDistributionOpen}
                   onRatingsOpen={onRatingsOpen}
                   onCourseDetailsOpen={onCourseDetailsOpen}

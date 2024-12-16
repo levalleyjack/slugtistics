@@ -261,7 +261,7 @@ export interface CourseCardProps {
   course: Course;
   isSmallScreen: boolean;
   expanded: boolean;
-  onExpandChange: (courseCode: string) => void;
+  onExpandChange?: (courseCode: string) => void;
   setSelectedGE?: (category: string) => void;
   onDistributionOpen: (courseCode: string, professorName: string) => void;
   onRatingsOpen: (
