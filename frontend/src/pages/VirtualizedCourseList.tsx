@@ -23,6 +23,7 @@ interface DynamicCourseListProps {
     courseCodes: CourseCode[]
   ) => void;
   onCourseDetailsOpen: (course: Course) => void;
+  handleAddToComparison?: (course: Course) => void; // Add this line
 }
 
 const ListWrapper = styled("div")({
@@ -78,6 +79,7 @@ export const DynamicCourseList: React.FC<DynamicCourseListProps> = ({
   onDistributionOpen,
   onRatingsOpen,
   onCourseDetailsOpen,
+  handleAddToComparison,
 }) => {
   const cardRefs = useRef<CardRefs>({});
   const virtuosoRef = useRef<any>(null);
@@ -170,6 +172,8 @@ export const DynamicCourseList: React.FC<DynamicCourseListProps> = ({
             onDistributionOpen={onDistributionOpen}
             onRatingsOpen={onRatingsOpen}
             onCourseDetailsOpen={onCourseDetailsOpen}
+            handleAddToComparison={handleAddToComparison}
+            hideCompareButton={handleAddToComparison ? false : true}
           />
         </ItemWrapper>
       );
@@ -180,6 +184,7 @@ export const DynamicCourseList: React.FC<DynamicCourseListProps> = ({
       expandedCodesMap,
       handleExpandCard,
       setCardRef,
+      handleAddToComparison,
     ]
   );
 
@@ -214,6 +219,7 @@ interface CourseListProps {
     panel: "distribution" | "ratings" | "courseDetails" | null
   ) => void;
   handleClearFilters: () => void;
+  handleAddToComparison: (course: Course) => void; // Add this line
 }
 
 export const CourseList: React.FC<CourseListProps> = ({
@@ -228,6 +234,7 @@ export const CourseList: React.FC<CourseListProps> = ({
   setPanelData,
   setActivePanel,
   handleClearFilters,
+  handleAddToComparison,
 }) => {
   if (isFetchLoading) {
     return (
@@ -280,6 +287,7 @@ export const CourseList: React.FC<CourseListProps> = ({
         setPanelData(course);
         setActivePanel("courseDetails");
       }}
+      handleAddToComparison={handleAddToComparison}
     />
   );
 };

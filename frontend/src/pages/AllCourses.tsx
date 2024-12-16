@@ -10,13 +10,18 @@ import {
 import { useMediaQuery } from "@mui/material";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import { AnimatedArrowIcon, COLORS, Course, PanelData } from "../Constants";
-import { useAllCourseData, useSessionStorage } from "./GetGEData";
+import {
+  useAllCourseData,
+  useLocalStorage,
+  useSessionStorage,
+} from "./GetGEData";
 import { fetchLastUpdate } from "./FetchLastUpdate";
 import { CourseList } from "./VirtualizedCourseList";
 import { useQuery } from "@tanstack/react-query";
 import { SearchControls } from "../components/SearchControls";
 import { PanelDrawer } from "../components/PanelDrawer";
 import StatisticsDrawer from "../components/StatisticsDrawer";
+import EnhancedCourseComparison from "../components/CourseComparisonTabs";
 
 const Root = styled("div")(({ theme }) => ({
   display: "flex",
@@ -44,6 +49,21 @@ const CourseContainer = styled("div")<{}>(({ theme }) => ({
     height: "100%",
   },
 }));
+
+const ComparisonContainer = styled("div")(({ theme }) => ({
+  backgroundColor: COLORS.WHITE,
+  borderBottom: `1px solid ${theme.palette.divider}`,
+}));
+
+const ListContainer = styled("div")<{ isComparisonOpen: boolean }>(
+  ({ theme }) => ({
+    flex: 1,
+    display: "flex",
+    flexDirection: "column",
+    overflow: "auto",
+    backgroundColor: COLORS.WHITE,
+  })
+);
 
 const filterBySort = (
   sortBy: string,
@@ -160,6 +180,16 @@ const AllCourses = () => {
     "distribution" | "ratings" | "courseDetails" | null
   >("allActivePanel", null);
 
+  const [comparisonCourses, setComparisonCourses] = useLocalStorage<Course[]>(
+    "comparisonCourses",
+    []
+  );
+
+  const [isComparisonOpen, setIsComparisonOpen] = useLocalStorage(
+    "isComparisonOpen",
+    false
+  );
+
   const [isOpen, setIsOpen] = useState(false);
 
   const handleDrawerToggle = () => {
@@ -192,6 +222,19 @@ const AllCourses = () => {
     },
     [setSortBy]
   );
+  const handleAddToComparison = (course: Course) => {
+    if (!comparisonCourses.find((c) => c.id === course.id)) {
+      setComparisonCourses((prev) => [...prev, course]);
+      setIsComparisonOpen(true);
+    }
+  };
+
+  const handleRemoveFromComparison = (index: number) => {
+    setComparisonCourses((prev) => prev.filter((_, i) => i !== index));
+  };
+  const handleClearAll = () => {
+    setComparisonCourses([]);
+  };
 
   const handleExpandAll = useCallback(() => {
     isAllExpanded.current = !isAllExpanded.current;
@@ -299,19 +342,44 @@ const AllCourses = () => {
           lastUpdated={lastUpdated ?? "None"}
         />
 
-        <CourseList
-          isFetchLoading={isFetchLoading}
-          filteredCourses={filteredCourses}
-          isSmallScreen={isSmallScreen}
-          expandedCodesMap={expandedCodesMap}
-          setExpandedCodesMap={setExpandedCodesMap}
-          scrollToCourseId={scrollToCourseId}
-          selectedGE={""}
-          setSelectedGE={() => {}}
-          setPanelData={setPanelData}
-          setActivePanel={setActivePanel}
-          handleClearFilters={handleClearFilters}
-        />
+        {isComparisonOpen && comparisonCourses.length > 0 && (
+          <ComparisonContainer>
+            <EnhancedCourseComparison
+              onClearAll={handleClearAll}
+              courses={comparisonCourses}
+              onRemoveCourse={handleRemoveFromComparison}
+              onDistributionOpen={(courseCode, professorName) => {
+                setPanelData({ courseCode, professorName });
+                setActivePanel("distribution");
+              }}
+              onRatingsOpen={(professorName, courseCode, courseCodes) => {
+                setPanelData({ professorName, courseCode, courseCodes });
+                setActivePanel("ratings");
+              }}
+              onCourseDetailsOpen={(course) => {
+                setPanelData(course);
+                setActivePanel("courseDetails");
+              }}
+            />
+          </ComparisonContainer>
+        )}
+
+        <ListContainer isComparisonOpen={isComparisonOpen}>
+          <CourseList
+            isFetchLoading={isFetchLoading}
+            filteredCourses={filteredCourses}
+            isSmallScreen={isSmallScreen}
+            expandedCodesMap={expandedCodesMap}
+            setExpandedCodesMap={setExpandedCodesMap}
+            scrollToCourseId={scrollToCourseId}
+            selectedGE={""}
+            setSelectedGE={() => {}}
+            setPanelData={setPanelData}
+            setActivePanel={setActivePanel}
+            handleClearFilters={handleClearFilters}
+            handleAddToComparison={handleAddToComparison}
+          />
+        </ListContainer>
       </CourseContainer>
 
       <PanelDrawer

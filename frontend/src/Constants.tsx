@@ -95,7 +95,6 @@ interface DistributionPanelData {
 }
 export type PanelData = DistributionPanelData | RatingsPanelData | Course;
 
-
 export interface FilterOptions {
   subjects: string[];
   classTypes: string[];
@@ -141,7 +140,12 @@ export interface CategoryDrawerProps {
   setSelectedGE: (ge: string) => void;
   setIsOpen: (open: boolean) => void;
   setIsCategoriesVisible: (visible: boolean) => void;
-  activePanel: "distribution" | "ratings" | "courseDetails" | null;
+  activePanel:
+    | "distribution"
+    | "ratings"
+    | "courseDetails"
+    | "comparison"
+    | null;
 }
 
 export interface RMPData {
@@ -266,6 +270,8 @@ export interface CourseCardProps {
     courseCodes: CourseCode[]
   ) => void;
   onCourseDetailsOpen: (course: Course) => void;
+  handleAddToComparison?: (course: Course) => void;
+  hideCompareButton: boolean;
 }
 
 export interface CourseCode {
@@ -277,11 +283,18 @@ export interface LoadingSkeletonProps {
   filterBy: string;
 }
 export interface PanelDrawerProps {
-  activePanel: "distribution" | "ratings" | "courseDetails" | null;
+  activePanel:
+    | "distribution"
+    | "ratings"
+    | "courseDetails"
+    | "comparison"
+    | null;
   panelData: any;
   isDistributionDrawer: boolean;
   isSmallScreen: boolean;
   onClose: () => void;
+  comparisonCourses?: Course[];
+  onRemoveComparisonCourse?: (index: number) => void;
 }
 export interface CourseDistributionProps {
   courseCode: string;

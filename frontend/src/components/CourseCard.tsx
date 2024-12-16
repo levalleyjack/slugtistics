@@ -17,6 +17,7 @@ import {
   ListItemText,
   Stack,
 } from "@mui/material";
+import CompareArrowsIcon from "@mui/icons-material/CompareArrows";
 import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
 import WarningAmberIcon from "@mui/icons-material/WarningAmber";
 import RateReviewIcon from "@mui/icons-material/RateReview";
@@ -64,6 +65,8 @@ export const CourseCard = forwardRef<HTMLDivElement, CourseCardProps>(
       onDistributionOpen,
       onRatingsOpen,
       onCourseDetailsOpen,
+      handleAddToComparison,
+      hideCompareButton = true,
     },
     ref
   ) => {
@@ -369,6 +372,28 @@ export const CourseCard = forwardRef<HTMLDivElement, CourseCardProps>(
                     },
                   }}
                 />
+              )}
+              {!hideCompareButton && (
+                <Tooltip title="Compare Courses" >
+                <IconButton
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (handleAddToComparison) {
+                      handleAddToComparison(course);
+                    }
+                  }}
+                  size="small"
+                  sx={{
+                    p: 0.5,
+                    borderRadius: "8px",
+                    "&:hover": {
+                      backgroundColor: theme.palette.action.hover,
+                    },
+                  }}
+                >
+                  <CompareArrowsIcon fontSize="small" />
+                </IconButton>
+                </Tooltip>
               )}
 
               <IconButton

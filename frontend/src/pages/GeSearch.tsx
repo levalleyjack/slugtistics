@@ -1,12 +1,17 @@
 import React, { useState, useCallback, useMemo, useRef } from "react";
 import { useTheme, useMediaQuery, styled } from "@mui/material";
 import { COLORS, Course, FilterOptions, PanelData } from "../Constants";
-import { useGECourseData, useSessionStorage } from "./GetGEData";
+import {
+  useGECourseData,
+  useLocalStorage,
+  useSessionStorage,
+} from "./GetGEData";
 import CategoryDrawer from "../components/CategoryDrawer";
 import { fetchLastUpdate } from "./FetchLastUpdate";
 import { SearchControls } from "../components/SearchControls";
 import { CourseList } from "./VirtualizedCourseList";
 import { PanelDrawer } from "../components/PanelDrawer";
+import EnhancedCourseComparison from "../components/CourseComparisonTabs";
 
 const BREAKPOINT_CATEGORY = 1340;
 const BREAKPOINT_DISTRIBUTION = 990;
@@ -147,10 +152,33 @@ const GeSearch: React.FC = () => {
     "selectedSubjects",
     []
   );
+  const [comparisonCourses, setComparisonCourses] = useLocalStorage<Course[]>(
+    "comparisonCourses",
+    []
+  );
+
+  const [isComparisonOpen, setIsComparisonOpen] = useLocalStorage(
+    "isComparisonOpen",
+    false
+  );
+
   const [isCategoriesVisible, setIsCategoriesVisible] = useSessionStorage(
     "isCategoriesVisible",
     false
   );
+  const handleAddToComparison = (course: Course) => {
+    if (!comparisonCourses.find((c) => c.id === course.id)) {
+      setComparisonCourses((prev) => [...prev, course]);
+      setIsComparisonOpen(true);
+    }
+  };
+
+  const handleRemoveFromComparison = (index: number) => {
+    setComparisonCourses((prev) => prev.filter((_, i) => i !== index));
+  };
+  const handleClearAll = () => {
+    setComparisonCourses([]);
+  };
 
   const { data: courses, isLoading: isFetchLoading } = useGECourseData();
   const currentCourses = courses?.[selectedGE];
@@ -193,8 +221,8 @@ const GeSearch: React.FC = () => {
       setSelectedGE(category ?? "AnyGE");
       setScrollToCourseId(courseId);
       setExpandedCodesMap((prev) => new Map(prev).set(courseId, true));
-      
-      setPanelData(course );
+
+      setPanelData(course);
       setActivePanel("courseDetails");
     },
     [handleClearFilters, setSelectedGE, setPanelData, setActivePanel]
@@ -252,52 +280,79 @@ const GeSearch: React.FC = () => {
         activePanel={activePanel}
       />
 
-      <CourseContainer>
-        <SearchControls
-          isSmallScreen={isSmallScreen}
-          isCategoryDrawer={isCategoryDrawer}
-          handleCategoryToggle={() =>
-            setIsCategoriesVisible(!isCategoriesVisible)
-          }
-          isCategoriesVisible={isCategoriesVisible}
-          courses={courses}
-          handleGlobalCourseSelect={handleGlobalCourseSelect}
-          selectedGE={selectedGE}
-          isAllExpanded={isAllExpanded.current}
-          handleExpandAll={handleExpandAll}
-          codes={codes}
-          GEs={GEs}
-          sortBy={sortBy}
-          setSortBy={setSortBy}
-          selectedClassTypes={selectedClassTypes}
-          setSelectedClassTypes={setSelectedClassTypes}
-          selectedSubjects={selectedSubjects}
-          setSelectedSubjects={setSelectedSubjects}
-          selectedEnrollmentStatuses={selectedEnrollmentStatuses}
-          setSelectedEnrollmentStatuses={setSelectedEnrollmentStatuses}
-          selectedGEs={selectedGEs}
-          setSelectedGEs={setSelectedGEs}
-          selectedCareers={selectedCareers}
-          selectedPrereqs={selectedPrereqs}
-          setSelectedCareers={setSelectedCareers}
-          setSelectedPrereqs={setSelectedPrereqs}
-          lastUpdated={lastUpdated ?? "None"}
-        />
+      <MainContent>
+        <ContentContainer>
+          <SearchControls
+            isSmallScreen={isSmallScreen}
+            isCategoryDrawer={isCategoryDrawer}
+            handleCategoryToggle={() =>
+              setIsCategoriesVisible(!isCategoriesVisible)
+            }
+            isCategoriesVisible={isCategoriesVisible}
+            courses={courses}
+            handleGlobalCourseSelect={handleGlobalCourseSelect}
+            selectedGE={selectedGE}
+            isAllExpanded={isAllExpanded.current}
+            handleExpandAll={handleExpandAll}
+            codes={codes}
+            GEs={GEs}
+            sortBy={sortBy}
+            setSortBy={setSortBy}
+            selectedClassTypes={selectedClassTypes}
+            setSelectedClassTypes={setSelectedClassTypes}
+            selectedSubjects={selectedSubjects}
+            setSelectedSubjects={setSelectedSubjects}
+            selectedEnrollmentStatuses={selectedEnrollmentStatuses}
+            setSelectedEnrollmentStatuses={setSelectedEnrollmentStatuses}
+            selectedGEs={selectedGEs}
+            setSelectedGEs={setSelectedGEs}
+            selectedCareers={selectedCareers}
+            selectedPrereqs={selectedPrereqs}
+            setSelectedCareers={setSelectedCareers}
+            setSelectedPrereqs={setSelectedPrereqs}
+            lastUpdated={lastUpdated ?? "None"}
+          />
 
-        <CourseList
-          isFetchLoading={isFetchLoading}
-          filteredCourses={filteredCourses}
-          isSmallScreen={isSmallScreen}
-          expandedCodesMap={expandedCodesMap}
-          setExpandedCodesMap={setExpandedCodesMap}
-          scrollToCourseId={scrollToCourseId}
-          selectedGE={selectedGE}
-          setSelectedGE={setSelectedGE}
-          setPanelData={setPanelData}
-          setActivePanel={setActivePanel}
-          handleClearFilters={handleClearFilters}
-        />
-      </CourseContainer>
+          {isComparisonOpen && comparisonCourses.length > 0 && (
+            <ComparisonContainer>
+              <EnhancedCourseComparison
+                onClearAll={handleClearAll}
+                courses={comparisonCourses}
+                onRemoveCourse={handleRemoveFromComparison}
+                onDistributionOpen={(courseCode, professorName) => {
+                  setPanelData({ courseCode, professorName });
+                  setActivePanel("distribution");
+                }}
+                onRatingsOpen={(professorName, courseCode, courseCodes) => {
+                  setPanelData({ professorName, courseCode, courseCodes });
+                  setActivePanel("ratings");
+                }}
+                onCourseDetailsOpen={(course) => {
+                  setPanelData(course);
+                  setActivePanel("courseDetails");
+                }}
+              />
+            </ComparisonContainer>
+          )}
+
+          <ListContainer isComparisonOpen={isComparisonOpen}>
+            <CourseList
+              isFetchLoading={isFetchLoading}
+              filteredCourses={filteredCourses}
+              isSmallScreen={isSmallScreen}
+              expandedCodesMap={expandedCodesMap}
+              setExpandedCodesMap={setExpandedCodesMap}
+              scrollToCourseId={scrollToCourseId}
+              selectedGE={selectedGE}
+              setSelectedGE={setSelectedGE}
+              setPanelData={setPanelData}
+              setActivePanel={setActivePanel}
+              handleClearFilters={handleClearFilters}
+              handleAddToComparison={handleAddToComparison}
+            />
+          </ListContainer>
+        </ContentContainer>
+      </MainContent>
 
       <PanelDrawer
         activePanel={activePanel}
@@ -313,6 +368,7 @@ const GeSearch: React.FC = () => {
   );
 };
 
+// Updated styled components
 const Root = styled("div")({
   display: "flex",
   backgroundColor: COLORS.GRAY_50,
@@ -320,14 +376,33 @@ const Root = styled("div")({
   overflow: "hidden",
 });
 
-const CourseContainer = styled("div")(({ theme }) => ({
+const MainContent = styled("div")({
   flex: 1,
-  height: "100%",
   display: "flex",
   flexDirection: "column",
+  overflow: "hidden",
+});
+
+const ContentContainer = styled("div")({
+  flex: 1,
+  display: "flex",
+  flexDirection: "column",
+  overflow: "hidden",
   backgroundColor: COLORS.WHITE,
-  minWidth: 0,
-  transition: "margin 0.3s ease",
+});
+
+const ComparisonContainer = styled("div")(({ theme }) => ({
+  backgroundColor: COLORS.WHITE,
+  borderBottom: `1px solid ${theme.palette.divider}`,
 }));
 
+const ListContainer = styled("div")<{ isComparisonOpen: boolean }>(
+  ({ theme }) => ({
+    flex: 1,
+    display: "flex",
+    flexDirection: "column",
+    overflow: "auto",
+    backgroundColor: COLORS.WHITE,
+  })
+);
 export default GeSearch;
