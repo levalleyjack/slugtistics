@@ -17,12 +17,13 @@ import {
   ListItemText,
   Stack,
 } from "@mui/material";
-import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
+import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
 import WarningAmberIcon from "@mui/icons-material/WarningAmber";
 import RateReviewIcon from "@mui/icons-material/RateReview";
 import CancelIcon from "@mui/icons-material/Cancel";
 import EqualizerIcon from "@mui/icons-material/Equalizer";
 import Grid from "@mui/material/Grid";
+import AssignmentTurnedInIcon from "@mui/icons-material/AssignmentTurnedIn";
 import LocationOnIcon from "@mui/icons-material/LocationOn";
 import RefreshIcon from "@mui/icons-material/Refresh";
 import {
@@ -51,8 +52,6 @@ import {
 } from "../Constants";
 import StatusIcon from "./StatusIcon";
 import { useQuery } from "@tanstack/react-query";
-
-
 
 export const CourseCard = forwardRef<HTMLDivElement, CourseCardProps>(
   (
@@ -133,13 +132,13 @@ export const CourseCard = forwardRef<HTMLDivElement, CourseCardProps>(
       e.stopPropagation();
 
       onRatingsOpen(
-        rmpData?.name,
+        rmpData.name ?? course.instructor,
         rmpData?.course_codes.some(
           (code: CourseCode) => code.courseName === course_code.replace(" ", "")
         )
           ? course_code.replace(" ", "")
           : "all",
-        rmpData?.course_codes
+        rmpData?.course_codes ?? []
       );
     };
 
@@ -405,7 +404,7 @@ export const CourseCard = forwardRef<HTMLDivElement, CourseCardProps>(
                 <MenuItem onClick={handleCopyClick}>
                   <ListItemIcon>
                     {copied ? (
-                      <CheckCircleOutlineIcon
+                      <AssignmentTurnedInIcon
                         fontSize="small"
                         color="success"
                       />
@@ -424,14 +423,13 @@ export const CourseCard = forwardRef<HTMLDivElement, CourseCardProps>(
                   }}
                 >
                   <ListItemIcon>
-                  <InfoOutlinedIcon />
+                    <InfoOutlinedIcon />
                   </ListItemIcon>
                   <ListItemText>Additional Course Information</ListItemText>
                 </MenuItem>
-                
+
                 <MenuItem
                   onClick={(e) => {
-                    e.stopPropagation();
                     handleDistributionOpen(e);
                     handleMenuClose();
                   }}
@@ -440,6 +438,17 @@ export const CourseCard = forwardRef<HTMLDivElement, CourseCardProps>(
                     <EqualizerIcon fontSize="small" />
                   </ListItemIcon>
                   <ListItemText>View Course Distribution</ListItemText>
+                </MenuItem>
+                <MenuItem
+                  onClick={(e) => {
+                    handleRatingsOpen(e);
+                    handleMenuClose();
+                  }}
+                >
+                  <ListItemIcon>
+                    <RateReviewIcon fontSize="small" />
+                  </ListItemIcon>
+                  <ListItemText>See Teacher Reviews</ListItemText>
                 </MenuItem>
                 <MenuItem
                   onClick={(e) => {

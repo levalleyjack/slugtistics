@@ -1,4 +1,4 @@
-import React, { useState, useRef, useCallback } from "react";
+import React, { useState, useCallback } from "react";
 import {
   Button,
   Popover,
@@ -18,9 +18,16 @@ import {
   Divider,
   ToggleButtonGroup,
   ToggleButton,
+  useTheme,
+  useMediaQuery,
+  Slide,
+  Fade,
+  Grow,
+  Zoom,
 } from "@mui/material";
 import CheckIcon from "@mui/icons-material/Check";
 import FilterAltIcon from "@mui/icons-material/FilterAlt";
+import CloseIcon from "@mui/icons-material/Close";
 import DeleteForeverIcon from "@mui/icons-material/DeleteForever";
 import SelectAllIcon from "@mui/icons-material/SelectAll";
 import SortByAlphaIcon from "@mui/icons-material/SortByAlpha";
@@ -30,15 +37,23 @@ import EqualizerIcon from "@mui/icons-material/Equalizer";
 import LockIcon from "@mui/icons-material/Lock";
 import ComputerIcon from "@mui/icons-material/Computer";
 import SchoolIcon from "@mui/icons-material/School";
+import AssignmentLateIcon from "@mui/icons-material/AssignmentLate";
 import CategoryIcon from "@mui/icons-material/Category";
-import { classTypeOptions, enrollmentStatusOptions, FilterDropdownProps, StyledExpandIcon } from "../Constants";
+import WorkspacePremiumIcon from "@mui/icons-material/WorkspacePremium";
+import {
+  careersOptions,
+  classTypeOptions,
+  enrollmentStatusOptions,
+  FilterDropdownProps,
+  prereqOptions,
+  StyledExpandIcon,
+} from "../Constants";
 
 const StyledFormControl = styled(FormControl)(({ theme }) => ({
   width: "100%",
   marginBottom: theme.spacing(2),
   "& .MuiOutlinedInput-root": {
     backgroundColor: "white",
-
     borderRadius: "8px",
     transition: "all 0.2s ease-in-out",
     "&:hover": {
@@ -49,22 +64,21 @@ const StyledFormControl = styled(FormControl)(({ theme }) => ({
     padding: "8px 14px",
   },
 }));
-
 const StyledFilterButton = styled(Button)(({ theme }) => ({
-  borderRadius: "8px",
+  borderRadius: "12px",
   padding: "6px 16px",
   height: "36px",
+  marginRight: theme.spacing(2),
   textTransform: "none",
   borderColor: theme.palette.divider,
-  marginRight: theme.spacing(2),
   backgroundColor: theme.palette.background.paper,
+  boxShadow: "none",
   "&:hover": {
     backgroundColor: alpha(theme.palette.primary.main, 0.04),
     borderColor: theme.palette.primary.main,
+    boxShadow: `0 2px 8px ${alpha(theme.palette.primary.main, 0.15)}`,
   },
-  [theme.breakpoints.down("sm")]: {
-    marginRight: theme.spacing(1),
-  },
+  transition: "all 0.2s ease-in-out",
 }));
 
 const StyledChip = styled(Chip)(({ theme }) => ({
@@ -85,42 +99,46 @@ const StyledChip = styled(Chip)(({ theme }) => ({
 }));
 
 const StyledPopover = styled(Popover)(({ theme }) => ({
+  [theme.breakpoints.down("sm")]: {
+    "& .MuiPopover-paper": {
+      overflow: "visible",
+    },
+    backgroundColor: alpha(theme.palette.action.disabledBackground, 0.5),
+  },
   "& .MuiPopover-paper": {
-    overflow: "visible",
+    borderRadius: "8px",
+
     backgroundColor: "transparent",
-    borderRadius:"8px"
+    [theme.breakpoints.down("sm")]: {
+      width: "calc(100dvw - 32px)",
+      height: `calc(100dvh - 64px)`,
+      position: "fixed",
+      top: "64px !important",
+      left: "0px !important",
+      bottom: "0 !important",
+      transform: "none !important",
+      margin: 0,
+      maxWidth: "100%",
+      maxHeight: "none",
+    },
   },
 }));
-
 const StyledPopoverContent = styled(Box)(({ theme }) => ({
   padding: theme.spacing(3),
-  borderRadius: "12px",
   width: 320,
-  maxHeight: "calc(100vh - 100px)",
   overflow: "auto",
-  backgroundColor: "rgba(255, 255, 255, 0.85)",
-  backdropFilter: "blur(8px)",
-  WebkitBackdropFilter: "blur(8px)",
-  boxShadow: "0 8px 32px rgba(0, 0, 0, 0.08)",
-  "&::-webkit-scrollbar": {
-    width: 6,
-  },
-  "&::-webkit-scrollbar-thumb": {
-    backgroundColor: alpha(theme.palette.divider, 0.8),
-    borderRadius: 3,
-  },
-  "& .MuiTypography-root": {
-    textShadow: "0 0 1px rgba(255, 255, 255, 0.5)",
-  },
+
+  backgroundColor: theme.palette.background.paper,
   [theme.breakpoints.down("sm")]: {
-    width: "calc(100vw - 32px)",
-    maxHeight: "calc(100vh - 80px)",
-    backdropFilter: "none",
-    WebkitBackdropFilter: "none",
-    backgroundColor: theme.palette.background.paper,
+    width: "100%",
+    height: "100%",
+    padding: theme.spacing(1),
+    paddingLeft: theme.spacing(2),
+    paddingRight: theme.spacing(2),
+    display: "flex",
+    flexDirection: "column",
   },
 }));
-
 const StyledToggleButtonGroup = styled(ToggleButtonGroup)(({ theme }) => ({
   width: "100%",
   "& .MuiToggleButtonGroup-grouped": {
@@ -143,12 +161,15 @@ const StyledToggleButtonGroup = styled(ToggleButtonGroup)(({ theme }) => ({
 }));
 
 const StyledMenuItem = styled(MenuItem)(({ theme }) => ({
-  margin: "4px 8px",
-  borderRadius: "8px",
-  padding: "8px 12px",
-  minHeight: "36px",
+  margin: "4px 0",
+  borderRadius: "10px",
+  padding: "10px 16px",
+  minHeight: "44px",
+  gap: "8px",
+  transition: "all 0.2s ease",
   "&:hover": {
     backgroundColor: alpha(theme.palette.primary.main, 0.08),
+    transform: "translateX(4px)",
   },
   "&.Mui-selected": {
     backgroundColor: alpha(theme.palette.primary.main, 0.12),
@@ -156,8 +177,12 @@ const StyledMenuItem = styled(MenuItem)(({ theme }) => ({
       backgroundColor: alpha(theme.palette.primary.main, 0.16),
     },
   },
+  [theme.breakpoints.down("sm")]: {
+    "&:hover": {
+      transform: "translateX(0px)",
+    },
+  },
 }));
-
 const MenuProps: SelectProps["MenuProps"] = {
   PaperProps: {
     style: {
@@ -177,9 +202,6 @@ const MenuProps: SelectProps["MenuProps"] = {
   variant: "menu",
 };
 
-
-
-
 const FilterDropdown: React.FC<FilterDropdownProps> = ({
   codes,
   GEs,
@@ -188,12 +210,18 @@ const FilterDropdown: React.FC<FilterDropdownProps> = ({
   selectedSubjects,
   selectedClassTypes,
   selectedEnrollmentStatuses,
+  selectedCareers,
+  selectedPrereqs,
   onSortBy,
   onSelectedSubjectsChange,
   onClassTypesChange,
   onEnrollmentStatusesChange,
   onSelectedGEs,
+  onSelectedCareersChange,
+  onSelectedPrereqsChange,
 }) => {
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
   const [anchorEl, setAnchorEl] = useState<HTMLButtonElement | null>(null);
   const open = Boolean(anchorEl);
   const id = open ? "filter-popover" : undefined;
@@ -227,7 +255,9 @@ const FilterDropdown: React.FC<FilterDropdownProps> = ({
       selectedSubjects.length +
       selectedClassTypes.length +
       selectedEnrollmentStatuses.length +
-      (GEs.length > 1 ? selectedGEs.length : 0);
+      (GEs?.length > 1 ? selectedGEs.length : 0) +
+      selectedCareers.length +
+      selectedPrereqs.length;
     return `Filters ${totalFilters > 0 ? `(${totalFilters})` : ""}`;
   }, [
     selectedSubjects,
@@ -235,6 +265,8 @@ const FilterDropdown: React.FC<FilterDropdownProps> = ({
     selectedEnrollmentStatuses,
     selectedGEs,
     GEs,
+    selectedCareers,
+    selectedPrereqs,
   ]);
 
   const handleSortChange = useCallback(
@@ -297,7 +329,6 @@ const FilterDropdown: React.FC<FilterDropdownProps> = ({
 
   const renderSelectContent = useCallback(
     (selected: string[], onDelete: (value: string[]) => void) => {
-      
       if (!selected || selected.length === 0) {
         return <Typography>All</Typography>;
       }
@@ -308,15 +339,16 @@ const FilterDropdown: React.FC<FilterDropdownProps> = ({
               key={value}
               label={value}
               onMouseDown={(e) => e.stopPropagation()}
-              onDelete={(event) => handleChipDelete(selected, onDelete, event, value)}
+              onDelete={(event) =>
+                handleChipDelete(selected, onDelete, event, value)
+              }
             />
           ))}
         </Box>
       );
     },
-    []
+    [handleChipDelete]
   );
-  
 
   return (
     <>
@@ -331,6 +363,7 @@ const FilterDropdown: React.FC<FilterDropdownProps> = ({
       </StyledFilterButton>
 
       <StyledPopover
+        transitionDuration={{ enter: 200, exit: isMobile ? 150 : 200 }}
         id={id}
         open={open}
         anchorEl={anchorEl}
@@ -345,7 +378,40 @@ const FilterDropdown: React.FC<FilterDropdownProps> = ({
         }}
         elevation={1}
       >
-        <StyledPopoverContent >
+        <StyledPopoverContent>
+          {isMobile && (
+            <>
+              <Box
+                sx={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  mb: 2,
+                  position: "sticky",
+                  top: -8,
+                  backgroundColor: "white",
+                  zIndex: 1,
+                  py: 1,
+                  borderBottom: 1,
+                  borderColor: "divider",
+                }}
+              >
+                <Typography variant="h6" sx={{ fontWeight: 600 }}>
+                  Filters
+                </Typography>
+                <IconButton
+                  onClick={handleClose}
+                  size="small"
+                  sx={{
+                    borderRadius: "8px",
+                  }}
+                >
+                  <CloseIcon />
+                </IconButton>
+              </Box>
+            </>
+          )}
+
           <Box sx={{ mb: 2 }}>
             <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1 }}>
               Sort By
@@ -356,18 +422,26 @@ const FilterDropdown: React.FC<FilterDropdownProps> = ({
               onChange={handleSortChange}
               size="small"
             >
-              <ToggleButton value="DEFAULT">
-                <TuneIcon />
-              </ToggleButton>
-              <ToggleButton value="GPA">
-                <EqualizerIcon />
-              </ToggleButton>
-              <ToggleButton value="INSTRUCTOR">
-                <StarIcon />
-              </ToggleButton>
-              <ToggleButton value="ALPHANUMERIC">
-                <SortByAlphaIcon />
-              </ToggleButton>
+              <Tooltip title="Default (Ratings & GPA)">
+                <ToggleButton value="DEFAULT">
+                  <TuneIcon />
+                </ToggleButton>
+              </Tooltip>
+              <Tooltip title="GPA">
+                <ToggleButton value="GPA">
+                  <EqualizerIcon />
+                </ToggleButton>
+              </Tooltip>
+              <Tooltip title="Ratings">
+                <ToggleButton value="INSTRUCTOR">
+                  <StarIcon />
+                </ToggleButton>
+              </Tooltip>
+              <Tooltip title="A-Z">
+                <ToggleButton value="ALPHANUMERIC">
+                  <SortByAlphaIcon />
+                </ToggleButton>
+              </Tooltip>
             </StyledToggleButtonGroup>
           </Box>
 
@@ -389,7 +463,6 @@ const FilterDropdown: React.FC<FilterDropdownProps> = ({
                 onEnrollmentStatusesChange(e.target.value as string[])
               }
               input={<OutlinedInput />}
-              label="All"
               renderValue={(selected) =>
                 renderSelectContent(
                   selected as string[],
@@ -420,8 +493,6 @@ const FilterDropdown: React.FC<FilterDropdownProps> = ({
             <Select
               multiple
               size="small"
-              label="All"
-
               value={selectedClassTypes}
               onChange={(e) => onClassTypesChange(e.target.value as string[])}
               input={<OutlinedInput />}
@@ -451,9 +522,6 @@ const FilterDropdown: React.FC<FilterDropdownProps> = ({
             )}
             <Select
               multiple
-              label="All"
-
-              size="small"
               value={selectedSubjects}
               onChange={(e) =>
                 onSelectedSubjectsChange(e.target.value as string[])
@@ -478,8 +546,78 @@ const FilterDropdown: React.FC<FilterDropdownProps> = ({
             </Select>
           </StyledFormControl>
 
+          <StyledFormControl>
+            {renderFilterHeader(
+              "Career Type",
+              selectedCareers,
+              onSelectedCareersChange,
+              careersOptions,
+              <WorkspacePremiumIcon />
+            )}
+            <Select
+              multiple
+              size="small"
+              value={selectedCareers}
+              onChange={(e) =>
+                onSelectedCareersChange(e.target.value as string[])
+              }
+              input={<OutlinedInput />}
+              renderValue={(selected) =>
+                renderSelectContent(
+                  selected as string[],
+                  onSelectedCareersChange
+                )
+              }
+              MenuProps={MenuProps}
+            >
+              {careersOptions.map((option) => (
+                <StyledMenuItem key={option} value={option}>
+                  <ListItemText primary={option} />
+                  {selectedCareers.includes(option) && (
+                    <CheckIcon sx={{ ml: 1 }} />
+                  )}
+                </StyledMenuItem>
+              ))}
+            </Select>
+          </StyledFormControl>
+
+          <StyledFormControl sx={GEs.length < 2 ? { mb: "32px" } : {}}>
+            {renderFilterHeader(
+              "Prerequisites",
+              selectedPrereqs,
+              onSelectedPrereqsChange,
+              prereqOptions,
+              <AssignmentLateIcon />
+            )}
+            <Select
+              multiple
+              size="small"
+              value={selectedPrereqs}
+              onChange={(e) =>
+                onSelectedPrereqsChange(e.target.value as string[])
+              }
+              input={<OutlinedInput />}
+              renderValue={(selected) =>
+                renderSelectContent(
+                  selected as string[],
+                  onSelectedPrereqsChange
+                )
+              }
+              MenuProps={MenuProps}
+            >
+              {prereqOptions.map((option) => (
+                <StyledMenuItem key={option} value={option}>
+                  <ListItemText primary={option} />
+                  {selectedPrereqs.includes(option) && (
+                    <CheckIcon sx={{ ml: 1 }} />
+                  )}
+                </StyledMenuItem>
+              ))}
+            </Select>
+          </StyledFormControl>
+
           {GEs?.length > 1 && (
-            <StyledFormControl>
+            <StyledFormControl sx={{ mb: "32px" }}>
               {renderFilterHeader(
                 "GEs",
                 selectedGEs,
@@ -489,8 +627,6 @@ const FilterDropdown: React.FC<FilterDropdownProps> = ({
               )}
               <Select
                 multiple
-                label="All"
-
                 size="small"
                 value={selectedGEs}
                 onChange={(e) => onSelectedGEs(e.target.value as string[])}

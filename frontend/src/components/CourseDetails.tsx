@@ -17,6 +17,7 @@ import {
   Grid,
   useMediaQuery,
 } from "@mui/material";
+import AssignmentTurnedInIcon from "@mui/icons-material/AssignmentTurnedIn";
 import {
   ArrowForward as ArrowForwardIcon,
   School as SchoolIcon,
@@ -25,7 +26,6 @@ import {
   Assignment as AssignmentIcon,
   Info as InfoIcon,
   Class as ClassIcon,
-  CheckCircleOutline as CheckCircleOutlineIcon,
   Schedule as ScheduleIcon,
   LocationOn as LocationIcon,
   People as PeopleIcon,
@@ -40,6 +40,7 @@ import {
   Course,
   CourseApiResponse,
   CourseDetailsProps,
+  getLetterGrade,
   getStatusColor,
   GradientChipProps,
   GradientType,
@@ -58,6 +59,7 @@ const ContentContainer = styled(Box)(({ theme }) => ({
 
 const InfoSection = styled(Paper)(({ theme }) => ({
   borderRadius: "12px",
+
   padding: theme.spacing(2),
   marginBottom: theme.spacing(2),
   backgroundColor: theme.palette.background.paper,
@@ -74,7 +76,7 @@ const gradientStyles = {
   info: "linear-gradient(45deg, #00bcd4 30%, #00e5ff 90%)",
   success: "linear-gradient(45deg, #4caf50 30%, #6fbf73 90%)",
   error: "linear-gradient(45deg, #f44336 30%, #ff7961 90%)",
-  warning: "linear-gradient(45deg, #ff9800 30%, #ffc947 90%)"
+  warning: "linear-gradient(45deg, #ff9800 30%, #ffc947 90%)",
 } as const;
 const StyledChip = styled(Chip)<{ gradientType: GradientType }>(
   ({ gradientType }) => ({
@@ -208,11 +210,11 @@ const CopyButton: React.FC<{ copyString: string; tooltip?: string }> = ({
         sx={{
           p: 1,
           borderRadius: "8px",
-          color: copied ? "success.main" : "inherit",
+          color: copied ? "success.main" : "info",
         }}
       >
         {copied ? (
-          <CheckCircleOutlineIcon fontSize="small" />
+          <AssignmentTurnedInIcon fontSize="small" />
         ) : (
           <ContentCopyIcon fontSize="small" />
         )}
@@ -470,7 +472,9 @@ export const CourseDetailsPanel: React.FC<CourseDetailsProps> = ({
                   {course.gpa && (
                     <DetailItem
                       label="Average GPA"
-                      value={course.gpa.toFixed(2)}
+                      value={
+                        course.gpa.toFixed(2) + ` (${getLetterGrade(course.gpa)})`
+                      }
                       icon={<GradeIcon />}
                     />
                   )}

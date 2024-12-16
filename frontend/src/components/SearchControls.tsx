@@ -5,8 +5,6 @@ import GlobalSearch from "./GlobalSearchDropdownList";
 import ExpandButton from "./ExpandButton";
 import FilterDropdown from "./FilterDropdown";
 
-
-
 const HeaderContainer = styled("div")(({ theme }) => ({
   display: "flex",
   alignItems: "center",
@@ -30,7 +28,7 @@ const SearchSection = styled("div")(({ theme }) => ({
   alignItems: "center",
   marginRight: theme.spacing(1),
   [theme.breakpoints.down("sm")]: {
-    marginRight: theme.spacing(3),
+    marginRight: theme.spacing(2),
   },
 }));
 
@@ -81,6 +79,10 @@ export const SearchControls: React.FC<SearchControlsProps> = ({
   selectedGEs,
   setSelectedGEs,
   lastUpdated,
+  selectedPrereqs,
+  setSelectedPrereqs,
+  selectedCareers,
+  setSelectedCareers,
 }) => {
   return (
     <HeaderContainer>
@@ -101,10 +103,10 @@ export const SearchControls: React.FC<SearchControlsProps> = ({
       </SearchSection>
 
       <ControlsContainer>
-        <ExpandButton 
-          isExpanded={isAllExpanded} 
+        <ExpandButton
+          isExpanded={isAllExpanded}
           onToggle={handleExpandAll}
-          fullWidth={isCategoryDrawer} 
+          fullWidth={isCategoryDrawer}
         />
         <FilterDropdown
           codes={codes}
@@ -113,12 +115,16 @@ export const SearchControls: React.FC<SearchControlsProps> = ({
           selectedGEs={selectedGEs}
           selectedSubjects={selectedSubjects}
           selectedClassTypes={selectedClassTypes}
+          selectedCareers={selectedCareers}
+          selectedPrereqs={selectedPrereqs}
           selectedEnrollmentStatuses={selectedEnrollmentStatuses}
           onSortBy={setSortBy}
           onClassTypesChange={setSelectedClassTypes}
           onSelectedSubjectsChange={setSelectedSubjects}
           onEnrollmentStatusesChange={setSelectedEnrollmentStatuses}
           onSelectedGEs={setSelectedGEs}
+          onSelectedCareersChange={setSelectedCareers}
+          onSelectedPrereqsChange={setSelectedPrereqs}
         />
       </ControlsContainer>
     </HeaderContainer>

@@ -51,7 +51,9 @@ const filterBySort = (
   selectedClassTypes: string[],
   selectedEnrollmentStatuses: string[],
   currentCourses: Course[],
-  selectedGEs: string[]
+  selectedGEs: string[],
+  careers: string[],
+  prereqs: string[]
 ): Course[] => {
   if (!Array.isArray(currentCourses) || currentCourses.length === 0) return [];
 
@@ -67,8 +69,22 @@ const filterBySort = (
       selectedEnrollmentStatuses.includes(course.class_status);
     const matchGEs =
       selectedGEs.length === 0 || selectedGEs.includes(course.ge);
-
-    return matchSubject && matchType && matchStatus && matchGEs;
+    const matchCareers = !careers.length || careers.includes(course.career);
+    const matchPrereqs =
+      !prereqs.length ||
+      prereqs.some((prereq) =>
+        prereq === "Has Prerequisites"
+          ? course.has_enrollment_reqs === true
+          : course.has_enrollment_reqs === false
+      );
+    return (
+      matchSubject &&
+      matchType &&
+      matchStatus &&
+      matchGEs &&
+      matchCareers &&
+      matchPrereqs
+    );
   });
 
   return filteredCourses.sort((a, b) => {
@@ -121,6 +137,14 @@ const AllCourses = () => {
     "isStatisticsVisible",
     false
   );
+  const [selectedPrereqs, setSelectedPrereqs] = useSessionStorage<string[]>(
+    "selectedPrereqs",
+    []
+  );
+  const [selectedCareers, setSelectedCareers] = useSessionStorage<string[]>(
+    "selectedPrereqs",
+    []
+  );
 
   const [scrollToCourseId, setScrollToCourseId] = useState<
     string | undefined
@@ -169,12 +193,6 @@ const AllCourses = () => {
     [setSortBy]
   );
 
-  const handleGlobalCourseSelect = (courseId: string) => {
-    handleClearFilters();
-    setScrollToCourseId(courseId);
-    setExpandedCodesMap((prev) => new Map(prev).set(courseId, true));
-  };
-
   const handleExpandAll = useCallback(() => {
     isAllExpanded.current = !isAllExpanded.current;
     setExpandedCodesMap(
@@ -192,7 +210,9 @@ const AllCourses = () => {
       selectedClassTypes,
       selectedEnrollmentStatuses,
       currentCourses,
-      selectedGEs
+      selectedGEs,
+      selectedCareers,
+      selectedPrereqs
     );
   }, [
     sortBy,
@@ -201,6 +221,8 @@ const AllCourses = () => {
     selectedEnrollmentStatuses,
     currentCourses,
     selectedGEs,
+    selectedCareers,
+    selectedPrereqs,
   ]);
 
   const handleClearFilters = () => {
@@ -208,7 +230,20 @@ const AllCourses = () => {
     setSelectedSubjects([]);
     setSelectedClassTypes([]);
     setSelectedGEs([]);
+    setSelectedCareers([]);
+    setSelectedPrereqs([]);
   };
+  const handleGlobalCourseSelect = useCallback(
+    (course: Course, courseId: string) => {
+      handleClearFilters();
+      setScrollToCourseId(courseId);
+      setExpandedCodesMap((prev) => new Map(prev).set(courseId, true));
+
+      setPanelData(course);
+      setActivePanel("courseDetails");
+    },
+    [handleClearFilters, setPanelData, setActivePanel]
+  );
 
   const codes = useMemo(() => {
     return [...new Set(currentCourses?.map((course) => course.subject))].sort();
@@ -257,6 +292,10 @@ const AllCourses = () => {
           setSelectedEnrollmentStatuses={setSelectedEnrollmentStatuses}
           selectedGEs={selectedGEs}
           setSelectedGEs={setSelectedGEs}
+          selectedCareers={selectedCareers}
+          selectedPrereqs={selectedPrereqs}
+          setSelectedCareers={setSelectedCareers}
+          setSelectedPrereqs={setSelectedPrereqs}
           lastUpdated={lastUpdated ?? "None"}
         />
 
