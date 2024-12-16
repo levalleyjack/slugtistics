@@ -96,3 +96,23 @@ export const useSessionStorage = <T,>(key: string, defaultValue: T) => {
 
   return [state, setStateWithStorage] as const;
 };
+
+export const useLocalStorage = <T,>(key: string, defaultValue: T) => {
+  const [state, setState] = useState<T>(() => {
+    const stored = localStorage.getItem(key);
+    return stored ? JSON.parse(stored) : defaultValue;
+  });
+
+  const setStateWithStorage = useCallback(
+    (value: T | ((prev: T) => T)) => {
+      setState((prev) => {
+        const newValue = value instanceof Function ? value(prev) : value;
+        localStorage.setItem(key, JSON.stringify(newValue));
+        return newValue;
+      });
+    },
+    [key]
+  );
+
+  return [state, setStateWithStorage] as const;
+};

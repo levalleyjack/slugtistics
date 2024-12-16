@@ -31,11 +31,14 @@ const StyledPopper = styled(Popper)(({ theme }) => ({
   zIndex: 1301,
   marginTop: theme.spacing(1),
   [theme.breakpoints.down("sm")]: {
-    width: "calc(100dvw - 32px) !important",
-    left: "16px !important",
-    right: "16px !important",
-    position: "absolute !important",
-  },
+    width: "100%",
+    position: "fixed",
+    left: "0 !important",
+    right: 0,
+    bottom: 0,
+    maxHeight: "50vh", // Ensure it takes up at most half the viewport height
+    marginTop: 0
+  }
 }));
 
 const LastUpdatedText = styled(Typography)(({ theme }) => ({
@@ -52,16 +55,16 @@ const SearchWrapper = styled("div")(({ theme }) => ({
   width: "100%",
   [theme.breakpoints.down("sm")]: {},
 }));
-
 const StyledPaper = styled(Paper)(({ theme }) => ({
-  maxHeight: "calc(100dvh - 200px)",
+  maxHeight: "calc(100dvh - 150px)",
   overflowY: "auto",
   boxShadow: theme.shadows[8],
   border: `1px solid ${theme.palette.divider}`,
   borderRadius: "8px",
   [theme.breakpoints.down("sm")]: {
-    maxHeight: "60vh",
-  },
+    maxHeight: "50vh",
+    borderRadius: "16px 16px 0 0",
+  }
 }));
 
 const StyledListItem = styled(ListItem)(({ theme }) => ({
@@ -91,6 +94,9 @@ const SearchMetrics = styled(Typography)(({ theme }) => ({
   backgroundColor: theme.palette.grey[50],
   fontSize: "0.875rem",
   fontWeight: 500,
+  position: "sticky",
+  zIndex: 1,
+  top: 0,
 }));
 
 const GlobalSearch = ({
@@ -395,9 +401,25 @@ const GlobalSearch = ({
                   {selectedGECourses.length > 0 && (
                     <>
                       <SearchMetrics color="textSecondary">
-                        Found {selectedGECourses.length} course
-                        {selectedGECourses.length === 1 ? "" : "s"} in{" "}
-                        {selectedGE}
+                        <Box
+                          sx={{
+                            display: "flex",
+                            width: "100%",
+                            justifyContent: "space-between",
+                          }}
+                        >
+                          <Typography variant="body2">
+                            Found {selectedGECourses.length} course
+                            {selectedGECourses.length === 1 ? "" : "s"} in{" "}
+                            {selectedGE}
+                          </Typography>
+                          <Typography
+                            variant="caption"
+                            sx={{ marginLeft: "auto" }}
+                          >
+                            {lastUpdated}
+                          </Typography>
+                        </Box>
                       </SearchMetrics>
                       <List disablePadding>
                         {selectedGECourses.map((course: Course) => (
@@ -422,7 +444,6 @@ const GlobalSearch = ({
                       </List>
                     </>
                   )}
-                  <LastUpdatedText>{lastUpdated}</LastUpdatedText>
                 </>
               )}
             </StyledPaper>

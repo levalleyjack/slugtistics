@@ -24,7 +24,7 @@ export const fetchLastUpdate = async (): Promise<string> => {
     }
 
     const lastUpdateDate = new Date(lastUpdate);
-    return `Last updated: ${getTimeAgo(lastUpdateDate)}`;
+    return `Updated ${getTimeAgo(lastUpdateDate)}`;
   } catch (err) {
     console.error("Error fetching last update time:", err);
     throw new Error("Error loading last update time. Please try again later.");
