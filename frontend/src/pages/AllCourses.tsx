@@ -142,7 +142,7 @@ const AllCourses = () => {
     []
   );
   const [selectedCareers, setSelectedCareers] = useSessionStorage<string[]>(
-    "selectedPrereqs",
+    "selectedCareers",
     []
   );
 

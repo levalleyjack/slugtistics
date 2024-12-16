@@ -133,7 +133,7 @@ const GeSearch: React.FC = () => {
     []
   );
   const [selectedCareers, setSelectedCareers] = useSessionStorage<string[]>(
-    "selectedPrereqs",
+    "selectedCareers",
     []
   );
 
