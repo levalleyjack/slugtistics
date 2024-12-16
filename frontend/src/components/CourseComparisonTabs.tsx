@@ -24,7 +24,11 @@ interface CourseComparisonProps {
   onRemoveCourse: (index: number) => void;
   onClearAll: () => void;
   onDistributionOpen: (courseCode: string, professorName: string) => void;
-  onRatingsOpen: (professorName: string, courseCode: string, courseCodes: any[]) => void;
+  onRatingsOpen: (
+    professorName: string,
+    courseCode: string,
+    courseCodes: any[]
+  ) => void;
   onCourseDetailsOpen: (course: Course) => void;
 }
 
@@ -52,16 +56,16 @@ const TabsContainer = styled(Box)({
 const StyledTabs = styled(Tabs)(({ theme }) => ({
   width: "100%",
   minHeight: 48,
-  '& .MuiTabs-indicator': {
+  "& .MuiTabs-indicator": {
     height: 3,
     backgroundColor: theme.palette.primary.main,
   },
-  '& .MuiTabs-flexContainer': {
+  "& .MuiTabs-flexContainer": {
     height: "100%",
-    gap: theme.spacing(0.5)
+    gap: theme.spacing(0.5),
   },
-  '& .MuiTabs-scrollButtons': {
-    '&.Mui-disabled': {
+  "& .MuiTabs-scrollButtons": {
+    "&.Mui-disabled": {
       opacity: 0.3,
     },
   },
@@ -70,20 +74,20 @@ const StyledTabs = styled(Tabs)(({ theme }) => ({
 const StyledTab = styled(Tab)(({ theme }) => ({
   minHeight: 48,
   padding: theme.spacing(1.5, 2),
-  borderRadius:"8px",
+  borderRadius: "8px",
   textTransform: "none",
   fontSize: "0.875rem",
   fontWeight: 500,
   color: theme.palette.text.secondary,
-  transition: theme.transitions.create(['color', 'background-color'], {
+  transition: theme.transitions.create(["color", "background-color"], {
     duration: 200,
   }),
-  '&.Mui-selected': {
+  "&.Mui-selected": {
     color: theme.palette.primary.main,
-    backgroundColor: theme.palette.primary.light + '15',
+    backgroundColor: theme.palette.primary.light + "15",
     fontWeight: 600,
   },
-  '&:hover': {
+  "&:hover": {
     backgroundColor: theme.palette.action.hover,
     color: theme.palette.text.primary,
   },
@@ -91,16 +95,16 @@ const StyledTab = styled(Tab)(({ theme }) => ({
 }));
 
 const StyledButton = styled(Button)(({ theme }) => ({
-  textTransform: 'none',
+  textTransform: "none",
   fontWeight: 600,
-  borderRadius:"8px",
+  borderRadius: "8px",
   padding: theme.spacing(0.75, 2),
-  backgroundColor: theme.palette.error.light + '20',
+  backgroundColor: theme.palette.error.light + "20",
   color: theme.palette.error.main,
-  '&:hover': {
-    backgroundColor: theme.palette.error.light + '30',
+  "&:hover": {
+    backgroundColor: theme.palette.error.light + "30",
   },
-  '& .MuiButton-startIcon': {
+  "& .MuiButton-startIcon": {
     color: theme.palette.error.main,
   },
 }));
@@ -130,8 +134,14 @@ const EnhancedCourseComparison: React.FC<CourseComparisonProps> = ({
 }) => {
   const theme = useTheme();
   const isSmallScreen = useMediaQuery(theme.breakpoints.down("sm"));
-  const [activeTab, setActiveTab] = useSessionStorage("courseComparisonActiveTab", 0);
-  const [isExpanded, setIsExpanded] = useSessionStorage("courseComparisonExpanded", false);
+  const [activeTab, setActiveTab] = useSessionStorage(
+    "courseComparisonActiveTab",
+    0
+  );
+  const [isExpanded, setIsExpanded] = useSessionStorage(
+    "courseComparisonExpanded",
+    false
+  );
 
   const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
     setActiveTab(newValue);
@@ -153,14 +163,20 @@ const EnhancedCourseComparison: React.FC<CourseComparisonProps> = ({
   };
 
   const TabLabel = ({ course, index }: { course: Course; index: number }) => (
-    <Box sx={{
-      display: "flex",
-      alignItems: "center",
-      gap: 0.5,
-      minWidth: isSmallScreen ? "auto" : 120,
-      maxWidth: isSmallScreen ? 100 : 200,
-    }}>
-      <Typography variant="body2" noWrap sx={{ fontSize: isSmallScreen ? "0.75rem" : "0.875rem" }}>
+    <Box
+      sx={{
+        display: "flex",
+        alignItems: "center",
+        gap: 0.5,
+        minWidth: isSmallScreen ? "auto" : 120,
+        maxWidth: isSmallScreen ? 100 : 200,
+      }}
+    >
+      <Typography
+        variant="body2"
+        noWrap
+        sx={{ fontSize: isSmallScreen ? "0.75rem" : "0.875rem" }}
+      >
         {`${course.subject} ${course.catalog_num}`}
       </Typography>
       <IconButton
@@ -170,12 +186,12 @@ const EnhancedCourseComparison: React.FC<CourseComparisonProps> = ({
           p: 0.5,
           borderRadius: "8px",
           opacity: 0.7,
-          transition: 'all 0.2s',
-          '&:hover': {
+          transition: "all 0.2s",
+          "&:hover": {
             opacity: 1,
-            backgroundColor: theme.palette.error.light + '20',
+            backgroundColor: theme.palette.error.light + "20",
             color: theme.palette.error.main,
-          }
+          },
         }}
       >
         <CloseIcon sx={{ fontSize: 16 }} />
@@ -215,6 +231,8 @@ const EnhancedCourseComparison: React.FC<CourseComparisonProps> = ({
                 width: isSmallScreen ? 28 : 40,
               },
             }}
+            onClick={() => setIsExpanded(!isExpanded)}
+
           >
             {courses.map((course, index) => (
               <StyledTab
@@ -250,10 +268,10 @@ const EnhancedCourseComparison: React.FC<CourseComparisonProps> = ({
                 size="small"
                 sx={{
                   color: theme.palette.error.main,
-                  backgroundColor: theme.palette.error.light + '20',
-                  '&:hover': {
-                    backgroundColor: theme.palette.error.light + '30',
-                  }
+                  backgroundColor: theme.palette.error.light + "20",
+                  "&:hover": {
+                    backgroundColor: theme.palette.error.light + "30",
+                  },
                 }}
               >
                 <DeleteSweepIcon />
