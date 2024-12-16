@@ -296,7 +296,6 @@ const EnhancedCourseComparison: React.FC<CourseComparisonProps> = ({
                   course={course}
                   isSmallScreen={isSmallScreen}
                   expanded={true}
-                  onExpandChange={() => {}}
                   onDistributionOpen={onDistributionOpen}
                   onRatingsOpen={onRatingsOpen}
                   onCourseDetailsOpen={onCourseDetailsOpen}
