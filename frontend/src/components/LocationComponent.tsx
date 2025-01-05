@@ -67,17 +67,23 @@ const LocationMap: React.FC<LocationMapProps> = ({
       apiKey: GOOGLE_MAPS_API_KEY,
       version: "weekly",
       libraries: ["places", "geometry", "marker"],
+      language: "en",
     });
 
-    loader
-      .load()
-      .then(() => {
+    async function initMap() {
+      try {
+        await loader.importLibrary("places");
+        await loader.importLibrary("geometry");
+        await loader.importLibrary("marker");
         setMapsLoaded(true);
-      })
-      .catch((error) => {
+      } catch (error) {
         console.error("Error loading Google Maps:", error);
-      });
+      }
+    }
+
+    initMap();
   }, [GOOGLE_MAPS_API_KEY]);
+
   const getFormattedAddress = (loc: string) => {
     if (/\bTA\b/.test(loc)) {
       return "UCSC Theater Arts Center Mainstage";
@@ -94,9 +100,9 @@ const LocationMap: React.FC<LocationMapProps> = ({
     if (loc.includes("Steven Acad")) {
       return "Stevenson Academic 150";
     }
-
     return `UC Santa Cruz ${loc}`;
   };
+
   React.useEffect(() => {
     if (mapsLoaded && isValidLocation(location)) {
       const geocoder = new google.maps.Geocoder();
@@ -127,24 +133,6 @@ const LocationMap: React.FC<LocationMapProps> = ({
     return null;
   }
 
-  const MarkerContent = () => (
-    <div
-      className="marker-content"
-      style={{
-        color: "#fff",
-        background: "#333",
-        padding: "5px 10px",
-        borderRadius: "4px",
-        position: "relative",
-        transform: "translate(-50%, -100%)",
-        top: "-10px",
-        whiteSpace: "nowrap",
-      }}
-    >
-      {location}
-    </div>
-  );
-
   return (
     <div
       style={{
@@ -163,6 +151,7 @@ const LocationMap: React.FC<LocationMapProps> = ({
           mapId="4fa4ec527cd2f0dc"
           disableDefaultUI
           gestureHandling="cooperative"
+          style={{ width: "100%", height: "100%" }}
         >
           <AdvancedMarker position={position}>
             <Pin

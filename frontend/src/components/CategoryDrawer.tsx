@@ -207,7 +207,6 @@ const CategoryDrawer = ({
   const isTemporary = !isCategoriesVisible || isCategoryDrawer;
   const variant = isTemporary ? "temporary" : "persistent";
 
-  // Clean up timeout on unmount
   React.useEffect(() => {
     return () => {
       if (timeoutRef.current) {
