@@ -47,15 +47,17 @@ const FilterContainer = styled(Paper)(({ theme }) => ({
   boxShadow: theme.shadows[2],
 }));
 
-const EnhancedFilterContainer = styled(FilterContainer)(({ theme }) => ({
-  display: "flex",
-  flexDirection: "column",
-  position: "sticky",
-  gap: theme.spacing(2),
-  top: -20,
-  zIndex: 1000,
-  backgroundColor: theme.palette.background.paper,
-}));
+const EnhancedFilterContainer = styled(FilterContainer)(
+  ({ theme, hidden }) => ({
+    display: "flex",
+    flexDirection: "column",
+    position: "sticky",
+    gap: theme.spacing(2),
+    top: -20,
+    zIndex: 1000,
+    backgroundColor: theme.palette.background.paper,
+  })
+);
 
 const FilterControls = styled(Stack)(({ theme }) => ({
   display: "grid",
@@ -87,7 +89,6 @@ const StatCard = styled(Card)(({ theme }) => ({
     boxShadow: theme.shadows[8],
   },
 }));
-
 
 type SortOptions = "date" | "rating" | "difficulty_rating" | "likes";
 
@@ -167,22 +168,6 @@ export const RatingsPanel: React.FC<RatingsPanelProps> = ({
     };
   }, [ratings]);
 
-  const getRatingColor = (
-    score: number,
-    type: "difficulty" | "rating" = "rating"
-  ): string => {
-    if (type === "difficulty") {
-      // For difficulty, lower is better
-      if (score <= 3) return theme.palette.success.main;
-      if (score <= 4) return theme.palette.warning.main;
-      return theme.palette.error.main;
-    }
-    // For rating and would take again, higher is better
-    if (score >= 4) return theme.palette.success.main;
-    if (score >= 3) return theme.palette.warning.main;
-    return theme.palette.error.main;
-  };
-
   const processedRatings = useMemo(() => {
     return (
       ratings
@@ -227,19 +212,31 @@ export const RatingsPanel: React.FC<RatingsPanelProps> = ({
             {isLoading ? (
               <Stack direction="row" spacing={0.5} alignItems="center">
                 <CircularProgress size={12} />
-                <Typography variant="body2" component="div" color="text.secondary">
+                <Typography
+                  variant="body2"
+                  component="div"
+                  color="text.secondary"
+                >
                   Loading reviews...
                 </Typography>
               </Stack>
             ) : (
-              <Typography variant="body2" component="div" color="text.secondary">
+              <Typography
+                variant="body2"
+                component="div"
+                color="text.secondary"
+              >
                 {ratings?.length ?? 0} reviews
               </Typography>
             )}
           </Box>
         </Box>
         {onClose && (
-          <IconButton onClick={onClose} size="small" sx={{ borderRadius: "8px" }}>
+          <IconButton
+            onClick={onClose}
+            size="small"
+            sx={{ borderRadius: "8px" }}
+          >
             <ArrowForward />
           </IconButton>
         )}
@@ -254,10 +251,19 @@ export const RatingsPanel: React.FC<RatingsPanelProps> = ({
               <Grid item xs={12} sm={4}>
                 <StatCard elevation={1}>
                   <CardContent>
-                    <Typography variant="h6" component="div" color={getRatingColor(stats.overall, "rating")} fontWeight="bold">
+                    <Typography
+                      variant="h6"
+                      component="div"
+                      color={getRatingColor(stats.overall, "rating")}
+                      fontWeight="bold"
+                    >
                       {stats.overall}
                     </Typography>
-                    <Typography variant="caption" component="div" color="text.secondary">
+                    <Typography
+                      variant="caption"
+                      component="div"
+                      color="text.secondary"
+                    >
                       Avg. Rating
                     </Typography>
                   </CardContent>
@@ -266,10 +272,19 @@ export const RatingsPanel: React.FC<RatingsPanelProps> = ({
               <Grid item xs={12} sm={4}>
                 <StatCard elevation={1}>
                   <CardContent>
-                    <Typography variant="h6" component="div" color={getRatingColor(stats.difficulty, "difficulty")} fontWeight="bold">
+                    <Typography
+                      variant="h6"
+                      component="div"
+                      color={getRatingColor(stats.difficulty, "difficulty")}
+                      fontWeight="bold"
+                    >
                       {stats.difficulty}
                     </Typography>
-                    <Typography variant="caption" component="div" color="text.secondary">
+                    <Typography
+                      variant="caption"
+                      component="div"
+                      color="text.secondary"
+                    >
                       Avg. Difficulty
                     </Typography>
                   </CardContent>
@@ -278,10 +293,22 @@ export const RatingsPanel: React.FC<RatingsPanelProps> = ({
               <Grid item xs={12} sm={4}>
                 <StatCard elevation={1}>
                   <CardContent>
-                    <Typography variant="h6" component="div" color={getRatingColor(stats.wouldTakeAgain / 20, "rating")} fontWeight="bold">
+                    <Typography
+                      variant="h6"
+                      component="div"
+                      color={getRatingColor(
+                        stats.wouldTakeAgain / 20,
+                        "rating"
+                      )}
+                      fontWeight="bold"
+                    >
                       {stats.wouldTakeAgain}%
                     </Typography>
-                    <Typography variant="caption" component="div" color="text.secondary">
+                    <Typography
+                      variant="caption"
+                      component="div"
+                      color="text.secondary"
+                    >
                       Would Take Again
                     </Typography>
                   </CardContent>
@@ -324,7 +351,9 @@ export const RatingsPanel: React.FC<RatingsPanelProps> = ({
                   >
                     <MenuItem value="date">Recent</MenuItem>
                     <MenuItem value="rating">Highest Rating</MenuItem>
-                    <MenuItem value="difficulty_rating">Highest Difficulty</MenuItem>
+                    <MenuItem value="difficulty_rating">
+                      Highest Difficulty
+                    </MenuItem>
                     <MenuItem value="likes">Most Likes</MenuItem>
                   </Select>
                 </StyledFormControl>
@@ -338,7 +367,10 @@ export const RatingsPanel: React.FC<RatingsPanelProps> = ({
                   >
                     <MenuItem value="all">All Courses</MenuItem>
                     {courseCodes?.map((course) => (
-                      <MenuItem key={course.courseName} value={course.courseName}>
+                      <MenuItem
+                        key={course.courseName}
+                        value={course.courseName}
+                      >
                         {course.courseName} ({course.courseCount})
                       </MenuItem>
                     ))}
@@ -350,10 +382,19 @@ export const RatingsPanel: React.FC<RatingsPanelProps> = ({
             <Stack spacing={1.5}>
               {processedRatings.map((rating, index) => (
                 <Fade in={true} key={index} timeout={300}>
-                  <Paper sx={{ p: 2, borderRadius: BORDER_RADIUS }} elevation={2}>
+                  <Paper
+                    sx={{ p: 2, borderRadius: BORDER_RADIUS }}
+                    elevation={2}
+                  >
                     <Grid container spacing={1.5}>
                       <Grid item xs={12}>
-                        <Box sx={{ display: "flex", justifyContent: "center", width: "100%" }}>
+                        <Box
+                          sx={{
+                            display: "flex",
+                            justifyContent: "center",
+                            width: "100%",
+                          }}
+                        >
                           <RatingCard
                             overallRating={rating.overall_rating ?? 0}
                             difficultyRating={rating.difficulty_rating ?? 0}
@@ -369,7 +410,14 @@ export const RatingsPanel: React.FC<RatingsPanelProps> = ({
                         </Box>
                       </Grid>
                       <Grid item xs={12}>
-                        <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.75, mb: 1.5 }}>
+                        <Box
+                          sx={{
+                            display: "flex",
+                            flexWrap: "wrap",
+                            gap: 0.75,
+                            mb: 1.5,
+                          }}
+                        >
                           {rating.is_online && (
                             <Chip
                               label="Online"
@@ -396,7 +444,13 @@ export const RatingsPanel: React.FC<RatingsPanelProps> = ({
                           )}
                         </Box>
                         {rating.tags && (
-                          <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.75 }}>
+                          <Box
+                            sx={{
+                              display: "flex",
+                              flexWrap: "wrap",
+                              gap: 0.75,
+                            }}
+                          >
                             {rating.tags.split("--").map((tag, tagIndex) => (
                               <Chip
                                 key={tagIndex}
@@ -425,27 +479,70 @@ export const RatingsPanel: React.FC<RatingsPanelProps> = ({
                             borderColor: "divider",
                           }}
                         >
-                          <Stack direction="row" spacing={1.5} alignItems="center">
-                            <Stack direction="row" spacing={0.5} alignItems="center">
-                              <School sx={{ fontSize: "0.875rem", color: "text.secondary" }} />
-                              <Typography variant="caption" component="div" color="text.secondary">
+                          <Stack
+                            direction="row"
+                            spacing={1.5}
+                            alignItems="center"
+                          >
+                            <Stack
+                              direction="row"
+                              spacing={0.5}
+                              alignItems="center"
+                            >
+                              <School
+                                sx={{
+                                  fontSize: "0.875rem",
+                                  color: "text.secondary",
+                                }}
+                              />
+                              <Typography
+                                variant="caption"
+                                component="div"
+                                color="text.secondary"
+                              >
                                 {rating.class_name}
                               </Typography>
                             </Stack>
-                            <Typography variant="caption" component="div" color="text.secondary">
+                            <Typography
+                              variant="caption"
+                              component="div"
+                              color="text.secondary"
+                            >
                               {new Date(rating.date ?? "").toLocaleDateString()}
                             </Typography>
                           </Stack>
                           <Stack direction="row" spacing={1.5}>
-                            <Stack direction="row" spacing={0.5} alignItems="center">
-                              <ThumbUpOutlined color="success" sx={{ fontSize: "1rem" }} />
-                              <Typography variant="caption" component="div" color="text.secondary">
+                            <Stack
+                              direction="row"
+                              spacing={0.5}
+                              alignItems="center"
+                            >
+                              <ThumbUpOutlined
+                                color="success"
+                                sx={{ fontSize: "1rem" }}
+                              />
+                              <Typography
+                                variant="caption"
+                                component="div"
+                                color="text.secondary"
+                              >
                                 {rating.thumbs_up ?? 0}
                               </Typography>
                             </Stack>
-                            <Stack direction="row" spacing={0.5} alignItems="center">
-                              <ThumbDownOutlined color="error" sx={{ fontSize: "1rem" }} />
-                              <Typography variant="caption" component="div" color="text.secondary">
+                            <Stack
+                              direction="row"
+                              spacing={0.5}
+                              alignItems="center"
+                            >
+                              <ThumbDownOutlined
+                                color="error"
+                                sx={{ fontSize: "1rem" }}
+                              />
+                              <Typography
+                                variant="caption"
+                                component="div"
+                                color="text.secondary"
+                              >
                                 {rating.thumbs_down ?? 0}
                               </Typography>
                             </Stack>
@@ -457,11 +554,27 @@ export const RatingsPanel: React.FC<RatingsPanelProps> = ({
                 </Fade>
               ))}
               {!isLoading && processedRatings.length === 0 && (
-                <Paper sx={{ p: 3, textAlign: "center", borderRadius: BORDER_RADIUS }} elevation={2}>
-                  <Typography variant="subtitle1" component="div" color="text.secondary" gutterBottom>
+                <Paper
+                  sx={{
+                    p: 3,
+                    textAlign: "center",
+                    borderRadius: BORDER_RADIUS,
+                  }}
+                  elevation={2}
+                >
+                  <Typography
+                    variant="subtitle1"
+                    component="div"
+                    color="text.secondary"
+                    gutterBottom
+                  >
                     No Reviews Found
                   </Typography>
-                  <Typography variant="body2" component="div" color="text.secondary">
+                  <Typography
+                    variant="body2"
+                    component="div"
+                    color="text.secondary"
+                  >
                     Try adjusting your search criteria
                   </Typography>
                 </Paper>
@@ -474,4 +587,18 @@ export const RatingsPanel: React.FC<RatingsPanelProps> = ({
   );
 };
 
+const getRatingColor = (
+  score: number,
+  type: "difficulty" | "rating" = "rating"
+): string => {
+  const theme = useTheme();
+  if (type === "difficulty") {
+    if (score <= 3) return theme.palette.success.main;
+    if (score <= 4) return theme.palette.warning.main;
+    return theme.palette.error.main;
+  }
+  if (score >= 4) return theme.palette.success.main;
+  if (score >= 3) return theme.palette.warning.main;
+  return theme.palette.error.main;
+};
 export default RatingsPanel;

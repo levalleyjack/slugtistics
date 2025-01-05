@@ -1,10 +1,15 @@
 import React, { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
-import "./NavBar.css";
+import { Link, useLocation } from "react-router-dom";
 import { NavLink } from "react-router-dom";
-
+import { StyledExpandIcon } from "../Constants";
+import "./Navbar.css";
 const NavBar = () => {
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 480);
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [isHovering, setIsHovering] = useState(false);
+  const location = useLocation();
+
+  const isInDropdownRoute = ["/all", "/ge"].includes(location.pathname);
 
   useEffect(() => {
     const handleResize = () => {
@@ -14,6 +19,16 @@ const NavBar = () => {
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
   }, []);
+
+  const handleMouseEnter = () => {
+    setIsHovering(true);
+    setIsDropdownOpen(true);
+  };
+
+  const handleMouseLeave = () => {
+    setIsHovering(false);
+    setIsDropdownOpen(false);
+  };
 
   return (
     <nav className="navbar">
@@ -27,24 +42,45 @@ const NavBar = () => {
             isActive ? "navbar-link navbar-link-active" : "navbar-link"
           }
         >
-          <h2 style={{ fontWeight: "700" }}>Slugtistics</h2>
+          <h2>Slugtistics</h2>
         </NavLink>
-        <NavLink
-          to="/all"
-          className={({ isActive }) =>
-            isActive ? "navbar-link navbar-link-active" : "navbar-link"
-          }
+        <div
+          className="dropdown-wrapper"
+          onMouseEnter={handleMouseEnter}
+          onMouseLeave={handleMouseLeave}
         >
-          <h2 style={{ color: "#c9c9ca" }}>All Courses</h2>
-        </NavLink>
-        <NavLink
-          to="/ge"
-          className={({ isActive }) =>
-            isActive ? "navbar-link navbar-link-active" : "navbar-link"
-          }
-        >
-          <h2 style={{ color: "#c9c9ca" }}>GE Search</h2>
-        </NavLink>
+          <button
+            className={`navbar-link ${
+              isInDropdownRoute ? "navbar-link-active" : ""
+            }`}
+            aria-expanded={isDropdownOpen}
+          >
+            <h2 style={{ color: isInDropdownRoute ? "#ffc107" : "#c9c9ca" }}>
+              Class Search
+              <StyledExpandIcon expanded={isHovering} />
+            </h2>
+          </button>
+          {isDropdownOpen && (
+            <div className="dropdown-menu">
+              <NavLink
+                to="/all"
+                className={({ isActive }) =>
+                  `dropdown-item ${isActive ? "dropdown-item-active" : ""}`
+                }
+              >
+                <h2>All Courses</h2>
+              </NavLink>
+              <NavLink
+                to="/ge"
+                className={({ isActive }) =>
+                  `dropdown-item ${isActive ? "dropdown-item-active" : ""}`
+                }
+              >
+                <h2>GE Search</h2>
+              </NavLink>
+            </div>
+          )}
+        </div>
       </div>
       <div className="navbar-right">
         <NavLink
@@ -53,7 +89,7 @@ const NavBar = () => {
             isActive ? "navbar-link navbar-link-active" : "navbar-link"
           }
         >
-          <h2 style={{ color: "#c9c9ca" }}>About</h2>
+          <h2>About</h2>
         </NavLink>
       </div>
     </nav>

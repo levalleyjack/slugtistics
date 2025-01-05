@@ -74,7 +74,7 @@ const HoverTrigger = styled(Box)(({ theme }) => ({
     backgroundColor: theme.palette.action.hover,
   },
   transition: "background-color 200ms",
-  zIndex: 1199,
+  zIndex:100,
   display: "block",
 }));
 
@@ -262,7 +262,7 @@ const CategoryDrawer = ({
           <Typography variant="h6" fontWeight="500">
             Categories
           </Typography>
-          {isMediumScreen && (
+          {isCategoryDrawer && (
             <IconButton
               edge="end"
               onClick={handleClose}

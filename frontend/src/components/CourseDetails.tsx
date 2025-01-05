@@ -46,6 +46,7 @@ import {
   GradientType,
 } from "../Constants";
 import StatusIcon from "./StatusIcon";
+import LocationMap from "./LocationComponent";
 
 const ContentContainer = styled(Box)(({ theme }) => ({
   display: "flex",
@@ -459,11 +460,22 @@ export const CourseDetailsPanel: React.FC<CourseDetailsProps> = ({
                     value={course.schedule}
                     icon={<ScheduleIcon />}
                   />
-                  <DetailItem
-                    label="Location"
-                    value={course.location}
-                    icon={<LocationIcon />}
-                  />
+                  {course.location &&
+                    course.location !== "Online" &&
+                    course.location !== "Remote Instruction" && (
+                      <Box>
+                        <DetailItem
+                          label="Location"
+                          value={course.location.split(":")[1]?.trim()}
+                          icon={<LocationIcon />}
+                        />
+                        <Box sx={{ mt: 2 }}>
+                          <LocationMap
+                            location={course.location.split(":")[1]?.trim()}
+                          />
+                        </Box>
+                      </Box>
+                    )}
                   <DetailItem
                     label="Class Type"
                     value={course.class_type}
@@ -473,7 +485,8 @@ export const CourseDetailsPanel: React.FC<CourseDetailsProps> = ({
                     <DetailItem
                       label="Average GPA"
                       value={
-                        course.gpa.toFixed(2) + ` (${getLetterGrade(course.gpa)})`
+                        course.gpa.toFixed(2) +
+                        ` (${getLetterGrade(course.gpa)})`
                       }
                       icon={<GradeIcon />}
                     />

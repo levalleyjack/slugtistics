@@ -158,7 +158,6 @@ const StatisticsDrawer = ({
               backgroundColor: theme.palette.action.hover,
             },
             transition: "background-color 200ms",
-            zIndex: 1199,
             display: isMediumScreen ? "none" : "block",
           }}
           onMouseEnter={handleMouseEnter}

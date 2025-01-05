@@ -257,6 +257,7 @@ export interface CourseApiResponse {
   error?: string;
   message?: string;
 }
+
 export interface CourseCardProps {
   course: Course;
   isSmallScreen: boolean;
