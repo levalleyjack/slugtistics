@@ -7,8 +7,35 @@ import {
   AdvancedMarker,
 } from "@vis.gl/react-google-maps";
 import { Loader } from "@googlemaps/js-api-loader";
+import { useQuery } from "@tanstack/react-query";
+const useGoogleMapsApiKey = () => {
+  return useQuery({
+    queryKey: ["googleMapsApiKey"],
+    queryFn: async () => {
+      const response = await fetch(
+        "https://api.slugtistics.com/api/pyback/google_maps_api_key",
+        {
+          method: "GET",
+          headers: {
+            Origin: window.location.origin,
+            Referer: window.location.href,
+          },
+        }
+      );
 
-const GOOGLE_MAPS_API_KEY = "AIzaSyBnCh2ugCrcyKDKT3HHry5KjkjS4ps4PT0";
+      if (!response.ok) {
+        throw new Error("Network response was not ok");
+      }
+
+      const data = await response.json();
+      return data.key;
+    },
+    staleTime: Infinity,
+    gcTime: Infinity,
+    retry: 2,
+  });
+};
+
 const BORDER_RADIUS = "12px";
 const MAP_STYLES = [
   {
@@ -91,8 +118,12 @@ const LocationMap: React.FC<LocationMapProps> = ({
   const [position, setPosition] = React.useState<GeocodeResult | null>(null);
   const [isLoading, setIsLoading] = React.useState(true);
   const [mapsLoaded, setMapsLoaded] = React.useState(false);
+  const { data: GOOGLE_MAPS_API_KEY, isLoading: isKeyLoading } =
+    useGoogleMapsApiKey();
 
   React.useEffect(() => {
+    if (!GOOGLE_MAPS_API_KEY) return;
+
     const loader = new Loader({
       apiKey: GOOGLE_MAPS_API_KEY,
       version: "weekly",
@@ -107,8 +138,7 @@ const LocationMap: React.FC<LocationMapProps> = ({
       .catch((error) => {
         console.error("Error loading Google Maps:", error);
       });
-  }, []);
-
+  }, [GOOGLE_MAPS_API_KEY]);
   React.useEffect(() => {
     if (mapsLoaded && isValidLocation(location)) {
       const geocoder = new google.maps.Geocoder();
@@ -150,7 +180,13 @@ const LocationMap: React.FC<LocationMapProps> = ({
       );
     }
   }, [location, mapsLoaded]);
-  if (!isValidLocation(location) || !position || !mapsLoaded) {
+  if (
+    !isValidLocation(location) ||
+    !position ||
+    !mapsLoaded ||
+    !GOOGLE_MAPS_API_KEY ||
+    isKeyLoading
+  ) {
     return null;
   }
 
