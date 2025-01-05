@@ -242,7 +242,7 @@ export type GradientType =
   | "warning"
   | "error";
 export interface GradientChipProps {
-  gradientType: GradientType;
+  gradienttype: GradientType;
   label: string;
 }
 export interface CourseApiResponse {

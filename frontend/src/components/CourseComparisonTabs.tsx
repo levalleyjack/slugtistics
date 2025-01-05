@@ -244,7 +244,6 @@ const EnhancedCourseComparison: React.FC<CourseComparisonProps> = ({
                 key={`${course.id}-${index}`}
                 label={<TabLabel course={course} index={index} />}
                 id={`course-tab-${index}`}
-                aria-controls={`course-tabpanel-${index}`}
                 onClick={(e) => handleTabClick(index, e)}
                 sx={{
                   minHeight: isSmallScreen ? 40 : 48,
@@ -288,7 +287,6 @@ const EnhancedCourseComparison: React.FC<CourseComparisonProps> = ({
               key={`${course.id}-panel-${index}`}
               role="tabpanel"
               id={`course-tabpanel-${index}`}
-              aria-labelledby={`course-tab-${index}`}
               hidden={activeTab !== index}
             >
               {activeTab === index && (
