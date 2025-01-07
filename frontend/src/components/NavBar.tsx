@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { NavLink } from "react-router-dom";
 import { StyledExpandIcon } from "../Constants";
-import "./Navbar.css";
+import "./NavBar.css";
 const NavBar = () => {
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 480);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
