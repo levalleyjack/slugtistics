@@ -29,10 +29,11 @@ import StatusIcon from "./StatusIcon";
 const StyledPopper = styled(Popper)(({ theme }) => ({
   width: "100%",
   zIndex: 1200,
+  position: "absolute",
+
   [theme.breakpoints.down("sm")]: {
     width: "100%",
-    position: "fixed",
-    top: "100%",
+    top: "unset",
     left: 0,
     right: 0,
     marginTop: 0,
@@ -377,12 +378,12 @@ const GlobalSearch = ({
               {
                 name: "preventOverflow",
                 options: {
-                  boundary: window,
+                  boundary: "viewport",
                   altAxis: true,
                   padding: 8,
-                  enabled: !isMobile,
                 },
               },
+
               {
                 name: "matchWidth",
                 enabled: true,
@@ -395,6 +396,25 @@ const GlobalSearch = ({
                   const width =
                     state.elements.reference.getBoundingClientRect().width;
                   state.elements.popper.style.width = `${width}px`;
+                },
+              },
+              {
+                name: "adjustForKeyboard",
+                enabled: true,
+                phase: "write",
+                fn: ({ state }) => {
+                  if (window.visualViewport) {
+                    const { height } = window.visualViewport;
+                    const popper = state.elements.popper;
+
+                    const isKeyboardOpen = window.innerHeight - height > 100;
+
+                    if (isKeyboardOpen) {
+                      popper.style.top = `${
+                        state.rects.reference.y + state.rects.reference.height
+                      }px`;
+                    }
+                  }
                 },
               },
             ]}
