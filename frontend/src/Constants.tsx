@@ -242,7 +242,7 @@ export type GradientType =
   | "warning"
   | "error";
 export interface GradientChipProps {
-  gradientType: GradientType;
+  gradienttype: GradientType;
   label: string;
 }
 export interface CourseApiResponse {
@@ -257,6 +257,7 @@ export interface CourseApiResponse {
   error?: string;
   message?: string;
 }
+
 export interface CourseCardProps {
   course: Course;
   isSmallScreen: boolean;
@@ -362,7 +363,6 @@ export interface SearchControlsProps {
   selectedGEs: string[];
   setSelectedGEs: (ges: string[]) => void;
 
-  lastUpdated: string;
 }
 export interface RatingsPanelProps {
   professorName: string;
@@ -391,7 +391,6 @@ export interface GlobalSearchDropdownProps {
   onCourseSelect: (course: Course, courseId: string, category?: string) => void;
   selectedGE?: string;
   lastUpdated: string;
-  isSmallScreen: boolean;
 }
 export const categories = [
   { id: "AnyGE", name: "All Courses", icon: <AppsIcon /> },

@@ -7,7 +7,6 @@ import {
   useSessionStorage,
 } from "./GetGEData";
 import CategoryDrawer from "../components/CategoryDrawer";
-import { fetchLastUpdate } from "./FetchLastUpdate";
 import { SearchControls } from "../components/SearchControls";
 import { CourseList } from "./VirtualizedCourseList";
 import { PanelDrawer } from "../components/PanelDrawer";
@@ -182,10 +181,7 @@ const GeSearch: React.FC = () => {
 
   const { data: courses, isLoading: isFetchLoading } = useGECourseData();
   const currentCourses = courses?.[selectedGE];
-  const [lastUpdated, setLastUpdated] = useState<string>("None");
-  fetchLastUpdate()
-    .then((result) => setLastUpdated(result))
-    .catch(() => setLastUpdated("Error loading update time"));
+
   const codes = useMemo(
     () => [...new Set(currentCourses?.map((course) => course.subject))].sort(),
     [currentCourses]
@@ -310,7 +306,6 @@ const GeSearch: React.FC = () => {
             selectedPrereqs={selectedPrereqs}
             setSelectedCareers={setSelectedCareers}
             setSelectedPrereqs={setSelectedPrereqs}
-            lastUpdated={lastUpdated ?? "None"}
           />
 
           {isComparisonOpen && comparisonCourses.length > 0 && (
@@ -368,7 +363,6 @@ const GeSearch: React.FC = () => {
   );
 };
 
-// Updated styled components
 const Root = styled("div")({
   display: "flex",
   backgroundColor: COLORS.GRAY_50,

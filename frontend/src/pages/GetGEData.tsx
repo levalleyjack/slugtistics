@@ -59,7 +59,6 @@ export const useAllCourseData = () => {
     queryKey: ["all_courses"],
     queryFn: async () => {
       const response = await axios.get<{ data: Course[] }>(All_COURSES_URL);
-      console.log("got course")
       return response.data?.data ?? {};
     },
     staleTime: CONFIG.staleTime,

@@ -46,6 +46,7 @@ import {
   GradientType,
 } from "../Constants";
 import StatusIcon from "./StatusIcon";
+import LocationMap from "./LocationComponent";
 
 const ContentContainer = styled(Box)(({ theme }) => ({
   display: "flex",
@@ -78,15 +79,15 @@ const gradientStyles = {
   error: "linear-gradient(45deg, #f44336 30%, #ff7961 90%)",
   warning: "linear-gradient(45deg, #ff9800 30%, #ffc947 90%)",
 } as const;
-const StyledChip = styled(Chip)<{ gradientType: GradientType }>(
-  ({ gradientType }) => ({
-    background: gradientStyles[gradientType],
+const StyledChip = styled(Chip)<{ gradienttype: GradientType }>(
+  ({ gradienttype }) => ({
+    background: gradientStyles[gradienttype],
     color: "white",
     borderRadius: "8px",
   })
 );
-const GradientChip: React.FC<GradientChipProps> = ({ gradientType, label }) => (
-  <StyledChip label={label} gradientType={gradientType} size="medium" />
+const GradientChip: React.FC<GradientChipProps> = ({ gradienttype, label }) => (
+  <StyledChip label={label} gradienttype={gradienttype} size="medium" />
 );
 
 const StatsChip = styled(Chip)(({ theme }) => ({
@@ -277,24 +278,24 @@ export const CourseDetailsPanel: React.FC<CourseDetailsProps> = ({
     );
   }
   const getValidChips = () => {
-    const chips: { label: string; gradientType: GradientType }[] = [];
+    const chips: { label: string; gradienttype: GradientType }[] = [];
 
     if (course.credits) {
       chips.push({
         label: `${course.credits} Credits`,
-        gradientType: "primary",
+        gradienttype: "primary",
       });
     }
     if (course.ge) {
-      chips.push({ label: course.ge, gradientType: "secondary" });
+      chips.push({ label: course.ge, gradienttype: "secondary" });
     }
     if (course.career) {
-      chips.push({ label: course.career, gradientType: "info" });
+      chips.push({ label: course.career, gradienttype: "info" });
     }
     if (course.class_status) {
       chips.push({
         label: course.class_status,
-        gradientType: course.class_status.toLowerCase().includes("open")
+        gradienttype: course.class_status.toLowerCase().includes("open")
           ? "success"
           : course.class_status.toLowerCase().includes("wait list")
           ? "warning"
@@ -372,7 +373,7 @@ export const CourseDetailsPanel: React.FC<CourseDetailsProps> = ({
             <GradientChip
               key={index}
               label={chip.label}
-              gradientType={chip.gradientType}
+              gradienttype={chip.gradienttype}
             />
           ))}
         </Stack>
@@ -459,11 +460,22 @@ export const CourseDetailsPanel: React.FC<CourseDetailsProps> = ({
                     value={course.schedule}
                     icon={<ScheduleIcon />}
                   />
-                  <DetailItem
-                    label="Location"
-                    value={course.location}
-                    icon={<LocationIcon />}
-                  />
+                  {course.location &&
+                    course.location !== "Online" &&
+                    course.location !== "Remote Instruction" && (
+                      <Box>
+                        <DetailItem
+                          label="Location"
+                          value={course.location.split(":")[1]?.trim()}
+                          icon={<LocationIcon />}
+                        />
+                        <Box sx={{ mt: 2 }}>
+                          <LocationMap
+                            location={course.location.split(":")[1]?.trim()}
+                          />
+                        </Box>
+                      </Box>
+                    )}
                   <DetailItem
                     label="Class Type"
                     value={course.class_type}
@@ -473,7 +485,8 @@ export const CourseDetailsPanel: React.FC<CourseDetailsProps> = ({
                     <DetailItem
                       label="Average GPA"
                       value={
-                        course.gpa.toFixed(2) + ` (${getLetterGrade(course.gpa)})`
+                        course.gpa.toFixed(2) +
+                        ` (${getLetterGrade(course.gpa)})`
                       }
                       icon={<GradeIcon />}
                     />
