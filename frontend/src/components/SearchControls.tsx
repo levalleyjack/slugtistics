@@ -102,7 +102,6 @@ export const SearchControls: React.FC<SearchControlsProps> = ({
           onCourseSelect={handleGlobalCourseSelect}
           selectedGE={selectedGE}
           lastUpdated={lastUpdated ?? "None"}
-          isSmallScreen={isSmallScreen}
         />
       </SearchSection>
 

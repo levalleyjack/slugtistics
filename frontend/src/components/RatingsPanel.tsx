@@ -182,15 +182,16 @@ export const RatingsPanel: React.FC<RatingsPanelProps> = ({
               return (b.difficulty_rating ?? 0) - (a.difficulty_rating ?? 0);
             case "likes":
               return (b.thumbs_up ?? 0) - (a.thumbs_up ?? 0);
-            default:
-              return (
-                new Date(b.date ?? 0).getTime() -
-                new Date(a.date ?? 0).getTime()
-              );
+            default: {
+              const dateA = new Date((a.date ?? "").replace(" ", "T")).valueOf();
+              const dateB = new Date((b.date ?? "").replace(" ", "T")).valueOf();
+              return dateB - dateA;
+            }
           }
         }) ?? []
     );
   }, [ratings, searchTerm, sortBy]);
+  
 
   return (
     <ContentContainer>
