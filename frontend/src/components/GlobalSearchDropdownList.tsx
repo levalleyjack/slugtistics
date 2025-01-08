@@ -31,7 +31,7 @@ const StyledPopper = styled(Popper)(({ theme }) => ({
   zIndex: 1200,
   [theme.breakpoints.down("sm")]: {
     width: "100%",
-    position: "absolute",
+    position: "fixed",
     top: "100%",
     left: 0,
     right: 0,
@@ -109,7 +109,6 @@ const GlobalSearch = ({
   onCourseSelect,
   selectedGE,
   lastUpdated,
-  isSmallScreen,
 }: GlobalSearchDropdownProps) => {
   const [search, setSearch] = useState("");
   const [isSearching, setIsSearching] = useState(false);
@@ -381,6 +380,7 @@ const GlobalSearch = ({
                   boundary: window,
                   altAxis: true,
                   padding: 8,
+                  enabled: !isMobile,
                 },
               },
               {

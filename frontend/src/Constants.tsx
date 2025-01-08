@@ -391,7 +391,6 @@ export interface GlobalSearchDropdownProps {
   onCourseSelect: (course: Course, courseId: string, category?: string) => void;
   selectedGE?: string;
   lastUpdated: string;
-  isSmallScreen: boolean;
 }
 export const categories = [
   { id: "AnyGE", name: "All Courses", icon: <AppsIcon /> },
