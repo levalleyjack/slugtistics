@@ -41,7 +41,7 @@ const AboutPage = () => {
             Contributions from <b><a href="https://www.linkedin.com/in/qaysbadri/" className="text-blue-600 hover:text-blue-800">Qays Badri</a></b>
           </p>
           <p className="mb-2">
-            GE Search by <b><a href="https://www.linkedin.com/in/ashwinsm10/" className="text-blue-600 hover:text-blue-800">Ashwin Murthy</a></b>          </p>
+            Class Search by <b><a href="https://www.linkedin.com/in/ashwinsm10/" className="text-blue-600 hover:text-blue-800">Ashwin Murthy</a></b>          </p>
           <p className="mb-2">
             <b><a href="https://github.com/levalleyjack/slugtistics" className="text-blue-600 hover:text-blue-800">Github</a></b>
           </p>

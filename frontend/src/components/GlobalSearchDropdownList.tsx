@@ -16,16 +16,24 @@ import {
   useMediaQuery,
   Box,
   IconButton,
+  Tooltip,
 } from "@mui/material";
 import SearchIcon from "@mui/icons-material/Search";
+import EqualizerIcon from "@mui/icons-material/Equalizer";
+
 import React, { useState, useMemo, useRef } from "react";
 import {
   COLORS,
   Course,
+  DifficultyChip,
+  getLetterGrade,
   getStatusColor,
   GlobalSearchDropdownProps,
+  GradeChip,
+  RatingChip,
   StyledExpandIcon,
 } from "../Constants";
+import StarIcon from "@mui/icons-material/Star";
 import StatusIcon from "./StatusIcon";
 import ClearIcon from "@mui/icons-material/Clear";
 
@@ -107,7 +115,6 @@ const GlobalSearch = ({
   lastUpdated,
 }: GlobalSearchDropdownProps) => {
   const [search, setSearch] = useState("");
-  const [isSearching, setIsSearching] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
   const anchorRef = useRef<HTMLDivElement>(null);
   const theme = useTheme();
@@ -190,18 +197,20 @@ const GlobalSearch = ({
     if (courseCodeMatch) {
       const [_, subject, number] = courseCodeMatch;
 
-      return allCourses.filter((course) => {
-        const courseSubject = course.subject.toLowerCase();
-        const courseCatalogNum = course.catalog_num.toLowerCase();
+      return allCourses
+        .filter((course) => {
+          const courseSubject = course.subject.toLowerCase();
+          const courseCatalogNum = course.catalog_num.toLowerCase();
 
-        if (subject && number) {
-          return (
-            courseSubject.startsWith(subject.toLowerCase()) &&
-            courseCatalogNum.startsWith(number)
-          );
-        }
-        return courseSubject.startsWith(subject.toLowerCase());
-      });
+          if (subject && number) {
+            return (
+              courseSubject.startsWith(subject.toLowerCase()) &&
+              courseCatalogNum.startsWith(number)
+            );
+          }
+          return courseSubject.startsWith(subject.toLowerCase());
+        })
+        .slice(0, 20);
     }
 
     return allCourses
@@ -243,9 +252,7 @@ const GlobalSearch = ({
 
   const handleSearchChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     setSearch(event.target.value);
-    setIsSearching(true);
     setIsOpen(true);
-    setTimeout(() => setIsSearching(false), 500);
   };
 
   const handleCourseClick = (course: Course) => {
@@ -265,55 +272,113 @@ const GlobalSearch = ({
   const toggleExpand = () => {
     setIsOpen(!isOpen);
   };
-  const CourseListItem = ({ course }: { course: Course }) => (
-    <StyledListItem
-      onClick={() => handleCourseClick(course)}
-      divider
-      secondaryAction={
-        (course.ge || course.ge_category) &&
-        course.ge !== "AnyGE" &&
-        course.ge_category !== "AnyGE" ? (
-          <CategoryChip label={course.ge || course.ge_category} size="small" />
-        ) : null
-      }
-    >
-      <ListItemText
-        primary={
-          <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-            <Typography variant="subtitle2" component="span">
-              {`${course.subject} ${course.catalog_num}`}
-            </Typography>
-            <StatusIcon status={course.class_status} />
-            <Typography
-              variant="caption"
-              component="span"
-              sx={{
-                color: getStatusColor(course.class_status),
-                fontWeight: 500,
-              }}
-            >
-              {course.class_status}
-            </Typography>
-          </Box>
+  const CourseListItem = ({ course }: { course: Course }) => {
+    const { instructor_ratings: rmpData } = course;
+    return (
+      <StyledListItem
+        onClick={() => handleCourseClick(course)}
+        divider
+        secondaryAction={
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              justifyContent: "center",
+              alignItems: "center",
+            }}
+          >
+            {course.gpa && (
+              <Tooltip title={`Average GPA: ${course.gpa}`}>
+                <GradeChip
+                  interactive={false}
+                  grade={Number(course.gpa)}
+                  label={`${getLetterGrade(course.gpa)}`}
+                  size="small"
+                  sx={{
+                    height: "25px",
+                    fontSize: "0.7rem",
+                  }}
+                />
+              </Tooltip>
+            )}
+
+            {course.ge &&
+              course.ge !== "AnyGE" &&
+              course.ge_category !== "AnyGE" && (
+                <CategoryChip
+                  label={course.ge || course.ge_category}
+                  size="small"
+                />
+              )}
+          </div>
         }
-        secondary={
-          <>
-            <Typography variant="body2" color="textPrimary" component="span">
-              {course.name}
-            </Typography>
-            <Typography
-              variant="caption"
-              color="textSecondary"
-              component="div"
-              sx={{ mt: 0.5 }}
-            >
-              {course.instructor} • {course.class_type}
-            </Typography>
-          </>
-        }
-      />
-    </StyledListItem>
-  );
+      >
+        <ListItemText
+          primary={
+            <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+              <Typography variant="subtitle2" component="span">
+                {`${course.subject} ${course.catalog_num}`}
+              </Typography>
+              <StatusIcon status={course.class_status} />
+            </Box>
+          }
+          secondary={
+            <>
+              <Typography variant="body2" color="textPrimary" component="span">
+                {course.name}
+              </Typography>
+              <div style={{ flexDirection: "column" }}>
+                <Typography
+                  variant="caption"
+                  color="textSecondary"
+                  component="div"
+                  sx={{ mt: 0.5 }}
+                >
+                  {course.instructor} • {course.class_type}
+                </Typography>
+                {rmpData && (
+                  <div style={{ flexDirection: "row" }}>
+                    <RatingChip
+                      icon={<StarIcon color="inherit" fontSize="small"/>}
+                      label={`${rmpData.avg_rating?.toFixed(1) || "N/A"}/5`}
+                      size="small"
+                      sx={{
+                        border: `1px solid ${
+                          rmpData.avg_rating >= 4
+                            ? theme.palette.success.dark
+                            : rmpData.avg_rating >= 3
+                            ? theme.palette.warning.dark
+                            : theme.palette.error.dark
+                        }`,
+                        color:
+                          rmpData.avg_rating >= 4
+                            ? theme.palette.success.main
+                            : rmpData.avg_rating >= 3
+                            ? theme.palette.warning.main
+                            : theme.palette.error.main,
+                        backgroundColor: "white",
+                        fontSize: "0.7rem",
+                        marginRight: "4px",
+                      }}
+                    />
+                    <DifficultyChip
+                      label={`${
+                        rmpData.difficulty_level?.toFixed(1) || "N/A"
+                      }/5 difficulty`}
+                      size="small"
+                      variant="outlined"
+                      difficulty={rmpData.difficulty_level}
+                      sx={{ fontSize: "0.7rem" }}
+                    />
+                  </div>
+                )}
+              </div>
+            </>
+          }
+        />
+      </StyledListItem>
+    );
+  };
   return (
     <SearchWrapper>
       <ClickAwayListener onClickAway={() => setIsOpen(false)}>
@@ -337,15 +402,7 @@ const GlobalSearch = ({
                           width: 20,
                         }}
                       >
-                        {isSearching ? (
-                          <CircularProgress
-                            size={20}
-                            thickness={2}
-                            color="inherit"
-                          />
-                        ) : (
-                          <SearchIcon color="action" />
-                        )}
+                        <SearchIcon color="action" />
                       </Box>
                     </InputAdornment>
                   ),

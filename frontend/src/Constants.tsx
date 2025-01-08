@@ -12,7 +12,7 @@ import VolunteerActivismIcon from "@mui/icons-material/VolunteerActivism";
 import AppsIcon from "@mui/icons-material/Apps";
 import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
 import BookIcon from "@mui/icons-material/Book";
-import { ChipProps, styled, useTheme } from "@mui/material";
+import { Chip, ChipProps, styled, useTheme } from "@mui/material";
 import Diversity2Icon from "@mui/icons-material/Diversity2";
 import HandshakeIcon from "@mui/icons-material/Handshake";
 import Diversity3Icon from "@mui/icons-material/Diversity3";
@@ -180,6 +180,7 @@ export interface ExpandIconProps {
 
 export interface GradeChipProps extends ChipProps {
   grade: number;
+  interactive?: boolean;
 }
 export interface DifficultyChipProps extends ChipProps {
   difficulty: number;
@@ -362,7 +363,6 @@ export interface SearchControlsProps {
   setSelectedPrereqs: (prereqs: string[]) => void;
   selectedGEs: string[];
   setSelectedGEs: (ges: string[]) => void;
-
 }
 export interface RatingsPanelProps {
   professorName: string;
@@ -465,6 +465,154 @@ export const AnimatedArrowIcon: React.FC<AnimatedArrowIconProps> = ({
     </AnimatedIcon>
   );
 };
+
+export const BaseChip = styled(Chip)(({ theme }) => ({
+  borderRadius: "8px",
+  transition: "all 0.2s ease-in-out",
+  height: "28px",
+  fontWeight: "bold",
+  "&.MuiChip-clickable": {
+    boxShadow: "0 2px 8px rgba(0, 0, 0, 0.15)",
+    "&:hover": {
+      transform: "translateY(-2px)",
+      filter: "brightness(110%)",
+      boxShadow: "0 6px 16px rgba(0, 0, 0, 0.2)",
+    },
+    "&:active": {
+      transform: "translateY(0)",
+      filter: "brightness(95%)",
+      boxShadow: "0 2px 8px rgba(0, 0, 0, 0.15)",
+    },
+  },
+}));
+export const RatingChip = styled(BaseChip)(({ theme }) => ({
+  height: "26px",
+  color: "white",
+}));
+export const ReviewCountChip = styled(BaseChip)(({ theme }) => ({
+  height: "24px",
+  fontWeight: "lighter",
+  background: `linear-gradient(90deg,
+    ${theme.palette.primary.main} 0%,
+    ${theme.palette.secondary.light} 100%)`,
+  color: "white",
+  "&.MuiChip-clickable:hover": {
+    background: `linear-gradient(135deg,
+      ${theme.palette.secondary.light} 0%,
+      ${theme.palette.primary.light} 100%)`,
+    color: "white",
+  },
+}));
+export const DifficultyChip = styled(BaseChip)<DifficultyChipProps>(
+  ({ theme, difficulty }) => ({
+    background: "white",
+    height: "26px",
+    fontWeight: "bolder",
+    borderWidth: 1,
+    borderStyle: "solid",
+    borderColor:
+      difficulty >= 4
+        ? theme.palette.error.dark
+        : difficulty >= 3
+        ? theme.palette.warning.dark
+        : theme.palette.success.dark,
+    color:
+      difficulty >= 4
+        ? theme.palette.error.main
+        : difficulty >= 3
+        ? theme.palette.warning.main
+        : theme.palette.success.main,
+    "&.MuiChip-clickable:hover": {
+      background: theme.palette.grey[50],
+    },
+  })
+);
+
+export const CourseCodeChip = styled(BaseChip)(({ theme }) => ({
+  background: `linear-gradient(135deg,
+    ${theme.palette.primary.dark} 0%,
+    ${theme.palette.primary.light} 100%)`,
+  color: "white",
+  fontSize: "0.875rem",
+  letterSpacing: "0.03em",
+  height: "32px",
+  "& .MuiChip-label": {
+    padding: "0 12px",
+    textTransform: "uppercase",
+    lineHeight: 1.2,
+  },
+  "&.MuiChip-clickable:hover": {
+    background: `linear-gradient(135deg,
+      ${theme.palette.primary.light} 0%,
+      ${theme.palette.primary.main} 100%)`,
+  },
+}));
+
+export const GECategoryChip = styled(BaseChip)(({ theme }) => ({
+  background: `linear-gradient(135deg, 
+    ${theme.palette.secondary.dark} 0%, 
+    ${theme.palette.secondary.light} 100%)`,
+  fontWeight: "lighter",
+  color: "white",
+  letterSpacing: "0.5px",
+  padding: "0 4px",
+  "&.MuiChip-clickable:hover": {
+    background: `linear-gradient(135deg, 
+      ${theme.palette.secondary.light} 0%, 
+      ${theme.palette.secondary.main} 100%)`,
+  },
+}));
+
+export const GradeChip = styled(BaseChip)<GradeChipProps>(
+  ({ theme, grade, interactive = true }) => {
+    const getGradient = (gpa: number) => {
+      if (gpa >= 3.7)
+        return `linear-gradient(135deg, 
+      ${theme.palette.success.light} 0%, 
+      ${theme.palette.success.main} 50%,
+      ${theme.palette.success.dark} 100%)`;
+      if (gpa >= 3.3)
+        return `linear-gradient(135deg, 
+      ${theme.palette.success.light} 0%, 
+      ${theme.palette.warning.light} 100%)`;
+      if (gpa >= 3.0)
+        return `linear-gradient(135deg, 
+      ${theme.palette.warning.light} 0%, 
+      ${theme.palette.warning.main} 50%,
+      ${theme.palette.warning.dark} 100%)`;
+      if (gpa >= 2.7)
+        return `linear-gradient(135deg, 
+      ${theme.palette.warning.main} 0%, 
+      ${theme.palette.error.light} 100%)`;
+      return `linear-gradient(135deg, 
+      ${theme.palette.error.light} 0%, 
+      ${theme.palette.error.main} 50%,
+      ${theme.palette.error.dark} 100%)`;
+    };
+    return {
+      background: interactive ? getGradient(grade) : theme.palette.common.white,
+      color: interactive ? theme.palette.common.white : "transparent",
+      backgroundImage: !interactive ? getGradient(grade) : undefined,
+      backgroundClip: !interactive ? "text" : undefined,
+      WebkitBackgroundClip: !interactive ? "text" : undefined,
+      WebkitTextFillColor: !interactive ? "transparent" : undefined,
+      "& .MuiChip-icon": {
+        color: "inherit",
+      },
+    };
+  }
+);
+
+export const StyledChip = styled(BaseChip)(({ theme }) => ({
+  "&.MuiChip-outlined": {
+    background: "linear-gradient(135deg, #ffffff 0%, #f5f5f5 100%)",
+    borderColor: theme.palette.grey[300],
+    "&.MuiChip-clickable:hover": {
+      background: "linear-gradient(135deg, #f5f5f5 0%, #e8e8e8 100%)",
+      borderColor: theme.palette.grey[400],
+    },
+  },
+}));
 
 export const getLetterGrade = (gpa: number) => {
   const gpaNum = gpa;
