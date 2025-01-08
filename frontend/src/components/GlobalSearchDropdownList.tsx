@@ -29,10 +29,12 @@ import StatusIcon from "./StatusIcon";
 const StyledPopper = styled(Popper)(({ theme }) => ({
   width: "100%",
   zIndex: 1200,
+  position: "fixed",
 
   [theme.breakpoints.down("sm")]: {
     width: "100%",
-    top: "100%",
+
+    top: "0",
     left: 0,
     right: 0,
     marginTop: 0,
