@@ -4,6 +4,7 @@ import { AnimatedArrowIcon, COLORS, SearchControlsProps } from "../Constants";
 import GlobalSearch from "./GlobalSearchDropdownList";
 import ExpandButton from "./ExpandButton";
 import FilterDropdown from "./FilterDropdown";
+import { fetchLastUpdate } from "../pages/FetchLastUpdate";
 
 const HeaderContainer = styled("div")(({ theme }) => ({
   display: "flex",
@@ -78,12 +79,15 @@ export const SearchControls: React.FC<SearchControlsProps> = ({
   setSelectedEnrollmentStatuses,
   selectedGEs,
   setSelectedGEs,
-  lastUpdated,
   selectedPrereqs,
   setSelectedPrereqs,
   selectedCareers,
   setSelectedCareers,
 }) => {
+  const [lastUpdated, setLastUpdated] = React.useState<string>("None");
+  fetchLastUpdate()
+    .then((result) => setLastUpdated(result))
+    .catch(() => setLastUpdated("Error loading update time"));
   return (
     <HeaderContainer>
       <SearchSection>
@@ -97,7 +101,7 @@ export const SearchControls: React.FC<SearchControlsProps> = ({
           courses={courses}
           onCourseSelect={handleGlobalCourseSelect}
           selectedGE={selectedGE}
-          lastUpdated={lastUpdated}
+          lastUpdated={lastUpdated ?? "None"}
           isSmallScreen={isSmallScreen}
         />
       </SearchSection>

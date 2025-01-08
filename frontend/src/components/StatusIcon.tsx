@@ -10,9 +10,7 @@ const StyledStatusIcon = styled(Box)(({ theme }) => ({
   alignItems: "center",
   justifyContent: "center",
   transition: "opacity 0.2s ease-in-out",
-  "&:hover": {
-    opacity: 0.8,
-  },
+
 }));
 
 const StatusIcon = ({ status }: { status: ClassStatusEnum }) => {

@@ -353,7 +353,6 @@ const FilterDropdown: React.FC<FilterDropdownProps> = ({
   return (
     <>
       <StyledFilterButton
-        aria-describedby={id}
         onClick={handleClick}
         variant="outlined"
         startIcon={<FilterAltIcon />}

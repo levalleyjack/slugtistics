@@ -159,6 +159,8 @@ const StatisticsDrawer = ({
             },
             transition: "background-color 200ms",
             display: isMediumScreen ? "none" : "block",
+            zIndex:100,
+
           }}
           onMouseEnter={handleMouseEnter}
         />

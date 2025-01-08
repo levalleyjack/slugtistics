@@ -363,7 +363,6 @@ export interface SearchControlsProps {
   selectedGEs: string[];
   setSelectedGEs: (ges: string[]) => void;
 
-  lastUpdated: string;
 }
 export interface RatingsPanelProps {
   professorName: string;

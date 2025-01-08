@@ -53,7 +53,6 @@ const NavBar = () => {
             className={`navbar-link ${
               isInDropdownRoute ? "navbar-link-active" : ""
             }`}
-            aria-expanded={isDropdownOpen}
           >
             <h2 style={{ color: isInDropdownRoute ? "#ffc107" : "#c9c9ca" }}>
               Class Search

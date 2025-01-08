@@ -572,24 +572,22 @@ export const CourseCard = forwardRef<HTMLDivElement, CourseCardProps>(
                           </Typography>
                         )}
                     </Stack>
-                    <Tooltip title="Refresh enrollment data">
-                      <IconButton
-                        size="small"
-                        onClick={handleRefreshEnrollment}
-                        sx={{
-                          p: 0.5,
-                          animation: enrollmentQuery.isFetching
-                            ? "spin 1s linear infinite"
-                            : "none",
-                          "@keyframes spin": {
-                            "0%": { transform: "rotate(0deg)" },
-                            "100%": { transform: "rotate(360deg)" },
-                          },
-                        }}
-                      >
-                        <RefreshIcon sx={{ fontSize: 18 }} color="primary" />
-                      </IconButton>
-                    </Tooltip>
+                    <IconButton
+                      size="small"
+                      onClick={handleRefreshEnrollment}
+                      sx={{
+                        p: 0.5,
+                        animation: enrollmentQuery.isFetching
+                          ? "spin 1s linear infinite"
+                          : "none",
+                        "@keyframes spin": {
+                          "0%": { transform: "rotate(0deg)" },
+                          "100%": { transform: "rotate(360deg)" },
+                        },
+                      }}
+                    >
+                      <RefreshIcon sx={{ fontSize: 18 }} color="primary" />
+                    </IconButton>
                   </Stack>
                 </Grid>
                 <Grid item xs={4}>

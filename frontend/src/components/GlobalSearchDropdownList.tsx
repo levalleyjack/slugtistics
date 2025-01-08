@@ -27,20 +27,17 @@ import {
 import StatusIcon from "./StatusIcon";
 
 const StyledPopper = styled(Popper)(({ theme }) => ({
-  width: 400,
-  zIndex: 1301,
-  marginTop: theme.spacing(1),
+  width: "100%",
+  zIndex: 1200,
   [theme.breakpoints.down("sm")]: {
     width: "100%",
-    position: "fixed",
-    left: "0 !important",
+    position: "absolute",
+    top: "100%",
+    left: 0,
     right: 0,
-    bottom: 0,
-    maxHeight: "50vh", // Ensure it takes up at most half the viewport height
-    marginTop: 0
-  }
+    marginTop: 0,
+  },
 }));
-
 const LastUpdatedText = styled(Typography)(({ theme }) => ({
   padding: theme.spacing(1, 2),
   borderTop: `1px solid ${theme.palette.divider}`,
@@ -53,18 +50,26 @@ const LastUpdatedText = styled(Typography)(({ theme }) => ({
 const SearchWrapper = styled("div")(({ theme }) => ({
   position: "relative",
   width: "100%",
-  [theme.breakpoints.down("sm")]: {},
+  display: "flex",
+  flexDirection: "column",
+  [theme.breakpoints.down("sm")]: {
+    width: "100%",
+  },
 }));
 const StyledPaper = styled(Paper)(({ theme }) => ({
+  width: "100%",
   maxHeight: "calc(100dvh - 150px)",
+  border: `1px solid ${theme.palette.divider}`,
+  borderTop: "none",
+  borderTopLeftRadius: 0,
+  borderTopRightRadius: 0,
+  borderBottomLeftRadius: "8px",
+  borderBottomRightRadius: "8px",
   overflowY: "auto",
   boxShadow: theme.shadows[8],
-  border: `1px solid ${theme.palette.divider}`,
-  borderRadius: "8px",
   [theme.breakpoints.down("sm")]: {
-    maxHeight: "50vh",
-    borderRadius: "16px 16px 0 0",
-  }
+    maxHeight: "300px",
+  },
 }));
 
 const StyledListItem = styled(ListItem)(({ theme }) => ({
@@ -257,7 +262,6 @@ const GlobalSearch = ({
     setIsOpen(false);
     setSearch("");
   };
-
   const CourseListItem = ({ course }: { course: Course }) => (
     <StyledListItem
       onClick={() => handleCourseClick(course)}
@@ -272,13 +276,14 @@ const GlobalSearch = ({
     >
       <ListItemText
         primary={
-          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
             <Typography variant="subtitle2" component="span">
               {`${course.subject} ${course.catalog_num}`}
             </Typography>
             <StatusIcon status={course.class_status} />
             <Typography
               variant="caption"
+              component="span"
               sx={{
                 color: getStatusColor(course.class_status),
                 fontWeight: 500,
@@ -286,14 +291,19 @@ const GlobalSearch = ({
             >
               {course.class_status}
             </Typography>
-          </div>
+          </Box>
         }
         secondary={
           <>
-            <Typography variant="body2" color="textPrimary" component="div">
+            <Typography variant="body2" color="textPrimary" component="span">
               {course.name}
             </Typography>
-            <Typography variant="caption" color="textSecondary" component="div">
+            <Typography
+              variant="caption"
+              color="textSecondary"
+              component="div"
+              sx={{ mt: 0.5 }}
+            >
               {course.instructor} • {course.class_type}
             </Typography>
           </>
@@ -346,19 +356,9 @@ const GlobalSearch = ({
                 "& .MuiOutlinedInput-root": {
                   backgroundColor: COLORS.GRAY_50,
                   transition: "background-color 0.2s",
+                  borderRadius: isOpen ? "8px 8px 0 0 !important" : "8px",
+
                   height: 36,
-                  "&:hover": {
-                    backgroundColor: COLORS.WHITE,
-                  },
-                  "&.Mui-focused": {
-                    backgroundColor: COLORS.WHITE,
-                  },
-                },
-                "& .MuiInputLabel-root": {
-                  transform: "translate(14px, 8px) scale(1)",
-                  "&.MuiInputLabel-shrink": {
-                    transform: "translate(14px, -9px) scale(0.75)",
-                  },
                 },
               }}
             />
@@ -372,7 +372,7 @@ const GlobalSearch = ({
               {
                 name: "offset",
                 options: {
-                  offset: [0, 8],
+                  offset: [0, 0],
                 },
               },
               {
@@ -384,12 +384,22 @@ const GlobalSearch = ({
                 },
               },
               {
-                name: "flip",
+                name: "matchWidth",
                 enabled: true,
+                phase: "beforeWrite",
+                requires: ["computeStyles"],
+                fn: ({ state }) => {
+                  state.styles.popper.width = `${state.rects.reference.width}px`;
+                },
+                effect: ({ state }) => {
+                  const width =
+                    state.elements.reference.getBoundingClientRect().width;
+                  state.elements.popper.style.width = `${width}px`;
+                },
               },
             ]}
           >
-            <StyledPaper elevation={1}>
+            <StyledPaper elevation={0}>
               {searchResults.length === 0 ? (
                 <NoResults>
                   <Typography color="textSecondary">
@@ -400,20 +410,22 @@ const GlobalSearch = ({
                 <>
                   {selectedGECourses.length > 0 && (
                     <>
-                      <SearchMetrics color="textSecondary">
+                      <SearchMetrics>
                         <Box
                           sx={{
                             display: "flex",
                             width: "100%",
                             justifyContent: "space-between",
+                            alignItems: "center",
                           }}
                         >
-                          <Typography variant="body2">
+                          <Typography component="span" variant="body2">
                             Found {selectedGECourses.length} course
                             {selectedGECourses.length === 1 ? "" : "s"} in{" "}
                             {selectedGE}
                           </Typography>
                           <Typography
+                            component="span"
                             variant="caption"
                             sx={{ marginLeft: "auto" }}
                           >
@@ -431,11 +443,29 @@ const GlobalSearch = ({
 
                   {otherCourses.length > 0 && (
                     <>
-                      <SearchMetrics color="textSecondary">
-                        Found {otherCourses.length} course
-                        {`${otherCourses.length === 1 ? "" : "s"} ${
-                          selectedGE ? "in other categories" : ""
-                        }`}
+                      <SearchMetrics>
+                        <Box
+                          sx={{
+                            display: "flex",
+                            width: "100%",
+                            justifyContent: "space-between",
+                            alignItems: "center",
+                          }}
+                        >
+                          <Typography component="span" variant="body2">
+                            Found {otherCourses.length} course
+                            {`${otherCourses.length === 1 ? "" : "s"} ${
+                              selectedGE ? "in other categories" : ""
+                            }`}
+                          </Typography>
+                          <Typography
+                            component="span"
+                            variant="caption"
+                            sx={{ marginLeft: "auto" }}
+                          >
+                            {lastUpdated}
+                          </Typography>
+                        </Box>
                       </SearchMetrics>
                       <List disablePadding>
                         {otherCourses.map((course: Course) => (
