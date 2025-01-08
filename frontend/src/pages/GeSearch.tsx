@@ -363,7 +363,6 @@ const GeSearch: React.FC = () => {
   );
 };
 
-// Updated styled components
 const Root = styled("div")({
   display: "flex",
   backgroundColor: COLORS.GRAY_50,

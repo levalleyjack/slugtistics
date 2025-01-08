@@ -15,6 +15,7 @@ import {
   alpha,
   useMediaQuery,
   Box,
+  IconButton,
 } from "@mui/material";
 import SearchIcon from "@mui/icons-material/Search";
 import React, { useState, useMemo, useRef } from "react";
@@ -23,30 +24,14 @@ import {
   Course,
   getStatusColor,
   GlobalSearchDropdownProps,
+  StyledExpandIcon,
 } from "../Constants";
 import StatusIcon from "./StatusIcon";
+import ClearIcon from "@mui/icons-material/Clear";
 
 const StyledPopper = styled(Popper)(({ theme }) => ({
   width: "100%",
-  zIndex: 1200,
   position: "fixed",
-
-  [theme.breakpoints.down("sm")]: {
-    width: "100%",
-
-    top: "0",
-    left: 0,
-    right: 0,
-    marginTop: 0,
-  },
-}));
-const LastUpdatedText = styled(Typography)(({ theme }) => ({
-  padding: theme.spacing(1, 2),
-  borderTop: `1px solid ${theme.palette.divider}`,
-  backgroundColor: theme.palette.grey[50],
-  fontSize: "0.75rem",
-  color: theme.palette.text.secondary,
-  textAlign: "right",
 }));
 
 const SearchWrapper = styled("div")(({ theme }) => ({
@@ -69,8 +54,17 @@ const StyledPaper = styled(Paper)(({ theme }) => ({
   borderBottomRightRadius: "8px",
   overflowY: "auto",
   boxShadow: theme.shadows[8],
-  [theme.breakpoints.down("sm")]: {
-    maxHeight: "300px",
+}));
+const EndAdornment = styled(Box)(({ theme }) => ({
+  display: "flex",
+  alignItems: "center",
+  gap: theme.spacing(0.5),
+}));
+
+const StyledIconButton = styled(IconButton)(({ theme }) => ({
+  padding: theme.spacing(0.5),
+  "&:hover": {
+    backgroundColor: alpha(theme.palette.action.active, 0.04),
   },
 }));
 
@@ -184,7 +178,7 @@ const GlobalSearch = ({
 
           return (
             matchesInstructor(course.instructor) ||
-            courseName.startsWith(searchInput) ||
+            courseName.includes(searchInput) ||
             courseCode.startsWith(searchInput)
           );
         })
@@ -219,7 +213,7 @@ const GlobalSearch = ({
         return (
           matchesInstructor(course.instructor) ||
           courseCode.startsWith(searchInput) ||
-          courseName.startsWith(searchInput)
+          courseName.includes(searchInput)
         );
       })
       .slice(0, 20);
@@ -262,6 +256,14 @@ const GlobalSearch = ({
     );
     setIsOpen(false);
     setSearch("");
+  };
+  const handleClear = () => {
+    setSearch("");
+    setIsOpen(false);
+  };
+
+  const toggleExpand = () => {
+    setIsOpen(!isOpen);
   };
   const CourseListItem = ({ course }: { course: Course }) => (
     <StyledListItem
@@ -347,6 +349,35 @@ const GlobalSearch = ({
                       </Box>
                     </InputAdornment>
                   ),
+                  endAdornment: (
+                    <InputAdornment position="end">
+                      <EndAdornment>
+                        {search && (
+                          <StyledIconButton
+                            onClick={handleClear}
+                            size="small"
+                            aria-label="clear search"
+                          >
+                            <ClearIcon fontSize="small" />
+                          </StyledIconButton>
+                        )}
+                        {search && (
+                          <StyledIconButton
+                            onClick={toggleExpand}
+                            size="small"
+                            aria-label={
+                              isOpen ? "collapse results" : "expand results"
+                            }
+                          >
+                            <StyledExpandIcon
+                              expanded={isOpen}
+                              fontSize="small"
+                            />
+                          </StyledIconButton>
+                        )}
+                      </EndAdornment>
+                    </InputAdornment>
+                  ),
                   style: {
                     borderRadius: "8px",
                   },
@@ -357,8 +388,10 @@ const GlobalSearch = ({
                 "& .MuiOutlinedInput-root": {
                   backgroundColor: COLORS.GRAY_50,
                   transition: "background-color 0.2s",
-                  borderRadius: isOpen ? "8px 8px 0 0 !important" : "8px",
-
+                  borderRadius:
+                    isOpen && search.length > 0
+                      ? "8px 8px 0 0 !important"
+                      : "8px",
                   height: 36,
                 },
               }}
@@ -376,14 +409,6 @@ const GlobalSearch = ({
                   offset: [0, 0],
                 },
               },
-              {
-                name: "preventOverflow",
-                options: {
-                  boundary: "viewport",
-                  altAxis: true,
-                  padding: 8,
-                },
-              },
 
               {
                 name: "matchWidth",
@@ -397,25 +422,6 @@ const GlobalSearch = ({
                   const width =
                     state.elements.reference.getBoundingClientRect().width;
                   state.elements.popper.style.width = `${width}px`;
-                },
-              },
-              {
-                name: "adjustForKeyboard",
-                enabled: true,
-                phase: "write",
-                fn: ({ state }) => {
-                  if (window.visualViewport) {
-                    const { height } = window.visualViewport;
-                    const popper = state.elements.popper;
-
-                    const isKeyboardOpen = window.innerHeight - height > 100;
-
-                    if (isKeyboardOpen) {
-                      popper.style.top = `${
-                        state.rects.reference.y + state.rects.reference.height
-                      }px`;
-                    }
-                  }
                 },
               },
             ]}
