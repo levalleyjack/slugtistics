@@ -36,6 +36,7 @@ import { RatingCard } from "./RatingCard";
 import { lighten } from "@mui/material/styles";
 import { Rating, RatingsPanelProps } from "../Constants";
 import LoadingSkeleton from "./LoadingComponents";
+import { format, toZonedTime } from "date-fns-tz";
 
 const BORDER_RADIUS = "12px";
 
@@ -99,6 +100,7 @@ export const RatingsPanel: React.FC<RatingsPanelProps> = ({
   onClose,
 }) => {
   const theme = useTheme();
+
   const [sortBy, setSortBy] = useState<SortOptions>("date");
   const [filterBy, setFilterBy] = useState<string>(
     !currentClass || currentClass === "all" ? "all" : currentClass
@@ -183,15 +185,34 @@ export const RatingsPanel: React.FC<RatingsPanelProps> = ({
             case "likes":
               return (b.thumbs_up ?? 0) - (a.thumbs_up ?? 0);
             default: {
-              const dateA = new Date((a.date ?? "").replace(" ", "T")).valueOf();
-              const dateB = new Date((b.date ?? "").replace(" ", "T")).valueOf();
+              const dateA = new Date(
+                (a.date ?? "").replace(" ", "T")
+              ).valueOf();
+              const dateB = new Date(
+                (b.date ?? "").replace(" ", "T")
+              ).valueOf();
               return dateB - dateA;
             }
           }
         }) ?? []
     );
   }, [ratings, searchTerm, sortBy]);
-  
+  const formatDate = (dateString: string): string => {
+    try {
+      const dateWithoutTZ = dateString.replace(/ \+\d{4} UTC$/, '');
+      
+      const date = new Date(dateWithoutTZ);
+      
+      if (isNaN(date.getTime())) {
+        throw new Error('Invalid date');
+      }
+      
+      return format(date, 'MMM d, yyyy');
+    } catch (error) {
+      console.error('Error formatting date:', error, 'for date string:', dateString);
+      return 'Invalid date';
+    }
+  };
 
   return (
     <ContentContainer>
@@ -381,179 +402,184 @@ export const RatingsPanel: React.FC<RatingsPanelProps> = ({
             </EnhancedFilterContainer>
 
             <Stack spacing={1.5}>
-              {processedRatings.map((rating, index) => (
-                <Fade in={true} key={index} timeout={300}>
-                  <Paper
-                    sx={{ p: 2, borderRadius: BORDER_RADIUS }}
-                    elevation={2}
-                  >
-                    <Grid container spacing={1.5}>
-                      <Grid item xs={12}>
-                        <Box
-                          sx={{
-                            display: "flex",
-                            justifyContent: "center",
-                            width: "100%",
-                          }}
-                        >
-                          <RatingCard
-                            overallRating={rating.overall_rating ?? 0}
-                            difficultyRating={rating.difficulty_rating ?? 0}
-                            getRatingColor={getRatingColor}
-                          />
-                        </Box>
-                      </Grid>
-                      <Grid item xs={12}>
-                        <Box component="div">
-                          <Typography variant="body2" component="div">
-                            {he.decode(rating.comment ?? "")}
-                          </Typography>
-                        </Box>
-                      </Grid>
-                      <Grid item xs={12}>
-                        <Box
-                          sx={{
-                            display: "flex",
-                            flexWrap: "wrap",
-                            gap: 0.75,
-                            mb: 1.5,
-                          }}
-                        >
-                          {rating.is_online && (
-                            <Chip
-                              label="Online"
-                              color="primary"
-                              variant="outlined"
-                              size="small"
+              {processedRatings.map((rating, index) => {
+                const formattedDate = formatDate(rating.date);
+                return (
+                  <Fade in={true} key={index} timeout={300}>
+                    <Paper
+                      sx={{ p: 2, borderRadius: BORDER_RADIUS }}
+                      elevation={2}
+                    >
+                      <Grid container spacing={1.5}>
+                        <Grid item xs={12}>
+                          <Box
+                            sx={{
+                              display: "flex",
+                              justifyContent: "center",
+                              width: "100%",
+                            }}
+                          >
+                            <RatingCard
+                              overallRating={rating.overall_rating ?? 0}
+                              difficultyRating={rating.difficulty_rating ?? 0}
+                              getRatingColor={getRatingColor}
                             />
-                          )}
-                          {rating.attendance_mandatory === "mandatory" && (
-                            <Chip
-                              label="Attendance Required"
-                              color="secondary"
-                              variant="outlined"
-                              size="small"
-                            />
-                          )}
-                          {rating.would_take_again && (
-                            <Chip
-                              label="Would Take Again"
-                              color="success"
-                              variant="outlined"
-                              size="small"
-                            />
-                          )}
-                        </Box>
-                        {rating.tags && (
+                          </Box>
+                        </Grid>
+                        <Grid item xs={12}>
+                          <Box component="div">
+                            <Typography variant="body2" component="div">
+                              {he.decode(rating.comment ?? "")}
+                            </Typography>
+                          </Box>
+                        </Grid>
+                        <Grid item xs={12}>
                           <Box
                             sx={{
                               display: "flex",
                               flexWrap: "wrap",
                               gap: 0.75,
+                              mb: 1.5,
                             }}
                           >
-                            {rating.tags.split("--").map((tag, tagIndex) => (
+                            {rating.is_online && (
                               <Chip
-                                key={tagIndex}
-                                label={tag}
+                                label="Online"
+                                color="primary"
+                                variant="outlined"
                                 size="small"
-                                icon={<LocalOffer />}
-                                variant="filled"
-                                sx={{
-                                  backgroundColor: `${theme.palette.primary.main}15`,
-                                  color: "primary.main",
-                                  "& .MuiChip-icon": { color: "primary.main" },
-                                }}
                               />
-                            ))}
+                            )}
+                            {rating.attendance_mandatory === "mandatory" && (
+                              <Chip
+                                label="Attendance Required"
+                                color="secondary"
+                                variant="outlined"
+                                size="small"
+                              />
+                            )}
+                            {rating.would_take_again && (
+                              <Chip
+                                label="Would Take Again"
+                                color="success"
+                                variant="outlined"
+                                size="small"
+                              />
+                            )}
                           </Box>
-                        )}
-                      </Grid>
-                      <Grid item xs={12}>
-                        <Box
-                          sx={{
-                            display: "flex",
-                            justifyContent: "space-between",
-                            alignItems: "center",
-                            pt: 1.5,
-                            borderTop: 1,
-                            borderColor: "divider",
-                          }}
-                        >
-                          <Stack
-                            direction="row"
-                            spacing={1.5}
-                            alignItems="center"
+                          {rating.tags && (
+                            <Box
+                              sx={{
+                                display: "flex",
+                                flexWrap: "wrap",
+                                gap: 0.75,
+                              }}
+                            >
+                              {rating.tags.split("--").map((tag, tagIndex) => (
+                                <Chip
+                                  key={tagIndex}
+                                  label={tag}
+                                  size="small"
+                                  icon={<LocalOffer />}
+                                  variant="filled"
+                                  sx={{
+                                    backgroundColor: `${theme.palette.primary.main}15`,
+                                    color: "primary.main",
+                                    "& .MuiChip-icon": {
+                                      color: "primary.main",
+                                    },
+                                  }}
+                                />
+                              ))}
+                            </Box>
+                          )}
+                        </Grid>
+                        <Grid item xs={12}>
+                          <Box
+                            sx={{
+                              display: "flex",
+                              justifyContent: "space-between",
+                              alignItems: "center",
+                              pt: 1.5,
+                              borderTop: 1,
+                              borderColor: "divider",
+                            }}
                           >
                             <Stack
                               direction="row"
-                              spacing={0.5}
+                              spacing={1.5}
                               alignItems="center"
                             >
-                              <School
-                                sx={{
-                                  fontSize: "0.875rem",
-                                  color: "text.secondary",
-                                }}
-                              />
+                              <Stack
+                                direction="row"
+                                spacing={0.5}
+                                alignItems="center"
+                              >
+                                <School
+                                  sx={{
+                                    fontSize: "0.875rem",
+                                    color: "text.secondary",
+                                  }}
+                                />
+                                <Typography
+                                  variant="caption"
+                                  component="div"
+                                  color="text.secondary"
+                                >
+                                  {rating.class_name}
+                                </Typography>
+                              </Stack>
                               <Typography
                                 variant="caption"
                                 component="div"
                                 color="text.secondary"
                               >
-                                {rating.class_name}
+                                {formattedDate}
                               </Typography>
                             </Stack>
-                            <Typography
-                              variant="caption"
-                              component="div"
-                              color="text.secondary"
-                            >
-                              {new Date(rating.date ?? "").toLocaleDateString()}
-                            </Typography>
-                          </Stack>
-                          <Stack direction="row" spacing={1.5}>
-                            <Stack
-                              direction="row"
-                              spacing={0.5}
-                              alignItems="center"
-                            >
-                              <ThumbUpOutlined
-                                color="success"
-                                sx={{ fontSize: "1rem" }}
-                              />
-                              <Typography
-                                variant="caption"
-                                component="div"
-                                color="text.secondary"
+                            <Stack direction="row" spacing={1.5}>
+                              <Stack
+                                direction="row"
+                                spacing={0.5}
+                                alignItems="center"
                               >
-                                {rating.thumbs_up ?? 0}
-                              </Typography>
-                            </Stack>
-                            <Stack
-                              direction="row"
-                              spacing={0.5}
-                              alignItems="center"
-                            >
-                              <ThumbDownOutlined
-                                color="error"
-                                sx={{ fontSize: "1rem" }}
-                              />
-                              <Typography
-                                variant="caption"
-                                component="div"
-                                color="text.secondary"
+                                <ThumbUpOutlined
+                                  color="success"
+                                  sx={{ fontSize: "1rem" }}
+                                />
+                                <Typography
+                                  variant="caption"
+                                  component="div"
+                                  color="text.secondary"
+                                >
+                                  {rating.thumbs_up ?? 0}
+                                </Typography>
+                              </Stack>
+                              <Stack
+                                direction="row"
+                                spacing={0.5}
+                                alignItems="center"
                               >
-                                {rating.thumbs_down ?? 0}
-                              </Typography>
+                                <ThumbDownOutlined
+                                  color="error"
+                                  sx={{ fontSize: "1rem" }}
+                                />
+                                <Typography
+                                  variant="caption"
+                                  component="div"
+                                  color="text.secondary"
+                                >
+                                  {rating.thumbs_down ?? 0}
+                                </Typography>
+                              </Stack>
                             </Stack>
-                          </Stack>
-                        </Box>
+                          </Box>
+                        </Grid>
                       </Grid>
-                    </Grid>
-                  </Paper>
-                </Fade>
-              ))}
+                    </Paper>
+                  </Fade>
+                );
+              })}
               {!isLoading && processedRatings.length === 0 && (
                 <Paper
                   sx={{
