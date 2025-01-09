@@ -180,7 +180,7 @@ export interface ExpandIconProps {
 
 export interface GradeChipProps extends ChipProps {
   grade: number;
-  interactive?: boolean;
+  interactive?: number;
 }
 export interface DifficultyChipProps extends ChipProps {
   difficulty: number;
@@ -564,7 +564,7 @@ export const GECategoryChip = styled(BaseChip)(({ theme }) => ({
 }));
 
 export const GradeChip = styled(BaseChip)<GradeChipProps>(
-  ({ theme, grade, interactive = true }) => {
+  ({ theme, grade, interactive = 1 }) => {
     const getGradient = (gpa: number) => {
       if (gpa >= 3.7)
         return `linear-gradient(135deg, 
@@ -602,7 +602,6 @@ export const GradeChip = styled(BaseChip)<GradeChipProps>(
     };
   }
 );
-
 export const StyledChip = styled(BaseChip)(({ theme }) => ({
   "&.MuiChip-outlined": {
     background: "linear-gradient(135deg, #ffffff 0%, #f5f5f5 100%)",

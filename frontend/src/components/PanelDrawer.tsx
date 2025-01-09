@@ -5,8 +5,6 @@ import RatingsPanel from "./RatingsPanel";
 import { CourseDetailsPanel } from "./CourseDetails";
 import { PanelDrawerProps } from "../Constants";
 
-
-
 export const PanelDrawer: React.FC<PanelDrawerProps> = ({
   activePanel,
   panelData,

@@ -290,7 +290,6 @@ const GlobalSearch = ({
             {course.gpa && (
               <Tooltip title={`Average GPA: ${course.gpa}`}>
                 <GradeChip
-                  interactive={false}
                   grade={Number(course.gpa)}
                   label={`${getLetterGrade(course.gpa)}`}
                   size="small"
@@ -298,6 +297,8 @@ const GlobalSearch = ({
                     height: "25px",
                     fontSize: "0.7rem",
                   }}
+                  interactive={0}
+
                 />
               </Tooltip>
             )}
