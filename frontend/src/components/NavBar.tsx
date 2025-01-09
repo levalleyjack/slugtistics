@@ -1,24 +1,16 @@
-import React, { useState, useEffect } from "react";
+import { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { NavLink } from "react-router-dom";
 import { StyledExpandIcon } from "../Constants";
 import "./NavBar.css";
+import { useMediaQuery } from "@mui/material";
 const NavBar = () => {
-  const [isMobile, setIsMobile] = useState(window.innerWidth <= 480);
+  const isMobile = useMediaQuery("(max-width:768px)");
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isHovering, setIsHovering] = useState(false);
   const location = useLocation();
 
   const isInDropdownRoute = ["/all", "/ge"].includes(location.pathname);
-
-  useEffect(() => {
-    const handleResize = () => {
-      setIsMobile(window.innerWidth <= 480);
-    };
-
-    window.addEventListener("resize", handleResize);
-    return () => window.removeEventListener("resize", handleResize);
-  }, []);
 
   const handleMouseEnter = () => {
     setIsHovering(true);
@@ -49,16 +41,20 @@ const NavBar = () => {
           onMouseEnter={handleMouseEnter}
           onMouseLeave={handleMouseLeave}
         >
-          <button
-            className={`navbar-link ${
-              isInDropdownRoute ? "navbar-link-active" : ""
-            }`}
+          <NavLink
+            to={isInDropdownRoute ? location.pathname : "/all"}
+            className={({ isActive }) =>
+              `navbar-link ${isInDropdownRoute ? "navbar-link-active" : ""}`
+            }
           >
-            <h2 style={{ color: isInDropdownRoute ? "#ffc107" : "#c9c9ca" }}>
+            <h2>
               Class Search
-              <StyledExpandIcon expanded={isHovering} />
+              <StyledExpandIcon 
+                expanded={isHovering} 
+                sx={{ fontSize: isMobile? "0.8rem" : "1.2rem"}} 
+              />
             </h2>
-          </button>
+          </NavLink>
           {isDropdownOpen && (
             <div className="dropdown-menu">
               <NavLink
@@ -80,7 +76,7 @@ const NavBar = () => {
             </div>
           )}
         </div>
-      </div>
+        </div>
       <div className="navbar-right">
         <NavLink
           to="/about"
