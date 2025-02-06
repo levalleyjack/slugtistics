@@ -9,7 +9,7 @@ import {
 } from "@mui/material";
 import { useMediaQuery } from "@mui/material";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
-import { AnimatedArrowIcon, COLORS, Course, PanelData } from "../Constants";
+import { calculateCourseScore, COLORS, Course, PanelData } from "../Constants";
 import {
   useAllCourseData,
   useLocalStorage,
@@ -110,13 +110,12 @@ const filterBySort = (
   return filteredCourses.sort((a, b) => {
     switch (sortBy) {
       case "DEFAULT":
-        const getScore = (course: Course) => {
-          const gpa = course.gpa === null ? 0 : course.gpa;
-          const normalizedGPA = (gpa / 4.0) * 5.0;
-          const rating = course.instructor_ratings?.avg_rating ?? 2.5;
-          return normalizedGPA * 0.6 + rating * 0.4;
-        };
-        return getScore(b) - getScore(a);
+        return calculateCourseScore(
+          b.gpa,
+          b.instructor_ratings,
+          a.gpa,
+          a.instructor_ratings
+        );
       case "GPA":
         const gpaA = a.gpa === null ? -Infinity : a.gpa;
         const gpaB = b.gpa === null ? -Infinity : b.gpa;
@@ -339,7 +338,6 @@ const AllCourses = () => {
           selectedPrereqs={selectedPrereqs}
           setSelectedCareers={setSelectedCareers}
           setSelectedPrereqs={setSelectedPrereqs}
-          lastUpdated={lastUpdated ?? "None"}
         />
 
         {isComparisonOpen && comparisonCourses.length > 0 && (

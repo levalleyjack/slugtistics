@@ -13,9 +13,14 @@ import {
   useTheme,
 } from "@mui/material";
 import { styled } from "@mui/material/styles";
-import { categories, CategoryDrawerProps, CategoryItemProps, CategorySidebarProps, COLORS } from "../Constants";
+import {
+  categories,
+  CategoryDrawerProps,
+  CategoryItemProps,
+  CategorySidebarProps,
+  COLORS,
+} from "../Constants";
 import { ArrowForward } from "@mui/icons-material";
-
 
 const StyledListItem = styled(ListItem)(({ theme }) => ({
   borderRadius: "8px",
@@ -23,14 +28,22 @@ const StyledListItem = styled(ListItem)(({ theme }) => ({
   padding: theme.spacing(1.5, 2),
   transition: "all 0.2s ease",
   width: "auto",
+  "& .MuiListItemIcon-root": {
+    transition: "0.2s transform ease-in-out",
+  },
+
   "&:hover": {
     backgroundColor: theme.palette.action.hover,
     cursor: "pointer",
+    "& .MuiListItemIcon-root": {
+      transform: "scale(1.1)",
+    },
   },
   "&.selected": {
     backgroundColor: theme.palette.primary.main,
     color: theme.palette.primary.contrastText,
     "& .MuiListItemIcon-root": {
+      transform: "scale(1.05)",
       color: theme.palette.primary.contrastText,
     },
     "& .MuiTypography-root": {
@@ -74,7 +87,7 @@ const HoverTrigger = styled(Box)(({ theme }) => ({
     backgroundColor: theme.palette.action.hover,
   },
   transition: "background-color 200ms",
-  zIndex:100,
+  zIndex: 100,
   display: "block",
 }));
 
@@ -90,11 +103,11 @@ const StyledList = styled(List)(({ theme }) => ({
     background: "transparent",
   },
   "&::-webkit-scrollbar-thumb": {
-    background: theme.palette.divider,
+    background: theme.palette.grey[400],
     borderRadius: "4px",
   },
   "&::-webkit-scrollbar-thumb:hover": {
-    background: theme.palette.action.hover,
+    background: theme.palette.grey[500],
   },
 }));
 
@@ -112,9 +125,13 @@ const CategoryItem = memo(
         className={isSelected ? "selected" : ""}
         onClick={handleClick}
         dense={isSmallScreen}
+        sx={{}}
       >
         <ListItemIcon
-          sx={{ minWidth: 40, color: theme.palette.text.secondary }}
+          sx={{
+            minWidth: 40,
+            color: theme.palette.text.secondary,
+          }}
         >
           {category.icon}
         </ListItemIcon>

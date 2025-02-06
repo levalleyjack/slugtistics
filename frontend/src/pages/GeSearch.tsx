@@ -1,6 +1,12 @@
 import React, { useState, useCallback, useMemo, useRef } from "react";
 import { useTheme, useMediaQuery, styled } from "@mui/material";
-import { COLORS, Course, FilterOptions, PanelData } from "../Constants";
+import {
+  calculateCourseScore,
+  COLORS,
+  Course,
+  FilterOptions,
+  PanelData,
+} from "../Constants";
 import {
   useGECourseData,
   useLocalStorage,
@@ -28,18 +34,16 @@ const filterCourses = (courses: Course[] = [], search: string) => {
   });
 };
 
-const calculateCourseScore = (course: Course) => {
-  const gpa = course.gpa === null ? 0 : course.gpa;
-  const normalizedGPA = (gpa / 4.0) * 5.0;
-  const rating = course.instructor_ratings?.avg_rating ?? 2.5;
-  return normalizedGPA * 0.6 + rating * 0.4;
-};
-
 const sortCourses = (courses: Course[], sortBy: string) => {
   return [...courses].sort((a, b) => {
     switch (sortBy) {
       case "DEFAULT":
-        return calculateCourseScore(b) - calculateCourseScore(a);
+        return calculateCourseScore(
+          b.gpa,
+          b.instructor_ratings,
+          a.gpa,
+          a.instructor_ratings
+        );
       case "GPA":
         const gpaA = a.gpa === null ? -Infinity : a.gpa;
         const gpaB = b.gpa === null ? -Infinity : b.gpa;
@@ -375,6 +379,7 @@ const MainContent = styled("div")({
   display: "flex",
   flexDirection: "column",
   overflow: "hidden",
+  
 });
 
 const ContentContainer = styled("div")({
@@ -383,6 +388,7 @@ const ContentContainer = styled("div")({
   flexDirection: "column",
   overflow: "hidden",
   backgroundColor: COLORS.WHITE,
+  
 });
 
 const ComparisonContainer = styled("div")(({ theme }) => ({
@@ -397,6 +403,7 @@ const ListContainer = styled("div")<{ isComparisonOpen: boolean }>(
     flexDirection: "column",
     overflow: "auto",
     backgroundColor: COLORS.WHITE,
+    
   })
 );
 export default GeSearch;

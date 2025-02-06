@@ -12,7 +12,7 @@ import VolunteerActivismIcon from "@mui/icons-material/VolunteerActivism";
 import AppsIcon from "@mui/icons-material/Apps";
 import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
 import BookIcon from "@mui/icons-material/Book";
-import { Chip, ChipProps, styled, useTheme } from "@mui/material";
+import { Chip, ChipProps, styled, Theme, useTheme } from "@mui/material";
 import Diversity2Icon from "@mui/icons-material/Diversity2";
 import HandshakeIcon from "@mui/icons-material/Handshake";
 import Diversity3Icon from "@mui/icons-material/Diversity3";
@@ -46,6 +46,11 @@ export enum ClassStatusEnum {
   CLOSED = "Closed",
   WAITLIST = "Wait List",
 }
+export const ALLOWED_TYPES = {
+  "application/pdf": "PDF",
+  "application/msword": "DOC",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document": "DOCX",
+} as const;
 
 export interface Course {
   has_enrollment_reqs: boolean;
@@ -147,7 +152,23 @@ export interface CategoryDrawerProps {
     | "comparison"
     | null;
 }
-
+export interface ChatHeaderProps {
+  onClose: () => void;
+  theme: Theme;
+}
+export interface MessageListProps {
+  messages: Message[];
+  theme: Theme;
+}
+export interface ChatInputProps {
+  inputMessage: string;
+  selectedFile: Message["file"];
+  onMessageChange: (value: string) => void;
+  onSendMessage: () => void;
+  onFileClick: () => void;
+  onRemoveFile: (e: React.MouseEvent<HTMLButtonElement>) => void;
+  theme: Theme;
+}
 export interface RMPData {
   avgRating: number;
   numRatings: number;
@@ -364,6 +385,24 @@ export interface SearchControlsProps {
   selectedGEs: string[];
   setSelectedGEs: (ges: string[]) => void;
 }
+export interface Message {
+  id: number;
+  text: string;
+  isBot: boolean;
+  file?: {
+    name: string;
+    type: string;
+    size: number;
+    url: string;
+  } | null;
+}
+
+export interface FileViewProps {
+  file: NonNullable<Message["file"]>;
+  inMessage?: boolean;
+  onRemove?: (e: React.MouseEvent<HTMLButtonElement>) => void;
+}
+
 export interface RatingsPanelProps {
   professorName: string;
   currentClass: string;
@@ -627,4 +666,21 @@ export const getLetterGrade = (gpa: number) => {
   if (gpaNum >= 1.0) return "D";
   if (gpaNum >= 0.7) return "D-";
   return "F";
+};
+
+export const calculateCourseScore = (
+  bGpa: number | null,
+  bInstructorRating: number | null,
+  aGpa: number | null,
+  aInstructorRating: number | null
+): number => {
+  const bGpaAdjusted = bGpa === null ? 3 : bGpa;
+  const bInstructorAdjusted = bInstructorRating === null ? 3 : bInstructorRating * 0.8 - 0.4;
+  const aGpaAdjusted = aGpa === null ? 3 : aGpa;
+  const aInstructorAdjusted = aInstructorRating === null ? 3 : aInstructorRating * 0.8 - 0.4;
+
+  const bTotal = bGpaAdjusted + bInstructorAdjusted;
+  const aTotal = aGpaAdjusted + aInstructorAdjusted;
+
+  return bTotal - aTotal;
 };
