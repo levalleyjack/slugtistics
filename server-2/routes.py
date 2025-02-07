@@ -194,6 +194,21 @@ def get_google_maps_api():
         "key": "AIzaSyBnCh2ugCrcyKDKT3HHry5KjkjS4ps4PT0"
     })
 
+@courses_bp.route("/recommend_class", methods=["POST"])
+def recommend_class():
+    if 'file' not in request.files:
+        return "No file part in the request", 400
+
+    file = request.files['file']
+    if file.filename == '':
+        return "No file selected", 400
+    
+    preferences = request.form.get('preferences', '')
+    #AI Logic
+    recommended_class = f"AI recommends class for: {file.filename} with preferences: {preferences}"
+    
+    return {"recommended_class": recommended_class}, 200
+
 @courses_bp.route("/ge_courses", methods=["GET"])
 def get_ge_courses():
     try:

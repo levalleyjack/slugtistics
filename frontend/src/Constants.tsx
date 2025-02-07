@@ -390,6 +390,7 @@ export interface Message {
   text: string;
   isBot: boolean;
   file?: {
+    actual_file:File;
     name: string;
     type: string;
     size: number;

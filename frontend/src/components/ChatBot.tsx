@@ -30,25 +30,60 @@ import {
   MessageListProps,
 } from "../Constants";
 import { useRef, useState } from "react";
-import "../App.css"
+import "../App.css";
+import { useMutation } from "@tanstack/react-query";
+
 {
   /* Main function, this is where the entire chatbot functionality is happening*/
 }
-
 export const Chatbot: React.FC = () => {
   const theme = useTheme();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const dropZoneRef = useRef<HTMLDivElement>(null);
 
-  const [selectedFile, setSelectedFile] = useState<Message["file"]>(null);
+  {
+    /* Updated mutation hook with improved error handling */
+  }
+  const {
+    mutate: recommendClass,
+    isError,
+  } = useMutation({
+    mutationFn: async (data: { file: File; preferences?: string }) => {
+      const formData = new FormData();
+      formData.append("file", data.file);
 
+      // Append preferences if provided
+      if (data.preferences) {
+        formData.append("preferences", data.preferences);
+      }
+
+      try {
+        const response = await fetch("http://127.0.0.1:5000/recommend_class", {
+          method: "POST",
+          body: formData,
+        });
+
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const result = await response.json();
+        return result;
+      } catch (error) {
+        console.error("Upload error:", error);
+        throw error;
+      }
+    },
+  });
+
+  const [selectedFile, setSelectedFile] = useState<Message["file"]>(null);
   const [chatOpen, setChatOpen] = useState(false);
   const [inputMessage, setInputMessage] = useState("");
-
   const [isDragging, setIsDragging] = useState(false);
 
-  //greeting message from bot
-
+  {
+    /* Greeting message from bot */
+  }
   const [messages, setMessages] = useState<Message[]>([
     {
       id: 1,
@@ -56,35 +91,70 @@ export const Chatbot: React.FC = () => {
       isBot: true,
     },
   ]);
-  //function for sending message, and after user sends message, bot auto sends.
-  //have to remove auto send
-  const handleSendMessage = () => {
-    if (!selectedFile) return;
 
-    const newMessage: Message = {
+  {
+    /* Enhanced function for sending message with proper file handling and loading states */
+  }
+  const handleSendMessage = async () => {
+    if (!selectedFile?.actual_file) return;
+
+    //Add user message
+    const userMessage: Message = {
       id: Date.now(),
       text: inputMessage,
       isBot: false,
       file: selectedFile,
     };
+    setMessages((prev) => [...prev, userMessage]);
 
-    setMessages((prev) => [...prev, newMessage]);
+    //loading message
+    const loadingMessage: Message = {
+      id: Date.now() + 1,
+      text: "Analyzing your transcript...",
+      isBot: true,
+    };
+    setMessages((prev) => [...prev, loadingMessage]);
+
+    try {
+      const preferences = inputMessage; //using inputMessage as preferences
+
+      recommendClass(
+        { file: selectedFile.actual_file, preferences },
+        {
+          onSuccess: (data) => {
+            setMessages((prev) => [
+              ...prev.filter((msg) => msg.id !== loadingMessage.id),
+              {
+                id: Date.now() + 2,
+                text: `${data.recommended_class}`,
+                isBot: true,
+              },
+            ]);
+          },
+          onError: (error) => {
+            setMessages((prev) => [
+              ...prev.filter((msg) => msg.id !== loadingMessage.id),
+              {
+                id: Date.now() + 2,
+                text: "Sorry, there was an error processing your file. Please try again.",
+                isBot: true,
+              },
+            ]);
+            console.error("Error:", error);
+          },
+        }
+      );
+    } catch (error) {
+      console.error("Error in handleSendMessage:", error);
+    }
+
     setInputMessage("");
     setSelectedFile(null);
-
-    //timeout for bot, can probably remove once we get backend working
-    setTimeout(() => {
-      setMessages((prev) => [
-        ...prev,
-        {
-          id: Date.now(),
-          text: "Thanks for your message! I'll help you with that.",
-          isBot: true,
-        },
-      ]);
-    }, 1000);
   };
-  //checking if the file is pdf, doc, docx and under 5MB
+
+  {
+    /* Checking if the file is pdf, doc, docx and under 5MB */
+  }
   const handleFileValidation = (file: File) => {
     if (!file) return;
 
@@ -107,13 +177,13 @@ export const Chatbot: React.FC = () => {
       type: file.type,
       size: file.size,
       url: fileUrl,
+      actual_file: file,
     });
   };
 
   {
     /* Below are the drag/drop functionalities for the files */
   }
-
   const handleDragEnter = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
     e.stopPropagation();
@@ -166,7 +236,7 @@ export const Chatbot: React.FC = () => {
       <Grow
         in={chatOpen}
         timeout={{ enter: 300, exit: 0 }}
-        style={{ transformOrigin: "bottom", opacity: chatOpen? 1 : 0 }}
+        style={{ transformOrigin: "bottom", opacity: chatOpen ? 1 : 0 }}
         unmountOnExit
       >
         <div
@@ -187,40 +257,38 @@ export const Chatbot: React.FC = () => {
             position: "relative",
           }}
         >
-          {
-            //dragging file
-            isDragging && (
-              <div
-                role="region"
-                aria-live="polite"
-                style={{
-                  position: "absolute",
-                  top: 0,
-                  left: 0,
-                  right: 0,
-                  bottom: 0,
-                  backgroundColor: "rgba(25, 118, 210, 0.1)",
-                  borderRadius: "16px",
-                  border: `2px dashed ${theme.palette.primary.main}`,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  zIndex: 1000,
-                }}
+          {/* Dragging file overlay */}
+          {isDragging && (
+            <div
+              role="region"
+              aria-live="polite"
+              style={{
+                position: "absolute",
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
+                backgroundColor: "rgba(25, 118, 210, 0.1)",
+                borderRadius: "16px",
+                border: `2px dashed ${theme.palette.primary.main}`,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                zIndex: 1000,
+              }}
+            >
+              <Typography
+                variant="h6"
+                color="primary"
+                style={{ fontWeight: "bold", userSelect: "none" }}
               >
-                <Typography
-                  variant="h6"
-                  color="primary"
-                  style={{ fontWeight: "bold", userSelect: "none" }}
-                >
-                  Drop your file here
-                </Typography>
-              </div>
-            )
-          }
-          {/*Slugsy header when chat opens*/}
+                Drop your file here
+              </Typography>
+            </div>
+          )}
+          {/* Slugsy header when chat opens */}
           <ChatHeader onClose={() => setChatOpen(false)} theme={theme} />
-          {/*Shows the list of messages */}
+          {/* Shows the list of messages */}
           <MessageList messages={messages} theme={theme} />
           {/* This is where user can type out their preferences and put transcript, can also drag drop */}
           <ChatInput
@@ -241,15 +309,15 @@ export const Chatbot: React.FC = () => {
           />
         </div>
       </Grow>
-      {/*  Chat Button  */}
+      {/* Chat Button */}
       <Fade in={!chatOpen} timeout={{ enter: 300, exit: 0 }} unmountOnExit>
         <Button
-        className="shine"
+          className="shine"
           sx={{
             boxShadow: "0 2px 8px rgba(0, 0, 0, 0.15)",
             background: `linear-gradient(135deg,
-            ${theme.palette.primary.dark} 0%,
-               ${theme.palette.secondary.dark} 100%)`,
+              ${theme.palette.primary.dark} 0%,
+              ${theme.palette.secondary.dark} 100%)`,
             color: "white",
             padding: "12px 20px",
             textTransform: "none",
@@ -266,7 +334,6 @@ export const Chatbot: React.FC = () => {
           }}
           onClick={() => setChatOpen(true)}
         >
-          
           <img
             src="/logo.svg"
             alt="Bot Avatar"
@@ -278,14 +345,12 @@ export const Chatbot: React.FC = () => {
               filter: "brightness(0) invert(1)",
             }}
             draggable="false"
-
           />
         </Button>
       </Fade>
     </div>
   );
 };
-
 {
   /* To get how the file looks on messages and when user selects a file, 2 in 1 */
 }
@@ -391,7 +456,6 @@ const ChatHeader: React.FC<ChatHeaderProps> = ({ onClose, theme }) => (
           filter: "brightness(0) invert(1)",
         }}
         draggable="false"
-
       />
       <Typography fontWeight="bold">Slugsy</Typography>
     </div>
@@ -456,7 +520,6 @@ const MessageList: React.FC<MessageListProps> = ({ messages, theme }) => (
               flexShrink: 0,
             }}
             draggable="false"
-
           />
         )}
         <div
