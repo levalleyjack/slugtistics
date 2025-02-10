@@ -44,10 +44,7 @@ export const Chatbot: React.FC = () => {
   {
     /* Updated mutation hook with improved error handling */
   }
-  const {
-    mutate: recommendClass,
-    isError,
-  } = useMutation({
+  const { mutate: recommendClass, isError } = useMutation({
     mutationFn: async (data: { file: File; preferences?: string }) => {
       const formData = new FormData();
       formData.append("file", data.file);
@@ -235,8 +232,8 @@ export const Chatbot: React.FC = () => {
     <div style={{ position: "fixed", bottom: 10, right: 10, zIndex: 1000 }}>
       <Grow
         in={chatOpen}
-        timeout={{ enter: 300, exit: 0 }}
-        style={{ transformOrigin: "bottom", opacity: chatOpen ? 1 : 0 }}
+        timeout={200}
+        style={{ transformOrigin: "bottom" }}
         unmountOnExit
       >
         <div

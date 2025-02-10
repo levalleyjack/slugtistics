@@ -205,6 +205,9 @@ def recommend_class():
     
     preferences = request.form.get('preferences', '')
     #AI Logic
+    # variable "file" is the transcript file
+    # variable "preferences" is the optional user preferences
+    
     recommended_class = f"AI recommends class for: {file.filename} with preferences: {preferences}"
     
     return {"recommended_class": recommended_class}, 200
