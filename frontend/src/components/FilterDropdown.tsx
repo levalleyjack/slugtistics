@@ -375,7 +375,7 @@ const FilterDropdown: React.FC<FilterDropdownProps> = ({
           vertical: "top",
           horizontal: "right",
         }}
-        elevation={1}
+        elevation={4}
       >
         <StyledPopoverContent>
           {isMobile && (

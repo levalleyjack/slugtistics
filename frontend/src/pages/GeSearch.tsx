@@ -1,7 +1,7 @@
 import React, { useState, useCallback, useMemo, useRef } from "react";
 import { useTheme, useMediaQuery, styled } from "@mui/material";
 import {
-  calculateCourseScore,
+  calculateCourseScoreOutOf10,
   COLORS,
   Course,
   FilterOptions,
@@ -38,12 +38,19 @@ const sortCourses = (courses: Course[], sortBy: string) => {
   return [...courses].sort((a, b) => {
     switch (sortBy) {
       case "DEFAULT":
-        return calculateCourseScore(
-          b.gpa,
-          b.instructor_ratings,
+        const courseAScore = calculateCourseScoreOutOf10(
           a.gpa,
-          a.instructor_ratings
+          a.instructor_ratings?.avg_rating,
+          0.85
         );
+        const courseBScore = calculateCourseScoreOutOf10(
+          b.gpa,
+          b.instructor_ratings?.avg_rating,
+          0.85
+        );
+
+        return courseBScore - courseAScore;
+
       case "GPA":
         const gpaA = a.gpa === null ? -Infinity : a.gpa;
         const gpaB = b.gpa === null ? -Infinity : b.gpa;
@@ -379,7 +386,6 @@ const MainContent = styled("div")({
   display: "flex",
   flexDirection: "column",
   overflow: "hidden",
-  
 });
 
 const ContentContainer = styled("div")({
@@ -388,7 +394,6 @@ const ContentContainer = styled("div")({
   flexDirection: "column",
   overflow: "hidden",
   backgroundColor: COLORS.WHITE,
-  
 });
 
 const ComparisonContainer = styled("div")(({ theme }) => ({
@@ -402,8 +407,7 @@ const ListContainer = styled("div")<{ isComparisonOpen: boolean }>(
     display: "flex",
     flexDirection: "column",
     overflow: "auto",
-    backgroundColor: COLORS.WHITE,
-    
+    backgroundColor: COLORS.GRAY_50,
   })
 );
 export default GeSearch;

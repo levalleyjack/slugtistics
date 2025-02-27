@@ -9,7 +9,12 @@ import {
 } from "@mui/material";
 import { useMediaQuery } from "@mui/material";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
-import { calculateCourseScore, COLORS, Course, PanelData } from "../Constants";
+import {
+  calculateCourseScoreOutOf10,
+  COLORS,
+  Course,
+  PanelData,
+} from "../Constants";
 import {
   useAllCourseData,
   useLocalStorage,
@@ -61,7 +66,7 @@ const ListContainer = styled("div")<{ isComparisonOpen: boolean }>(
     display: "flex",
     flexDirection: "column",
     overflow: "auto",
-    backgroundColor: COLORS.WHITE,
+    backgroundColor: COLORS.GRAY_50,
   })
 );
 
@@ -110,12 +115,19 @@ const filterBySort = (
   return filteredCourses.sort((a, b) => {
     switch (sortBy) {
       case "DEFAULT":
-        return calculateCourseScore(
-          b.gpa,
-          b.instructor_ratings,
+        const courseAScore = calculateCourseScoreOutOf10(
           a.gpa,
-          a.instructor_ratings
+          a.instructor_ratings?.avg_rating,
+          0.85
         );
+        const courseBScore = calculateCourseScoreOutOf10(
+          b.gpa,
+          b.instructor_ratings?.avg_rating,
+          0.85
+        );
+
+        return courseBScore - courseAScore;
+
       case "GPA":
         const gpaA = a.gpa === null ? -Infinity : a.gpa;
         const gpaB = b.gpa === null ? -Infinity : b.gpa;

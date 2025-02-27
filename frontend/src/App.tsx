@@ -9,6 +9,7 @@ import GeSearch from "./pages/GeSearch";
 import AllCourses from "./pages/AllCourses";
 import { ReactNode } from "react";
 import { Chatbot } from "./components/ChatBot";
+import MajorSearch from "./major/MajorSearch";
 
 const queryClient = new QueryClient();
 
@@ -25,12 +26,12 @@ const PageLayout = ({
 
 const AppContent = () => {
   const location = useLocation();
-  const showChatbot = location.pathname === '/ge' || location.pathname === '/all';
+  //const showChatbot = location.pathname === '/ge' || location.pathname === '/all';
 
   return (
     <div className="App">
       <NavBar />
-      {showChatbot && <Chatbot />}
+      {/*showChatbot && <Chatbot />*/}
       <div id="page-body">
         <Routes>
           <Route
@@ -62,6 +63,14 @@ const AppContent = () => {
             element={
               <PageLayout title={"All Courses | Slugtistics"}>
                 <AllCourses />
+              </PageLayout>
+            }
+          />
+          <Route
+            path="/major"
+            element={
+              <PageLayout title={"Major Search | Slugtistics"}>
+                <MajorSearch />
               </PageLayout>
             }
           />

@@ -49,7 +49,8 @@ export enum ClassStatusEnum {
 export const ALLOWED_TYPES = {
   "application/pdf": "PDF",
   "application/msword": "DOC",
-  "application/vnd.openxmlformats-officedocument.wordprocessingml.document": "DOCX",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document":
+    "DOCX",
 } as const;
 
 export interface Course {
@@ -390,7 +391,7 @@ export interface Message {
   text: string;
   isBot: boolean;
   file?: {
-    actual_file:File;
+    actual_file: File;
     name: string;
     type: string;
     size: number;
@@ -533,7 +534,7 @@ export const ReviewCountChip = styled(BaseChip)(({ theme }) => ({
   height: "24px",
   fontWeight: "lighter",
   background: `linear-gradient(90deg,
-    ${theme.palette.primary.main} 0%,
+    ${theme.palette.primary.light} 0%,
     ${theme.palette.secondary.light} 100%)`,
   color: "white",
   "&.MuiChip-clickable:hover": {
@@ -669,19 +670,33 @@ export const getLetterGrade = (gpa: number) => {
   return "F";
 };
 
-export const calculateCourseScore = (
-  bGpa: number | null,
-  bInstructorRating: number | null,
-  aGpa: number | null,
-  aInstructorRating: number | null
+export const calculateNormalizedCourseScore = (
+  gpa: number | null,
+  instructorRating: number | null,
+  gpaWeight: number = 0.7
 ): number => {
-  const bGpaAdjusted = bGpa === null ? 3 : bGpa;
-  const bInstructorAdjusted = bInstructorRating === null ? 3 : bInstructorRating * 0.8 - 0.4;
-  const aGpaAdjusted = aGpa === null ? 3 : aGpa;
-  const aInstructorAdjusted = aInstructorRating === null ? 3 : aInstructorRating * 0.8 - 0.4;
-
-  const bTotal = bGpaAdjusted + bInstructorAdjusted;
-  const aTotal = aGpaAdjusted + aInstructorAdjusted;
-
-  return bTotal - aTotal;
+  const defaultGpa = 3;
+  const defaultRating = 2.5;
+  
+  const normalizedGpa = (gpa ?? defaultGpa) / 4;
+  const normalizedRating = (instructorRating ?? defaultRating) / 5;
+  
+  const enhancedGpa = 1 / (1 + Math.exp(-6 * (normalizedGpa - 0.5)));
+  const enhancedRating = 1 / (1 + Math.exp(-4 * (normalizedRating - 0.5)));
+  
+  return gpaWeight * enhancedGpa + (1 - gpaWeight) * enhancedRating;
 };
+
+export const calculateCourseScoreOutOf10 = (
+  gpa: number | null,
+  instructorRating: number | null,
+  gpaWeight: number = 0.7
+): number => {
+  const normalizedScore = calculateNormalizedCourseScore(
+    gpa,
+    instructorRating,
+    gpaWeight
+  );
+  return normalizedScore * 10;
+};
+

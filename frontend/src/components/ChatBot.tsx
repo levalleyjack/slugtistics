@@ -65,7 +65,7 @@ export const Chatbot: React.FC = () => {
         }
 
         const result = await response.json();
-        return result;
+        return result.recommended_class;
       } catch (error) {
         console.error("Upload error:", error);
         throw error;
@@ -119,11 +119,22 @@ export const Chatbot: React.FC = () => {
         { file: selectedFile.actual_file, preferences },
         {
           onSuccess: (data) => {
+
+            const recommendations = data.recommendations;
+            const formattedText = recommendations.map((rec, index) => {
+              return `Recommendation ${index + 1}:
+              Course Code: ${rec.course_code}
+              Ratings: ${rec.gpa}
+              Instructor: ${rec.instructor}
+              Reason: ${rec.reason}`;
+            }).join("\n\n");
+            
+
             setMessages((prev) => [
               ...prev.filter((msg) => msg.id !== loadingMessage.id),
               {
                 id: Date.now() + 2,
-                text: `${data.recommended_class}`,
+                text: `${formattedText}`,
                 isBot: true,
               },
             ]);
