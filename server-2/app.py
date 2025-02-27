@@ -1,238 +1,349 @@
-from dataclasses import dataclass
-from flask_cors import CORS
-from flask import Flask, jsonify, request, g
-from apscheduler.schedulers.background import BackgroundScheduler
-from flask_sqlalchemy import SQLAlchemy
-from flask_migrate import Migrate
 from datetime import datetime
+from flask import g
+from apscheduler.schedulers.background import BackgroundScheduler
 import pytz
-import os
 import logging
-from pathlib import Path
 import sqlite3
-from ucsc_courses import get_courses
-from ratings import search_professor
+import atexit
+from flask_compress import Compress
+from flask_caching import Cache
+from scraping.ucsc_courses import get_courses, scrape_all_courses
+from scraping.ratings import get_basic_professor_info
 from helper_functions import find_matching_instructor, get_course_gpa
-import uuid
+from config import app, db, slugtistics_db_path
+from models.data_models import CourseModel, LastUpdateModel
+from routes import courses_bp
 
-logging.basicConfig(level=logging.WARNING)
+# Initialize Flask extensions
+Compress(app)
+cache = Cache(app, config={
+    'CACHE_TYPE': 'simple',
+    'CACHE_DEFAULT_TIMEOUT': 300
+})
+
+logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-app = Flask(__name__)
-CORS(app)
+courses_cache = {}
+instructor_cache = {}
+gpa_cache = {}
+ge_cache = {}
+scheduler = None
 
-DATABASE_URL = os.getenv('DATABASE_URL', 'sqlite:///courses.db?cache=shared')
-app.config['SQLALCHEMY_DATABASE_URI'] = DATABASE_URL
-app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-app.config['SQLALCHEMY_POOL_SIZE'] = 1  
-app.config['SQLALCHEMY_POOL_TIMEOUT'] = 30
-db = SQLAlchemy(app)
-migrate = Migrate(app, db)  
 
-current_dir = Path(__file__).parent
-slugtistics_db_path = current_dir / "slugtistics.db"
+def init_db():
+    try:
+        with app.app_context():
+            db.create_all()
+            logger.info("Database tables created successfully")
+    except Exception as e:
+        logger.error(f"Error creating database: {str(e)}")
+        raise
+
 
 def get_slugtistics_db():
-    db = getattr(g, '_slugtistics_db', None)
-    if db is None:
-        db = g._slugtistics_db = sqlite3.connect(
+    if "slugtistics_db" not in g:
+        g.slugtistics_db = sqlite3.connect(
             str(slugtistics_db_path),
             timeout=30,
             check_same_thread=False,
-            isolation_level='IMMEDIATE'
+            isolation_level="IMMEDIATE",
         )
-        db.execute('PRAGMA journal_mode=WAL')  
-        db.execute('PRAGMA cache_size=-2000')  
-        db.row_factory = sqlite3.Row
-    return db
+        g.slugtistics_db.execute("PRAGMA journal_mode=WAL")
+        g.slugtistics_db.execute("PRAGMA cache_size=-2000")
+        g.slugtistics_db.row_factory = sqlite3.Row
+    return g.slugtistics_db
+
 
 @app.teardown_appcontext
-def close_slugtistics_db(error):
-    db = getattr(g, '_slugtistics_db', None)
+def close_slugtistics_db(exception=None):
+    db = g.pop("slugtistics_db", None)
     if db is not None:
         db.close()
 
-class CourseModel(db.Model):
-    __tablename__ = 'course_models'
-    id = db.Column(db.Integer, primary_key=True)
-    unique_id = db.Column(db.String(36), unique=True, default=lambda: str(uuid.uuid4())) 
-    ge = db.Column(db.String(5))
-    subject = db.Column(db.String(5))
-    catalog_num = db.Column(db.String(5))
-    name = db.Column(db.String(30))
-    instructor = db.Column(db.String(20))
-    link = db.Column(db.String(200))
-    class_count = db.Column(db.Integer)
-    enroll_num = db.Column(db.Integer)
-    class_type = db.Column(db.String(19))
-    schedule = db.Column(db.String(25))
-    location = db.Column(db.String(20))
-    gpa = db.Column(db.String(10))
-    timestamp = db.Column(db.DateTime, default=datetime.now(tz=pytz.utc))
-    instructor_ratings = db.Column(db.JSON)
-    class_status = db.Column(db.String(10))
-    __table_args__ = (
-        db.UniqueConstraint('unique_id', name='uq_unique_id'),
-    )
 
-courses_cache = None
-last_update_time = None
+@cache.cached(timeout=300, key_prefix='all_courses')
+def get_all_courses():
+    global courses_cache, instructor_cache, gpa_cache
 
-def create_db():
-    with app.app_context():
-        db.create_all()
-        logger.warning("Database tables created successfully")
-
-def store_courses_in_db():
-    global last_update_time, courses_cache
-    
-    with app.app_context():
+    if not courses_cache:
+        logger.info("Cache miss - fetching all courses")
         try:
-            logger.warning("Starting course update process...")
-            categories = ["CC", "ER", "IM", "MF", "SI", "SR", "TA", "PE-E", "PE-H", "PE-T", "PR-E", "PR-C", "PR-S", "C"]
-            new_courses = get_courses(categories)
-            
-            if not new_courses:
-                return
-            
-            instructor_cache = {}
+            scraped_courses = scrape_all_courses()
             slugtistics_db = get_slugtistics_db()
-            cursor = slugtistics_db.cursor()
-            
-            try:
-                batch_size = 50
-                courses_to_add = []
-                
-                CourseModel.query.delete()
-                
-                for course in new_courses:
-                    if not course.instructor or course.instructor.strip().lower() in ['staff', 'n/a', '']:
-                        matched_instructor = 'Staff'
-                        instructor_ratings = None
-                    else:
-                        matched_instructor = instructor_cache.get(course.instructor)
-                        if not matched_instructor:
-                            cursor.execute(
-                                'SELECT DISTINCT "Instructors" FROM GradeData WHERE "SubjectCatalogNbr" = ? ORDER BY Instructors LIMIT 10',
-                                (course.code,)
-                            )
-                            historical_instructors = [row[0] for row in cursor.fetchall()]
-                            matched_instructor = find_matching_instructor(course.instructor, historical_instructors) or course.instructor
-                            instructor_cache[course.instructor] = matched_instructor
+
+            with slugtistics_db:
+                cursor = slugtistics_db.cursor()
+                cursor.execute('SELECT DISTINCT "SubjectCatalogNbr", "Instructors" FROM GradeData')
+                historical_data = cursor.fetchall()
+                course_instructors = {}
+
+                for course_code, instructor in historical_data:
+                    if course_code not in course_instructors:
+                        course_instructors[course_code] = []
+                    course_instructors[course_code].append(instructor)
+
+                for course in scraped_courses:
+                    subject = course.code.split()[0]
+
+                    if subject not in courses_cache:
+                        courses_cache[subject] = []
+
+                    teacher = course.instructor
+                    course_code = course.code
+
+                    if teacher != "Staff" and teacher not in instructor_cache:
+                        historical_instructors = course_instructors.get(course_code, [])
+                        matched_instructor = find_matching_instructor(teacher, historical_instructors) or teacher
 
                         try:
-                            instructor_ratings = search_professor(matched_instructor)
-                            if instructor_ratings:
-                                instructor_ratings = instructor_ratings.to_dict()
-                        except Exception:
+                            instructor_ratings = get_basic_professor_info(matched_instructor)
+                            instructor_ratings = instructor_ratings.to_dict() if instructor_ratings else None
+                        except Exception as e:
+                            logger.error(f"Error fetching instructor ratings: {str(e)}")
                             instructor_ratings = None
 
-                    course_code = course.code.strip()
-                    subject, catalog_num = course_code.split(" ", 1)
-                    
-                    new_course = CourseModel(
-                        ge=course.ge,
-                        subject=subject,
-                        catalog_num=catalog_num,
-                        name=course.name,
-                        instructor=matched_instructor,
-                        link=course.link,
-                        class_count=course.class_count,
-                        enroll_num=course.enroll_num,
-                        class_type=course.class_type,
-                        schedule=course.schedule,
-                        location=course.location,
-                        gpa=get_course_gpa(cursor, course.code,matched_instructor),
-                        instructor_ratings=instructor_ratings,
-                        class_status=course.class_status
-                    )
-                    courses_to_add.append(new_course)
-                    
-                    if len(courses_to_add) >= batch_size:
-                        db.session.bulk_save_objects(courses_to_add)
-                        courses_to_add = []
-                
-                if courses_to_add:
-                    db.session.bulk_save_objects(courses_to_add)
-                
-                db.session.commit()
-                
-                courses_cache = CourseModel.query.all()
-                last_update_time = datetime.now(pytz.timezone('America/Los_Angeles'))
-                
-            except Exception as e:
-                db.session.rollback()
-                raise e
+                        instructor_cache[teacher] = (matched_instructor, instructor_ratings)
+
+                    if teacher != "Staff":
+                        matched_instructor, instructor_ratings = instructor_cache[teacher]
+                    else:
+                        matched_instructor, instructor_ratings = teacher, None
+
+                    gpa_key = (course_code, matched_instructor)
+
+                    if gpa_key not in gpa_cache:
+                        gpa_cache[gpa_key] = get_course_gpa(cursor, course_code, matched_instructor)
+
+                    if instructor_ratings and "." in matched_instructor:
+                        try:
+                            matched_instructor = instructor_ratings["name"]
+                        except KeyError:
+                            logger.warning(f"No 'name' field found in instructor_ratings for {matched_instructor}")
+
+                    course_info = {
+                        "code": course_code,
+                        "name": course.name,
+                        "instructor": matched_instructor,
+                        "instructor_rating": instructor_ratings,
+                        "gpa": gpa_cache[gpa_key],
+                        "schedule": course.schedule,
+                        "location": course.location,
+                        "enroll_num": course.enroll_num,
+                        "class_status": course.class_status,
+                        "class_count": course.class_count,
+                        "link": course.link,
+                        "class_type": course.class_type,
+                        "description": course.description,
+                        "class_notes": course.class_notes,
+                        "enrollment_reqs": course.enrollment_reqs,
+                        "discussion_sections": course.discussion_sections,
+                        "credits": course.credits,
+                        "career": course.career,
+                        "grading": course.grading,
+                        "course_type": course.course_type,
+                    }
+
+                    courses_cache[subject].append(course_info)
+
+            logger.info(f"Successfully cached {len(scraped_courses)} courses")
+
+        except Exception as e:
+            logger.error(f"Error in get_all_courses: {str(e)}")
+            raise
+
+    return courses_cache
+
+
+@cache.cached(timeout=300, key_prefix='ge_courses')
+def get_ge_courses():
+    global ge_cache
+
+    if not ge_cache:
+        try:
+            logger.info("Cache miss - fetching GE courses")
+            ge_categories = [
+                "CC", "ER", "IM", "MF", "SI", "SR", "TA",
+                "PE-E", "PE-H", "PE-T", "PR-E", "PR-C", "PR-S", "C",
+            ]
+            ge_courses = get_courses(ge_categories)
+
+            for ge_course in ge_courses:
+                course_key = ge_course.code
+                if course_key not in ge_cache:
+                    ge_cache[course_key] = []
+                ge_cache[course_key].append({
+                    "instructor": ge_course.instructor,
+                    "ge": ge_course.ge
+                })
+
+            logger.info(f"Successfully cached {len(ge_courses)} GE courses")
+
+        except Exception as e:
+            logger.error(f"Error in get_ge_courses: {str(e)}")
+            raise
+
+    return ge_cache
+
+def clear_caches():
+    global courses_cache, instructor_cache, gpa_cache, ge_cache
+    courses_cache = {}
+    instructor_cache = {}
+    gpa_cache = {}
+    ge_cache = {}
+    cache.clear()
+    logger.info("All caches cleared")
+
+
+def store_courses_in_db():
+    logger.info("Starting scheduled course storage process...")
+
+    clear_caches()
+
+    with app.app_context():
+        try:
+            all_courses = get_all_courses()
+            ge_lookup = get_ge_courses()
+
+            if not all_courses:
+                logger.warning("No courses found to store")
+                return
+
+            CourseModel.query.delete()
+            LastUpdateModel.query.delete()
+            
+            courses_added = 0
+            for subject, courses in all_courses.items():
+                for course in courses:
+                    try:
+                        subject, catalog_num = course["code"].strip().split(" ", 1)
+
+                        ge_category = None
+                        if course["code"] in ge_lookup:
+                            ge_matches = ge_lookup[course["code"]]
+                            for ge_match in ge_matches:
+                                if ge_match["instructor"].lower() == course["instructor"].lower():
+                                    ge_category = ge_match["ge"]
+                                    break
+                            if ge_category is None and ge_matches:
+                                ge_category = ge_matches[0]["ge"]
+                                
+                        has_enrollment_reqs = bool(course.get("enrollment_reqs"))
+
+                        new_course = CourseModel(
+                            ge=ge_category,
+                            subject=subject,
+                            catalog_num=catalog_num,
+                            name=course["name"],
+                            instructor=course["instructor"],
+                            link=course["link"],
+                            class_count=course["class_count"],
+                            enroll_num=course["enroll_num"],
+                            class_type=course.get("class_type", ""),
+                            schedule=course["schedule"],
+                            location=course["location"],
+                            gpa=course["gpa"],
+                            instructor_ratings=course["instructor_rating"],
+                            class_status=course["class_status"],
+                            description=course["description"],
+                            class_notes=course["class_notes"],
+                            enrollment_reqs=course["enrollment_reqs"],
+                            discussion_sections=course["discussion_sections"],
+                            credits=course["credits"],
+                            career=course["career"],
+                            grading=course["grading"],
+                            course_type=course["course_type"],
+                            has_enrollment_reqs=has_enrollment_reqs,
+                        )
+
+                        db.session.add(new_course)
+                        courses_added += 1
+
+                        if courses_added % 100 == 0:
+                            db.session.commit()
+
+                    except Exception as e:
+                        logger.error(f"Error processing course: {str(e)}")
+                        continue
+
+            # Add new last update time
+            db.session.add(LastUpdateModel())
+            db.session.commit()
+
+            logger.info(f"Successfully stored {courses_added} courses in database")
 
         except Exception as e:
             logger.error(f"Error storing courses: {str(e)}")
+            db.session.rollback()
             raise
 
-def schedule_jobs():
-    scheduler = BackgroundScheduler()
-    scheduler.add_job(store_courses_in_db, 'interval', hours=1, id='store_courses_in_db_job')
-    scheduler.start()
-    logger.warning("Scheduled jobs started")
+
+def init_scheduler():
+    global scheduler
+
+    if scheduler is None:
+        scheduler = BackgroundScheduler()
+        scheduler.configure(timezone=pytz.timezone("America/Los_Angeles"))
+
+        scheduler.add_job(
+            store_courses_in_db,
+            "interval",
+            hours=1,
+            id="store_courses_in_db_job",
+            misfire_grace_time=None,
+            coalesce=True,
+            max_instances=1,
+        )
+
+        try:
+            scheduler.start()
+            if not scheduler.running:
+                raise RuntimeError("Scheduler failed to start")
+            atexit.register(lambda: scheduler.shutdown(wait=True))
+            logger.info("Scheduler started successfully")
+        except Exception as e:
+            logger.error(f"Error starting scheduler: {str(e)}")
+            raise
 
 
-
-
-@app.route('/api/courses', methods=['GET'])
-def get_courses_data():
-    global courses_cache
+@app.route("/scheduler-status")
+def scheduler_status():
+    with app.app_context():
+        last_update = db.session.query(LastUpdateModel).first()
     
-    try:
-        courses = courses_cache if courses_cache is not None else CourseModel.query.all()
-        
-        data = {}
-        data["AnyGE"] = []
-        
-        max_id = max((course.id for course in courses), default=0)
-        current_id = max_id
-        
-        for course in courses:
-            course_data = {
-                "id": course.id,
-                "ge":course.ge,
-                "unique_id": course.unique_id,
-                "subject": course.subject,
-                "catalog_num": course.catalog_num,
-                "name": course.name,
-                "instructor": course.instructor,
-                "link": course.link,
-                "class_count": course.class_count,
-                "enroll_num": course.enroll_num,
-                "class_type": course.class_type,
-                "schedule": course.schedule,
-                "location": course.location,
-                "gpa": course.gpa,
-                "instructor_ratings": course.instructor_ratings,
-                "class_status": course.class_status,
+    return {
+        "running": scheduler.running if scheduler else False,
+        "last_update": last_update.update_time.isoformat() if last_update else None,
+        "jobs": [
+            {
+                "id": job.id,
+                "next_run": job.next_run_time.isoformat() if job.next_run_time else None,
             }
-            
-            if course.ge not in data:
-                data[course.ge] = []
-            data[course.ge].append(course_data)
-            
-            anyge_course = course_data.copy()
-            current_id += 1
-            anyge_course["id"] = current_id
-            anyge_course["unique_id"] = str(uuid.uuid4()) 
-            data["AnyGE"].append(anyge_course)
-        
-        return jsonify({
-            "data": data,
-            "last_update": last_update_time.isoformat() if last_update_time else None
-        })
-    
-    except Exception as e:
-        logger.error(f"Error getting courses: {str(e)}")
-        return jsonify({"error": "Cant retrieve courses"}), 500
-if __name__ == '__main__':
-    create_db()
+            for job in (scheduler.get_jobs() if scheduler else [])
+        ],
+    }
+
+
+def init_app():
     try:
+        app.register_blueprint(courses_bp)
+        init_db()
         store_courses_in_db()
+        init_scheduler()
+        logger.info("Application initialized successfully")
     except Exception as e:
-        logger.error(f"First data load failed: {str(e)}")
-    schedule_jobs()
-    app.run(host='0.0.0.0', port=5001)
+        logger.error(f"Error initializing application: {str(e)}")
+        raise
+
+
+@app.teardown_appcontext
+def teardown_app(exception=None):
+    close_slugtistics_db()
+
+
+if __name__ == "__main__":
+    init_db()
+    store_courses_in_db()
+    app.register_blueprint(courses_bp)
+    app.run(host="0.0.0.0", port=5001)
+

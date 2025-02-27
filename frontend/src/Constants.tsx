@@ -12,7 +12,7 @@ import VolunteerActivismIcon from "@mui/icons-material/VolunteerActivism";
 import AppsIcon from "@mui/icons-material/Apps";
 import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
 import BookIcon from "@mui/icons-material/Book";
-import { Chip, ChipProps, styled, useTheme } from "@mui/material";
+import { Chip, ChipProps, styled, Theme, useTheme } from "@mui/material";
 import Diversity2Icon from "@mui/icons-material/Diversity2";
 import HandshakeIcon from "@mui/icons-material/Handshake";
 import Diversity3Icon from "@mui/icons-material/Diversity3";
@@ -46,6 +46,12 @@ export enum ClassStatusEnum {
   CLOSED = "Closed",
   WAITLIST = "Wait List",
 }
+export const ALLOWED_TYPES = {
+  "application/pdf": "PDF",
+  "application/msword": "DOC",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document":
+    "DOCX",
+} as const;
 
 export interface Course {
   has_enrollment_reqs: boolean;
@@ -147,7 +153,23 @@ export interface CategoryDrawerProps {
     | "comparison"
     | null;
 }
-
+export interface ChatHeaderProps {
+  onClose: () => void;
+  theme: Theme;
+}
+export interface MessageListProps {
+  messages: Message[];
+  theme: Theme;
+}
+export interface ChatInputProps {
+  inputMessage: string;
+  selectedFile: Message["file"];
+  onMessageChange: (value: string) => void;
+  onSendMessage: () => void;
+  onFileClick: () => void;
+  onRemoveFile: (e: React.MouseEvent<HTMLButtonElement>) => void;
+  theme: Theme;
+}
 export interface RMPData {
   avgRating: number;
   numRatings: number;
@@ -364,6 +386,25 @@ export interface SearchControlsProps {
   selectedGEs: string[];
   setSelectedGEs: (ges: string[]) => void;
 }
+export interface Message {
+  id: number;
+  text: string;
+  isBot: boolean;
+  file?: {
+    actual_file: File;
+    name: string;
+    type: string;
+    size: number;
+    url: string;
+  } | null;
+}
+
+export interface FileViewProps {
+  file: NonNullable<Message["file"]>;
+  inMessage?: boolean;
+  onRemove?: (e: React.MouseEvent<HTMLButtonElement>) => void;
+}
+
 export interface RatingsPanelProps {
   professorName: string;
   currentClass: string;
@@ -493,7 +534,7 @@ export const ReviewCountChip = styled(BaseChip)(({ theme }) => ({
   height: "24px",
   fontWeight: "lighter",
   background: `linear-gradient(90deg,
-    ${theme.palette.primary.main} 0%,
+    ${theme.palette.primary.light} 0%,
     ${theme.palette.secondary.light} 100%)`,
   color: "white",
   "&.MuiChip-clickable:hover": {
@@ -628,3 +669,34 @@ export const getLetterGrade = (gpa: number) => {
   if (gpaNum >= 0.7) return "D-";
   return "F";
 };
+
+export const calculateNormalizedCourseScore = (
+  gpa: number | null,
+  instructorRating: number | null,
+  gpaWeight: number = 0.7
+): number => {
+  const defaultGpa = 3;
+  const defaultRating = 2.5;
+  
+  const normalizedGpa = (gpa ?? defaultGpa) / 4;
+  const normalizedRating = (instructorRating ?? defaultRating) / 5;
+  
+  const enhancedGpa = 1 / (1 + Math.exp(-6 * (normalizedGpa - 0.5)));
+  const enhancedRating = 1 / (1 + Math.exp(-4 * (normalizedRating - 0.5)));
+  
+  return gpaWeight * enhancedGpa + (1 - gpaWeight) * enhancedRating;
+};
+
+export const calculateCourseScoreOutOf10 = (
+  gpa: number | null,
+  instructorRating: number | null,
+  gpaWeight: number = 0.7
+): number => {
+  const normalizedScore = calculateNormalizedCourseScore(
+    gpa,
+    instructorRating,
+    gpaWeight
+  );
+  return normalizedScore * 10;
+};
+

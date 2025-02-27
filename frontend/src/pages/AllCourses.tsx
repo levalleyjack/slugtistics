@@ -9,7 +9,12 @@ import {
 } from "@mui/material";
 import { useMediaQuery } from "@mui/material";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
-import { AnimatedArrowIcon, COLORS, Course, PanelData } from "../Constants";
+import {
+  calculateCourseScoreOutOf10,
+  COLORS,
+  Course,
+  PanelData,
+} from "../Constants";
 import {
   useAllCourseData,
   useLocalStorage,
@@ -61,7 +66,7 @@ const ListContainer = styled("div")<{ isComparisonOpen: boolean }>(
     display: "flex",
     flexDirection: "column",
     overflow: "auto",
-    backgroundColor: COLORS.WHITE,
+    backgroundColor: COLORS.GRAY_50,
   })
 );
 
@@ -110,13 +115,19 @@ const filterBySort = (
   return filteredCourses.sort((a, b) => {
     switch (sortBy) {
       case "DEFAULT":
-        const getScore = (course: Course) => {
-          const gpa = course.gpa === null ? 0 : course.gpa;
-          const normalizedGPA = (gpa / 4.0) * 5.0;
-          const rating = course.instructor_ratings?.avg_rating ?? 2.5;
-          return normalizedGPA * 0.6 + rating * 0.4;
-        };
-        return getScore(b) - getScore(a);
+        const courseAScore = calculateCourseScoreOutOf10(
+          a.gpa,
+          a.instructor_ratings?.avg_rating,
+          0.85
+        );
+        const courseBScore = calculateCourseScoreOutOf10(
+          b.gpa,
+          b.instructor_ratings?.avg_rating,
+          0.85
+        );
+
+        return courseBScore - courseAScore;
+
       case "GPA":
         const gpaA = a.gpa === null ? -Infinity : a.gpa;
         const gpaB = b.gpa === null ? -Infinity : b.gpa;
@@ -339,7 +350,6 @@ const AllCourses = () => {
           selectedPrereqs={selectedPrereqs}
           setSelectedCareers={setSelectedCareers}
           setSelectedPrereqs={setSelectedPrereqs}
-          lastUpdated={lastUpdated ?? "None"}
         />
 
         {isComparisonOpen && comparisonCourses.length > 0 && (

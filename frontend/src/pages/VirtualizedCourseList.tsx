@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { Virtuoso } from "react-virtuoso";
-import { Box, styled, Typography } from "@mui/material";
+import { Box, Button, styled, Typography } from "@mui/material";
 import { CourseCard } from "../components/CourseCard";
 import { COLORS, Course, CourseCode } from "../Constants";
 import { LoadingCourseCard } from "../components/LoadingComponents";
@@ -23,7 +23,7 @@ interface DynamicCourseListProps {
     courseCodes: CourseCode[]
   ) => void;
   onCourseDetailsOpen: (course: Course) => void;
-  handleAddToComparison?: (course: Course) => void; // Add this line
+  handleAddToComparison?: (course: Course) => void;
 }
 
 const ListWrapper = styled("div")({
@@ -43,29 +43,12 @@ const NoResults = styled(Typography)(({ theme }) => ({
   gap: theme.spacing(1),
   color: COLORS.GRAY_400,
 }));
+
 const ItemWrapper = styled("div")<{ isLastItem?: boolean }>(
   ({ theme, isLastItem }) => ({
     padding: "16px",
     paddingBottom: isLastItem ? "16px" : 0,
     boxSizing: "border-box",
-
-    "&::-webkit-scrollbar": {
-      width: theme.spacing(1),
-      height: theme.spacing(1),
-    },
-    "&::-webkit-scrollbar-track": {
-      backgroundColor: theme.palette.grey[100],
-      borderRadius: theme.shape.borderRadius,
-    },
-    "&::-webkit-scrollbar-thumb": {
-      backgroundColor: theme.palette.grey[400],
-      borderRadius: theme.shape.borderRadius,
-      "&:hover": {
-        backgroundColor: theme.palette.grey[600],
-      },
-    },
-    scrollbarWidth: "thin",
-    scrollbarColor: `${theme.palette.grey[400]} ${theme.palette.grey[100]}`,
   })
 );
 
@@ -264,30 +247,32 @@ export const CourseList: React.FC<CourseListProps> = ({
   }
 
   return (
-    <DynamicCourseList
-      filteredCourses={filteredCourses}
-      isSmallScreen={isSmallScreen}
-      expandedCodesMap={expandedCodesMap}
-      handleExpandCard={(id) =>
-        setExpandedCodesMap(
-          new Map(expandedCodesMap.set(id, !expandedCodesMap.get(id)))
-        )
-      }
-      scrollToCourseId={scrollToCourseId}
-      {...(selectedGE === "AnyGE" && { setSelectedGE })}
-      onDistributionOpen={(courseCode, professorName) => {
-        setPanelData({ courseCode, professorName });
-        setActivePanel("distribution");
-      }}
-      onRatingsOpen={(professorName, currentClass, courseCodes) => {
-        setPanelData({ professorName, currentClass, courseCodes });
-        setActivePanel("ratings");
-      }}
-      onCourseDetailsOpen={(course) => {
-        setPanelData(course);
-        setActivePanel("courseDetails");
-      }}
-      handleAddToComparison={handleAddToComparison}
-    />
+    <>
+      <DynamicCourseList
+        filteredCourses={filteredCourses}
+        isSmallScreen={isSmallScreen}
+        expandedCodesMap={expandedCodesMap}
+        handleExpandCard={(id) =>
+          setExpandedCodesMap(
+            new Map(expandedCodesMap.set(id, !expandedCodesMap.get(id)))
+          )
+        }
+        scrollToCourseId={scrollToCourseId}
+        {...(selectedGE === "AnyGE" && { setSelectedGE })}
+        onDistributionOpen={(courseCode, professorName) => {
+          setPanelData({ courseCode, professorName });
+          setActivePanel("distribution");
+        }}
+        onRatingsOpen={(professorName, currentClass, courseCodes) => {
+          setPanelData({ professorName, currentClass, courseCodes });
+          setActivePanel("ratings");
+        }}
+        onCourseDetailsOpen={(course) => {
+          setPanelData(course);
+          setActivePanel("courseDetails");
+        }}
+        handleAddToComparison={handleAddToComparison}
+      />
+    </>
   );
 };

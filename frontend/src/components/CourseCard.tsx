@@ -99,7 +99,7 @@ export const CourseCard = forwardRef<HTMLDivElement, CourseCardProps>(
       queryFn: async () => {
         try {
           const response = await fetch(
-            `https://my.ucsc.edu/PSIGW/RESTListeningConnector/PSFT_CSPRD/SCX_CLASS_LIST.v1/2250?subject=${course.subject}&catalog_nbr=${course.catalog_num}`
+            `https://my.ucsc.edu/PSIGW/RESTListeningConnector/PSFT_CSPRD/SCX_CLASS_LIST.v1/2252?subject=${course.subject}&catalog_nbr=${course.catalog_num}`
           );
           const data = await response.json();
 
@@ -203,12 +203,12 @@ export const CourseCard = forwardRef<HTMLDivElement, CourseCardProps>(
         return (
           <Box sx={{ display: "flex", gap: 1, alignItems: "center", mt: 1 }}>
             <RatingChip
-              icon={<StarIcon color="inherit" />}
+              icon={<CancelIcon sx={{ fontSize: 16, color: COLORS.WHITE }} />}
               label="No rating found"
               size="small"
               sx={{
-                backgroundColor: theme.palette.grey.A700,
-                color: "white",
+                color: "inherit",
+                boxShadow: "0 2px 8px rgba(0, 0, 0, 0.15)",
               }}
             />
           </Box>
@@ -262,7 +262,7 @@ export const CourseCard = forwardRef<HTMLDivElement, CourseCardProps>(
 
     return (
       <StyledCard
-        elevation={expanded ? 4 : 2}
+        elevation={expanded ? 2 : 1}
         ref={ref}
         onClick={handleExpandClick}
         sx={{ cursor: "pointer" }}
@@ -303,20 +303,9 @@ export const CourseCard = forwardRef<HTMLDivElement, CourseCardProps>(
                     style={{ flexDirection: "row", alignItems: "center" }}
                   >
                     <Grid item>
-                      <Link
-                        href={`https://www.ratemyprofessors.com/search/professors/1078?q=${searchName}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        onClick={(e) => e.stopPropagation()}
-                        variant="body2"
-                        noWrap
-                        sx={{
-                          textDecoration: "none",
-                          "&:hover": { textDecoration: "underline" },
-                        }}
-                      >
+                      <Typography variant="body2" color="text.secondary">
                         {fullInstructorName}
-                      </Link>
+                      </Typography>
                     </Grid>
                     <Grid item>
                       {!isSmallScreen && rmpData?.num_ratings != undefined && (
@@ -351,9 +340,9 @@ export const CourseCard = forwardRef<HTMLDivElement, CourseCardProps>(
                         sx={{ fontSize: 16, color: COLORS.WHITE }}
                       />
                     }
-                    label={`${
-                      !isSmallScreen ? "Average Grade:" : ""
-                    } ${getLetterGrade(avgGPA)}`}
+                    label={`${!isSmallScreen ? "Average Grade: " : ""}${getLetterGrade(
+                      avgGPA
+                    )}`}
                     size="small"
                     sx={{
                       height: "28px",
@@ -367,19 +356,14 @@ export const CourseCard = forwardRef<HTMLDivElement, CourseCardProps>(
                 </Tooltip>
               ) : (
                 <StyledChip
-                  icon={
-                    <CancelIcon sx={{ fontSize: 16, color: COLORS.WHITE }} />
-                  }
-                  label={isSmallScreen ? "No GPA" : "No GPA information"}
-                  size="small"
-                  sx={{
-                    height: "28px",
-                    boxShadow: "0 2px 8px rgba(0, 0, 0, 0.15)",
-                    "&:hover": {
-                      boxShadow: "0 4px 12px rgba(0, 0, 0, 0.2)",
-                    },
-                  }}
-                />
+                icon={<CancelIcon sx={{ fontSize: 16, color: COLORS.WHITE }} />}
+                label="No GPA"
+                size="small"
+                sx={{
+                  height: "28px",
+                  boxShadow: "0 2px 8px rgba(0, 0, 0, 0.15)",
+                }}
+              />
               )}
               {!hideCompareButton && (
                 <Tooltip title="Compare Courses">
@@ -641,11 +625,6 @@ export const CourseCard = forwardRef<HTMLDivElement, CourseCardProps>(
     );
   }
 );
-
-
-
-
-
 
 const StyledCard = styled(Card)(({ theme }) => ({
   border: `1px solid ${theme.palette.divider}`,

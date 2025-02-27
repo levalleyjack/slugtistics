@@ -54,7 +54,7 @@ const ContentContainer = styled(Box)(({ theme }) => ({
   height: "100%",
   width: "100%",
   overflow: "hidden",
-  backgroundColor: theme.palette.background.default,
+  backgroundColor: COLORS.WHITE,
   maxWidth: "100%",
 }));
 
@@ -66,9 +66,6 @@ const InfoSection = styled(Paper)(({ theme }) => ({
   backgroundColor: theme.palette.background.paper,
   boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
   transition: "box-shadow 0.2s ease",
-  "&:hover": {
-    boxShadow: "0 4px 12px rgba(0,0,0,0.12)",
-  },
 }));
 
 const gradientStyles = {

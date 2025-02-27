@@ -52,10 +52,7 @@ const EnhancedFilterContainer = styled(FilterContainer)(
   ({ theme, hidden }) => ({
     display: "flex",
     flexDirection: "column",
-    position: "sticky",
     gap: theme.spacing(2),
-    top: -20,
-    zIndex: 1000,
     backgroundColor: theme.palette.background.paper,
   })
 );
@@ -85,10 +82,7 @@ const StatCard = styled(Card)(({ theme }) => ({
   borderRadius: BORDER_RADIUS,
   height: "100%",
   transition: "all 0.2s ease-in-out",
-  "&:hover": {
-    transform: "translateY(-4px)",
-    boxShadow: theme.shadows[8],
-  },
+
 }));
 
 type SortOptions = "date" | "rating" | "difficulty_rating" | "likes";
@@ -119,8 +113,6 @@ export const RatingsPanel: React.FC<RatingsPanelProps> = ({
       const data = await response.json();
       return data.all_ratings ?? [];
     },
-    staleTime: 5 * 60 * 1000,
-    gcTime: 60 * 1000,
     refetchOnWindowFocus: false,
   });
 
