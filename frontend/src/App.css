@@ -187,5 +187,5 @@ textarea::placeholder,
   }
 }
 html {
-  overflow: hidden;
+  overflow: auto;
 }
