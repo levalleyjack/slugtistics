@@ -1,11 +1,13 @@
 import base64
 from concurrent.futures import ThreadPoolExecutor, as_completed
+import re
 from typing import Dict, List, Optional, Tuple
 from venv import logger
+from click import File
+import pdfplumber
 import requests
-
-
-quarter = 2250
+import json
+quarter = 2252
 
 
 def normalize_instructor_name(name: str) -> str:
@@ -254,3 +256,86 @@ def fetch_course_from_api(subject: str, catalog_nbr: Optional[str] = None) -> di
         logger.error(f"API error for {subject} {catalog_nbr}: {str(e)}")
         logger.error(f"Error type: {type(e)}")
         return None
+
+def get_majors():
+    
+    with open("scraping/majors/cs_bs_2024.json", "r") as file:
+        cs_bs_data = json.load(file)
+
+    majors_data = {
+
+        cs_bs_data["program"]["name"]: cs_bs_data
+    }
+    return majors_data
+
+
+
+def parse_prerequisites(prereq_text):
+    if "Prerequisite(s):" not in prereq_text:
+        return []
+
+    cleaned_text = prereq_text.replace("Prerequisite(s):", "").strip()
+    concurrent_reqs = []
+    #get concurrent courses
+    concurrent_match = re.search(r'[Cc]oncurrent enrollment in ([^.]+)', cleaned_text)
+    if concurrent_match:
+        cleaned_text = re.split(r"(?i)concurrent", cleaned_text)[0]
+        concurrent_text = concurrent_match.group(1).strip()
+        #process and/or courses similar to normal courses for concurrent
+        concurrent_parts = re.split(r';\s+and\s+|\s*;\s*|\s+and\s+', concurrent_text)
+        
+        for part in concurrent_parts:
+            if " or " in part:
+                
+                or_courses = []
+                #regex for or courses
+                or_parts = re.split(r'\s+or\s+', part)
+                
+                for or_part in or_parts:
+                    course_match = re.search(r'([A-Z]{2,4}\s*\d+[A-Z]*)', or_part)
+                    if course_match:
+                        or_courses.append("Concurrent: " + course_match.group(1).strip())
+                
+                if or_courses:
+                    concurrent_reqs.append(or_courses)
+            else:
+                #single course
+                course_match = re.search(r'([A-Z]{2,4}\s*\d+[A-Z]*)', part)
+                if course_match:
+                    course = "Concurrent: " + course_match.group(1).strip()
+                    concurrent_reqs.append([course])
+    if "Enrollment" in cleaned_text:
+        cleaned_text = cleaned_text.split("Enrollment")[0].strip()
+
+
+    #regex for splitting courses by ";" / "and"
+    top_level_parts = re.split(r';\s+and\s+|\s*;\s*|\s+and\s+', cleaned_text)
+   
+    prereq_list = []
+    
+    for part in top_level_parts:
+        if " or " in part:
+            
+            or_courses = []
+            #splits text by or
+            or_parts = re.split(r'\s+or\s+', part)
+            
+            for or_part in or_parts:
+                #extract course codes in the or
+                course_match = re.search(r'([A-Z]{2,4}\s*\d+[A-Z]*)', or_part)
+                if course_match:
+                    or_courses.append(course_match.group(1).strip())
+            
+            if or_courses:
+                prereq_list.append(or_courses)
+        else:
+            #this is a single course requirement (no or)
+            #checks if its a course
+            course_match = re.search(r'([A-Z]{2,4}\s*\d+[A-Z]*)', part)
+            if course_match:
+                course = course_match.group(1).strip()
+                prereq_list.append([course])
+    
+    prereq_list.extend(concurrent_reqs)
+    
+    return prereq_list    

@@ -1,3 +1,4 @@
+import re
 import requests
 from typing import Optional, Dict, Any, List
 from dataclasses import dataclass
@@ -77,7 +78,7 @@ class DetailedProfessorData(BasicProfessorInfo):
         return basic_info
 
 
-def get_basic_professor_info(professor_name: str) -> Optional[BasicProfessorInfo]:
+def get_basic_professor_info(professor_name: str, course_code:str) -> Optional[BasicProfessorInfo]:
     """Get basic professor information without detailed ratings."""
     if not professor_name or professor_name.lower() == "staff":
         raise ValueError("Invalid professor name")
@@ -113,7 +114,7 @@ def get_basic_professor_info(professor_name: str) -> Optional[BasicProfessorInfo
         }
     """
 
-    professor_data = _search_professor(professor_name, query, SCHOOL_ID, RMP_URL)
+    professor_data = _search_professor(professor_name, query, SCHOOL_ID, RMP_URL, course_code=course_code)
     if not professor_data:
         return None
 
@@ -242,31 +243,47 @@ def get_detailed_professor_info(
         all_ratings=all_ratings,
     )
 
+import re
+import requests
+from typing import Optional, Dict, Any, List
 
 def _search_professor(
     professor_name: str,
     query: str,
     school_id: str,
     rmp_url: str,
+    course_code: Optional[str] = None,
     course_filter: Optional[str] = None,
 ) -> Optional[Dict[str, Any]]:
-    """Helper function to search for professor data."""
     name_parts = professor_name.split()
-    if "." in professor_name:
-        search_query = name_parts[-1]
+    if len(name_parts) >= 2 and "." in name_parts[0]:
+        first_initial = name_parts[0][0].lower()
+        last_name = name_parts[-1].lower().strip()
     else:
-        search_query = f"{name_parts[0]} {name_parts[-1]}"
+        #fallback if not like j. lee
+        first_initial = name_parts[0][0].lower()
+        last_name = name_parts[-1].lower().strip()
 
-    first_initial = name_parts[0][0].lower()
-    last_name = name_parts[-1].lower().strip()
+    #search query formatted to rmp
+    search_query = f"{last_name} {first_initial}"
+    
+    #format class code and extract department prefix
+    class_name = ""
+    class_prefix = ""
+    if course_code:
+        #change to stats7
+        class_name = course_code.replace(" ", "")
+        class_prefix = re.sub(r"\d.*", "", class_name)
 
     try:
         variables = {
             "query": {"schoolID": school_id, "text": search_query},
         }
+        #filter by course code if any
         if course_filter is not None:
             variables["courseFilter"] = course_filter
 
+        #query RMP using graphQL
         response = requests.post(
             rmp_url,
             headers={
@@ -293,35 +310,93 @@ def _search_professor(
         if not teachers:
             return None
 
-        for teacher in teachers:
-            professor = teacher["node"]
-            prof_last_name = professor["lastName"].lower().strip()
-            prof_last_name_parts = professor["lastName"].split()
-            prof_last_name_hyphen = professor["lastName"].split("-")
-
-            prof_last_name_with_middle = (
-                prof_last_name_parts[-1].lower().strip()
-                if len(prof_last_name_parts) > 1
-                else prof_last_name
-            )
-
-            prof_last_name_check_hyphen = (
-                prof_last_name_hyphen[-1].lower().strip()
-                if len(prof_last_name_hyphen) > 1
-                else prof_last_name
-            )
-
-            prof_first_initial = professor["firstName"][0].lower()
-
-            if (
-                prof_last_name == last_name
-                or prof_last_name_with_middle == last_name
-                or prof_last_name_check_hyphen == last_name
-            ) and (
-                prof_first_initial == first_initial
-                or ("." in professor_name and prof_first_initial == first_initial)
-            ):
-                return professor
+        professors = [teacher["node"] for teacher in teachers]
+        
+        
+        #calculate similarity scores for all professors so that 
+        #we get the teacher with same subject and same name
+        similarity_scores = []
+        for professor in professors:
+            score = 0
+            
+            
+            #check if last name matches (case insensitive)
+            prof_last_name = professor["lastName"].lower()
+            if prof_last_name.endswith(last_name):
+                score += 1
+            else:
+                continue
+                
+            #check if first initial matches 
+            prof_first_initial = professor["firstName"][0].lower() if professor["firstName"] else ""
+            if prof_first_initial == first_initial:
+                score += 1
+            else:
+                continue
+            
+            #check course matches
+            if "courseCodes" in professor and class_name:
+                has_similar_course = False
+                has_exact_course = False
+                broader_dept_match = False
+                
+                #check if taught before
+                higher_level_courses = []
+                
+                for course in professor["courseCodes"]:
+                    course_name = course["courseName"]
+                    
+                    #check exact course match
+                    if course_name == class_name:
+                        has_exact_course = True
+                    
+                    # Extract course prefix for matching (e.g., "Stats" from "Stats131")
+                    course_prefix = re.sub(r"\d.*", "", course_name)
+                    
+                    #check if department is same
+                    if course_prefix.lower() == class_prefix.lower():
+                        has_similar_course = True
+                        
+                        #if it's a higher-level course in the same department
+                        if class_name and course_name != class_name:
+                            #get course number as well
+                            try:
+                                class_num = int(re.search(r"\d+", class_name).group())
+                                course_num = int(re.search(r"\d+", course_name).group())
+                                
+                                if course_num > class_num:
+                                    higher_level_courses.append(course_name)
+                            except (AttributeError, ValueError):
+                                pass
+                
+                #score course matches
+                if has_similar_course:
+                    score += 1
+                else:
+                    score -= 1
+                
+                if has_exact_course:
+                    score += 5
+                else:
+                    score -= 1
+                
+                if higher_level_courses and not has_exact_course:
+                    score += 2
+                    
+            similarity_scores.append(score)
+        
+        #get the professor with the highest similarity score
+        if similarity_scores:
+            best_match_index = similarity_scores.index(max(similarity_scores))
+            best_match = professors[best_match_index]
+            
+            
+            #last sanity check, checking first inital and last name
+            if (not best_match["lastName"].lower().endswith(last_name) or 
+                best_match["firstName"][0].lower() != first_initial):
+                return None
+                
+            return best_match
 
         return None
 

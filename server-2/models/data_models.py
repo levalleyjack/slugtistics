@@ -1,11 +1,8 @@
 from datetime import datetime
-import uuid
 import pytz
-from sqlalchemy import Boolean
 from config import db
 import json
 from sqlalchemy.types import TypeDecorator, TEXT
-
 class JSONType(TypeDecorator):
     impl = TEXT
     def process_bind_param(self, value, dialect):
@@ -71,7 +68,7 @@ class CourseModel(db.Model):
     class_status = db.Column(db.String(10))  # Status of the class (e.g., 'Open', 'Closed', 'Waitlist')
     description = db.Column(db.Text)  
     class_notes = db.Column(db.Text) 
-    enrollment_reqs = db.Column(db.Text)
+    enrollment_reqs = db.Column(JSONType)
     discussion_sections = db.Column(JSONType) 
     credits = db.Column(db.Integer)  
     career = db.Column(db.String(20)) 
