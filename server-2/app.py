@@ -15,7 +15,7 @@ from helper_functions import (
 )
 from config import app, db, slugtistics_db_path
 from models.data_models import CourseModel, LastUpdateModel
-from routes import courses_bp, init_course_recommender, init_prereq_dict
+from routes import courses_bp, init_prereq_dict
 
 # Initialize Flask extensions
 Compress(app)

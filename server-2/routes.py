@@ -7,7 +7,7 @@ import logging
 from scraping.ratings import get_detailed_professor_info
 from models.data_models import CourseModel, LastUpdateModel, VisitorModel, db
 from config import app
-from helper_functions import get_majors, parse_prerequisites, scrape_transcript
+from helper_functions import get_majors
 from chatbot.course_recommender import CourseRecommender
 logger = logging.getLogger(__name__)
 courses_bp = Blueprint("courses", __name__)
@@ -98,6 +98,10 @@ def get_all_majors():
 def get_major_classes(major):
     majors_data = get_majors()
     return jsonify(majors_data[major])
+
+@courses_bp.route("/prereq/<prereq>", methods=["GET"])
+def get_prereq(prereq):
+    return jsonify(prereq_dict[prereq])
     
 
 
