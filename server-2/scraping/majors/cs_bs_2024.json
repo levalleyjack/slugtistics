@@ -1,0 +1,155 @@
+{
+  "program": {
+    "name": "Computer Science B.S.",
+    "admissionYear": "2024"
+  },
+  "requirements": {
+    "core": [
+      { "class": ["MATH 19A", "MATH 20A"] },
+      { "class": ["MATH 19B", "MATH 20B"] },
+      { "class": ["AM 30", "MATH 23A"] },
+      { "class": ["CSE 16"] },
+      { "class": ["AM 10", "MATH 21"] },
+      { "class": ["CSE 40"] },
+      { "class": ["CSE 20"] },
+      { "class": ["CSE 12"] },
+      { "class": ["CSE 13S"] },
+      { "class": ["CSE 30"] },
+      { "class": ["ECE 30"] },
+      { "class": ["CSE 101"] },
+      { "class": ["CSE 112", "CSE 114A"] },
+      { "class": ["CSE 120"] },
+      { "class": ["CSE 102", "CSE 103"] },
+      { "class": ["CSE 101M"] },
+      { "class": ["CSE 130"] },
+      { "class": ["CSE 107", "STAT 131"] }
+    ],
+    "dc": [
+      { "class": ["CSE 115A"] },
+      { "class": ["CSE 185E", "CSE 185S"] },
+      { "class": ["CSE 195"] }
+    ],
+    "capstone": [
+      { "class": ["CSE 110B"] },
+      { "class": ["CSE 115C"] },
+      { "class": ["CSE 115D"] },
+      { "class": ["CSE 121"] },
+      { "class": ["CSE 134"] },
+      { "class": ["CSE 138"] },
+      { "class": ["CSE 140"] },
+      { "class": ["CSE 143"] },
+      { "class": ["CSE 144"] },
+      { "class": ["CSE 145"] },
+      { "class": ["CSE 156", "CSE 156L"] },
+      { "class": ["CSE 157"] },
+      { "class": ["CSE 160"] },
+      { "class": ["CSE 161", "CSE 161L"] },
+      { "class": ["CSE 162", "CSE 162L"] },
+      { "class": ["CSE 163"] },
+      { "class": ["CSE 168"] },
+      { "class": ["CSE 181"] },
+      { "class": ["CSE 183"] },
+      { "class": ["CSE 184"] },
+      { "class": ["CSE 187"] },
+      { "class": ["CMPM 172"] }
+    ]
+  },
+  "electives": {
+    "required": {
+      "upperDivision": 4,
+      "math": 2
+    },
+    "categories": {
+      "cs": {
+        "name": "CS/CSE Electives",
+        "courses": [
+          { "class": ["CSE 100", "CSE 100L"] },
+          { "class": ["CSE 104"] },
+          { "class": ["CSE 106"] },
+          { "class": ["CSE 108"] },
+          { "class": ["CSE 110A"] },
+          { "class": ["CSE 110B"] },
+          { "class": ["CSE 111"] },
+          { "class": ["CSE 112"] },
+          { "class": ["CSE 114A"] },
+          { "class": ["CSE 114B"] },
+          { "class": ["CSE 115B"] },
+          { "class": ["CSE 115C"] },
+          { "class": ["CSE 115D"] },
+          { "class": ["CSE 117"] },
+          { "class": ["CSE 118"] },
+          { "class": ["CSE 119"] },
+          { "class": ["CSE 121"] },
+          { "class": ["CSE 122"] },
+          { "class": ["CSE 123A"] },
+          { "class": ["CSE 123B"] },
+          { "class": ["CSE 125"] },
+          { "class": ["CSE 129A"] },
+          { "class": ["CSE 129B"] },
+          { "class": ["CSE 129C"] },
+          { "class": ["CSE 132"] },
+          { "class": ["CSE 134"] },
+          { "class": ["CSE 138"] },
+          { "class": ["CSE 140"] },
+          { "class": ["CSE 142"] },
+          { "class": ["CSE 143"] },
+          { "class": ["CSE 144"] },
+          { "class": ["CSE 145"] },
+          { "class": ["CSE 146"] },
+          { "class": ["CSE 150"] },
+          { "class": ["CSE 151", "CSE 151L"] },
+          { "class": ["CSE 152"] },
+          { "class": ["CSE 156"] },
+          { "class": ["CSE 156L"] },
+          { "class": ["CSE 157"] },
+          { "class": ["CSE 160"] },
+          { "class": ["CSE 161"] },
+          { "class": ["CSE 161L"] },
+          { "class": ["CSE 162"] },
+          { "class": ["CSE 162L"] },
+          { "class": ["CSE 163"] },
+          { "class": ["CSE 164"] },
+          { "class": ["CSE 165"] },
+          { "class": ["CSE 167"] },
+          { "class": ["CSE 168"] },
+          { "class": ["CSE 180"] },
+          { "class": ["CSE 181"] },
+          { "class": ["CSE 182"] },
+          { "class": ["CSE 183"] },
+          { "class": ["CSE 184"] },
+          { "class": ["CSE 195"] }
+        ]
+      },
+      "math": {
+        "name": "Math Electives",
+        "courses": [
+          { "class": ["AM 114"] },
+          { "class": ["AM 147"] },
+          { "class": ["MATH 110"] },
+          { "class": ["MATH 115"] },
+          { "class": ["MATH 116"] },
+          { "class": ["MATH 117"] },
+          { "class": ["MATH 118"] },
+          { "class": ["MATH 134"] },
+          { "class": ["MATH 145", "MATH 145L"] },
+          { "class": ["MATH 148"] },
+          { "class": ["MATH 160"] },
+          { "class": ["MATH 161"] },
+          { "class": ["STAT 132"] }
+        ]
+      },
+      "cmpm": {
+        "name": "CMPM Electives",
+        "courses": [
+          { "class": ["CMPM 120"] },
+          { "class": ["CMPM 131"] },
+          { "class": ["CMPM 146"] },
+          { "class": ["CMPM 163"] },
+          { "class": ["CMPM 164", "CMPM 146L"] },
+          { "class": ["CMPM 171"] },
+          { "class": ["CMPM 172"] }
+        ]
+      }
+    }
+  }
+}
