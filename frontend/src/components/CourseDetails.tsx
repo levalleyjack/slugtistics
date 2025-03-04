@@ -47,6 +47,8 @@ import {
 } from "../Constants";
 import StatusIcon from "./StatusIcon";
 import LocationMap from "./LocationComponent";
+import PrerequisitesSection from "./PrereqComponent";
+import { local } from "../pages/GetGEData";
 
 const ContentContainer = styled(Box)(({ theme }) => ({
   display: "flex",
@@ -242,7 +244,7 @@ export const CourseDetailsPanel: React.FC<CourseDetailsProps> = ({
       }
 
       const response = await fetch(
-        `https://api.slugtistics.com/api/pyback/course_details/${course.enroll_num}`,
+        `${local}/course_details/${course.enroll_num}`,
         {
           headers: {
             Accept: "application/json",
@@ -406,15 +408,16 @@ export const CourseDetailsPanel: React.FC<CourseDetailsProps> = ({
         ) : (
           <Fade in={!isLoading}>
             <Stack spacing={3}>
-              {response?.data?.enrollment_reqs && (
+              {response?.data?.enrollment_reqs.description && (
                 <InfoSection>
                   <SectionHeader>
                     <AssignmentIcon />
                     Prerequisites & Requirements
                   </SectionHeader>
-                  <Typography variant="body1" sx={{ lineHeight: 1.8 }}>
-                    {response.data.enrollment_reqs}
-                  </Typography>
+                  <PrerequisitesSection
+                    enrollmentReqs={response.data.enrollment_reqs.description}
+                    coursesReq={response.data.enrollment_reqs.courses}
+                  />
                 </InfoSection>
               )}
 

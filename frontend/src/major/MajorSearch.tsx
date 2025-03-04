@@ -1,4 +1,4 @@
-import { useState } from "react";
+import React, { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
   Box,
@@ -6,7 +6,6 @@ import {
   CardContent,
   Typography,
   TextField,
-  Container,
   Grid,
   Chip,
   styled,
@@ -18,15 +17,21 @@ import {
   Science as ScienceIcon,
   Brush as BrushIcon,
 } from "@mui/icons-material";
+import MajorPlanner from "./MajorPlanner";
 
-const MajorSearch = () => {
+// Type definition for Major
+interface Major {
+  name: string;
+}
+
+const MajorSearch: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState("");
-  const [selectedMajor, setSelectedMajor] = useState<string | null>(null);
+  const [selectedMajor, setSelectedMajor] = useState<Major | null>(null);
 
-  const { data: majors, isLoading } = useQuery<string[]>({
+  const { data: majors, isLoading } = useQuery<Major[]>({
     queryKey: ["majors"],
     queryFn: async () => {
-      const response = await fetch("http://127.0.0.1:5001/api/degrees");
+      const response = await fetch("http://127.0.0.1:5000/all_majors");
       if (!response.ok) {
         throw new Error("Failed to fetch majors");
       }
@@ -34,27 +39,29 @@ const MajorSearch = () => {
     },
   });
 
-  const getDegreeType = (major: string) => {
-    if (major.includes("B.S.")) return "B.S.";
-    if (major.includes("B.A.")) return "B.A.";
-    if (major.includes("B.M.")) return "B.M.";
+  const getDegreeType = (majorName: string) => {
+    if (majorName.includes("B.S.")) return "B.S.";
+    if (majorName.includes("B.A.")) return "B.A.";
+    if (majorName.includes("B.M.")) return "B.M.";
     return "Degree";
   };
 
-  const getMajorCategory = (major: string) => {
+  // Helper function to categorize major
+  const getMajorCategory = (majorName: string) => {
     if (
-      major.match(
+      majorName.match(
         /Biology|Chemistry|Physics|Science|Engineering|Mathematics|Computer|Technology/i
       )
     ) {
       return "STEM";
     }
-    if (major.match(/Art|Music|Theater|Design|Creative|Film|Visual/i)) {
+    if (majorName.match(/Art|Music|Theater|Design|Creative|Film|Visual/i)) {
       return "Arts";
     }
     return "Humanities & Social Sciences";
   };
 
+  // Helper function to get icon based on category
   const getMajorIcon = (category: string) => {
     switch (category) {
       case "STEM":
@@ -66,10 +73,12 @@ const MajorSearch = () => {
     }
   };
 
+  // Filter majors based on search term
   const filteredMajors = majors?.filter((major) =>
-    major.toLowerCase().includes(searchTerm.toLowerCase())
+    major.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
+  // Loading state
   if (isLoading) {
     return (
       <Box sx={{ display: "flex", justifyContent: "center", mt: 4 }}>
@@ -79,7 +88,10 @@ const MajorSearch = () => {
   }
   if (selectedMajor) {
     return (
-     <Typography>Hello</Typography>
+      <MajorPlanner
+        selectedMajor={selectedMajor.name}
+        onBack={() => setSelectedMajor(null)}
+      />
     );
   }
 
@@ -102,12 +114,12 @@ const MajorSearch = () => {
       <ScrollContainer>
         <Grid container spacing={2} sx={{ p: 2 }}>
           {filteredMajors?.map((major) => {
-            const category = getMajorCategory(major);
-            const degreeType = getDegreeType(major);
-            const majorName = major.replace(` ${degreeType}`, "");
+            const category = getMajorCategory(major.name);
+            const degreeType = getDegreeType(major.name);
+            const majorName = major.name.replace(` ${degreeType}`, "");
 
             return (
-              <Grid item xs={12} sm={6} md={4} key={major}>
+              <Grid item xs={12} sm={6} md={4} key={major.name}>
                 <StyledCard
                   onClick={() => setSelectedMajor(major)}
                   sx={{ cursor: "pointer" }}
