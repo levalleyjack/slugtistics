@@ -1,9 +1,5 @@
 from bs4 import BeautifulSoup
 import requests
-import concurrent.futures
-import time
-from datetime import datetime
-import pytz
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
 
@@ -11,16 +7,16 @@ from urllib3.util.retry import Retry
 class Course:
     def __init__(
         self,
-        code,
-        name,
-        instructor,
-        link,
-        class_count,
-        enroll_num,
-        class_type,
-        schedule,
-        location,
-        class_status,
+        code=None,
+        name=None,
+        instructor=None,
+        link=None,
+        class_count=None,
+        enroll_num=None,
+        class_type=None,
+        schedule=None,
+        location=None,
+        class_status=None,
         ge=None,
         description=None,
         class_notes=None,
@@ -83,8 +79,8 @@ def create_session():
         status_forcelist=[500, 502, 503, 504],
     )
     adapter = HTTPAdapter(max_retries=retry)
-    session.mount('http://', adapter)
-    session.mount('https://', adapter)
+    session.mount("http://", adapter)
+    session.mount("https://", adapter)
     return session
 
 
@@ -95,20 +91,20 @@ def get_current_term(soup):
 
 
 def parse_course_panel(panel):
-    link_element = panel.find('a')
-    relative_url = link_element['href']
+    link_element = panel.find("a")
+    relative_url = link_element["href"]
     link_url = f"https://pisa.ucsc.edu/class_search/{relative_url}"
-    
+
     full_text = link_element.text.strip()
     parts = full_text.split(" - ", 1)
     class_code = parts[0].strip()
     class_name = parts[1].strip() if len(parts) > 1 else ""
-    class_name = ' '.join(word for word in class_name.split() if not word[0].isdigit())
-    
-    status_element = panel.find('span', class_='sr-only')
+    class_name = " ".join(word for word in class_name.split() if not word[0].isdigit())
+
+    status_element = panel.find("span", class_="sr-only")
     class_status = status_element.text if status_element else "Unknown"
 
-    cols = panel.find_all('div', class_=['col-xs-6 col-sm-3', 'col-xs-6 col-sm-6'])
+    cols = panel.find_all("div", class_=["col-xs-6 col-sm-3", "col-xs-6 col-sm-6"])
 
     enroll_num = None
     for col in cols:
@@ -126,10 +122,10 @@ def parse_course_panel(panel):
             break
 
     class_type = ""
-    hide_print_divs = panel.find_all('div', class_='col-xs-6 col-sm-3 hide-print')
+    hide_print_divs = panel.find_all("div", class_="col-xs-6 col-sm-3 hide-print")
     for div in hide_print_divs:
         if "Instruction Mode:" in div.text:
-            class_type = div.find('b').text.strip()
+            class_type = div.find("b").text.strip()
             break
 
     class_count = "N/A"
@@ -171,12 +167,14 @@ def parse_course_panel(panel):
     )
 
 
+
 def process_course_page(session, url):
     course_details = {
         "description": "",
         "class_notes": "",
         "enrollment_reqs": "",
         "discussion_sections": [],
+        "general_education": None,
         "credits": None,
         "career": None,
         "grading": None,
@@ -185,13 +183,13 @@ def process_course_page(session, url):
 
     try:
         response = session.get(url)
-        soup = BeautifulSoup(response.text, 'html.parser')
+        soup = BeautifulSoup(response.text, "html.parser")
         panels = soup.find_all("div", class_="panel panel-default row")
 
         for panel in panels:
             header = None
             header_div = panel.find("div", class_="panel-heading panel-heading-custom")
-            
+
             if header_div:
                 header_elem = header_div.find("h2")
                 if header_elem:
@@ -213,7 +211,7 @@ def process_course_page(session, url):
                 section_divs = panel_body.find_all("div", class_="col-xs-6 col-sm-3")
 
                 for i in range(0, len(section_divs), 7):
-                    section_group = section_divs[i:i + 7]
+                    section_group = section_divs[i : i + 7]
                     if len(section_group) == 7:
                         try:
                             section_code = section_group[0].text.strip()
@@ -225,9 +223,15 @@ def process_course_page(session, url):
                                 "enroll_num": enroll_num,
                                 "schedule": section_group[1].text.strip(),
                                 "instructor": section_group[2].text.strip(),
-                                "location": section_group[3].text.replace("Loc: ", "").strip(),
-                                "class_count": section_group[4].text.replace("Enrl: ", "").strip(),
-                                "wait_count": section_group[5].text.replace("Wait: ", "").strip(),
+                                "location": section_group[3]
+                                .text.replace("Loc: ", "")
+                                .strip(),
+                                "class_count": section_group[4]
+                                .text.replace("Enrl: ", "")
+                                .strip(),
+                                "wait_count": section_group[5]
+                                .text.replace("Wait: ", "")
+                                .strip(),
                                 "class_status": section_group[6].text.strip(),
                             }
                             discussion_sections.append(section)
@@ -247,9 +251,13 @@ def process_course_page(session, url):
                         value = dd.text.strip()
 
                         if label == "Credits":
-                            course_details["credits"] = value.replace(" units", "").replace("units", "").strip()
+                            course_details["credits"] = (
+                                value.replace(" units", "").replace("units", "").strip()
+                            )
                         elif label == "Career":
                             course_details["career"] = value
+                        elif label == "General Education":
+                            course_details["general_education"] = value
                         elif label == "Grading":
                             course_details["grading"] = value
                         elif label == "Type":
@@ -266,65 +274,6 @@ def process_course_page(session, url):
         print(f"Error processing course page: {e}")
 
     return course_details
-
-
-def scrape_courses(ge_choice):
-    session = create_session()
-    course_list = []
-    rec_start = 0
-    page = 1
-
-    try:
-        response = session.get("https://pisa.ucsc.edu/class_search/")
-        soup = BeautifulSoup(response.text, "html.parser")
-
-        data = {
-            "action": "results",
-            "binds[:term]": get_current_term(soup),
-            "binds[:reg_status]": "all",
-            "binds[:subject]": "",
-            "binds[:ge]": ge_choice,
-            "binds[:crse_units]": "",
-            "binds[:instrct_mode]": "",
-            "rec_start": rec_start,
-            "rec_dur": 100,
-        }
-
-        while True:
-            response = session.post(
-                "https://pisa.ucsc.edu/class_search/index.php",
-                data=data
-            )
-            soup = BeautifulSoup(response.text, "html.parser")
-
-            course_panels = soup.find_all("div", class_="panel panel-default row")
-            if not course_panels:
-                print(f"No courses found on page {page}. Ending search.")
-                break
-
-            print(f"Processing page {page} (records {rec_start}-{rec_start+100})")
-            for panel in course_panels:
-                course = parse_course_panel(panel)
-                if course:
-                    course.ge = ge_choice
-                    
-                    course_list.append(course)
-
-            next_button = soup.find('a', {'onclick': lambda x: x and 'next' in x})
-            if not next_button:
-                print(f"No next button found on page {page}. Ending search.")
-                break
-
-            data["action"] = "next"
-            rec_start += 100
-            data["rec_start"] = rec_start
-            page += 1
-
-    except Exception as e:
-        print(f"Error scraping courses: {e}")
-
-    print(f"Finished scraping. Total courses found: {len(course_list)}")
-    return course_list
 
 def scrape_all_courses():
     session = create_session()
@@ -349,14 +298,13 @@ def scrape_all_courses():
 
         while True:
             response = session.post(
-                "https://pisa.ucsc.edu/class_search/index.php",
-                data=data
+                "https://pisa.ucsc.edu/class_search/index.php", data=data
             )
-            soup = BeautifulSoup(response.text, 'html.parser')
+            soup = BeautifulSoup(response.text, "html.parser")
 
             # Process the current page
             course_panels = soup.find_all("div", class_="panel panel-default row")
-            
+
             if not course_panels:
                 print(f"No courses found on page {page}. Ending search.")
                 break
@@ -367,14 +315,17 @@ def scrape_all_courses():
                     course.description = course_details.get("description", "")
                     course.class_notes = course_details.get("class_notes", "")
                     course.enrollment_reqs = course_details.get("enrollment_reqs", "")
-                    course.discussion_sections = course_details.get("discussion_sections", [])
+                    course.discussion_sections = course_details.get(
+                        "discussion_sections", []
+                    )
+                    course.ge = course_details.get("general_education")
                     course.credits = course_details.get("credits")
                     course.career = course_details.get("career")
                     course.grading = course_details.get("grading")
-                    course.course_type = course_details.get("type")  
+                    course.course_type = course_details.get("type")
                     course_list.append(course)
 
-            next_button = soup.find('a', {'onclick': lambda x: x and 'next' in x})
+            next_button = soup.find("a", {"onclick": lambda x: x and "next" in x})
             if not next_button:
                 print(f"No next button found on page {page}. Ending search.")
                 break
@@ -388,42 +339,178 @@ def scrape_all_courses():
 
     print(f"Finished scraping. Total courses found: {len(course_list)}")
     return course_list
-def get_courses(ge_choices):
-    all_courses = []
-    max_retries = 3
-    retry_delay = 5
 
-    with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
-        future_to_ge = {executor.submit(scrape_courses, ge): ge for ge in ge_choices}
-        for future in concurrent.futures.as_completed(future_to_ge):
-            ge = future_to_ge[future]
-            for attempt in range(max_retries):
-                try:
-                    courses = future.result()
-                    all_courses.extend(courses)
-                    print(f"Finished scraping {ge} courses. Total courses: {len(courses)}")
-                    break
-                except Exception as exc:
-                    print(f"{ge} generated an exception on attempt {attempt + 1}: {exc}")
-                    if attempt < max_retries - 1:
-                        print(f"Retrying {ge} in {retry_delay} seconds...")
-                    else:
-                        print(f"Failed to scrape {ge} after {max_retries} attempts.")
 
-    return all_courses
+
+def scrape_count():
+    session = create_session()
+    course_list = []
+    page = 1
+    count = 0
+
+    try:
+        response = session.get("https://pisa.ucsc.edu/class_search/")
+        soup = BeautifulSoup(response.text, "html.parser")
+
+        data = {
+            "action": "results",
+            "binds[:term]": get_current_term(soup),
+            "binds[:reg_status]": "all",
+            "binds[:subject]": "",
+            "binds[:ge]": "",
+            "binds[:crse_units]": "",
+            "binds[:instrct_mode]": "",
+            "rec_dur": 2000,  # Increase this to fetch more courses per request
+        }
+
+        while True:
+            response = session.post(
+                "https://pisa.ucsc.edu/class_search/index.php", data=data
+            )
+            soup = BeautifulSoup(response.text, "html.parser")
+
+            #process current page
+            course_panels = soup.find_all("div", class_="panel panel-default row")
+
+            if not course_panels:
+                print(f"No courses found on page {page}. Ending search.")
+                break
+            for panel in course_panels:
+                course = reduced_parse_course_panel(panel)
+                if course:
+                    course_details = reduced_process_course_page(session, course.link)
+                    course.discussion_sections = course_details.get(
+                        "discussion_sections", []
+                    )
+                    course_list.append(course)
+
+            next_button = soup.find("a", {"onclick": lambda x: x and "next" in x})
+            if not next_button:
+                print(f"No next button found on page {page}. Ending search.")
+                break
+
+            
+            data["action"] = "next"
+            page += 1
+
+    except Exception as e:
+        print(f"Error scraping all courses: {e}")
+
+    print(f"Finished scraping. Total courses found: {len(course_list)}")
+    return course_list
+
+def reduced_process_course_page(session, url):
+    course_details = {
+        "discussion_sections": [],
+    }
+
+    try:
+        response = session.get(url)
+        soup = BeautifulSoup(response.text, "html.parser")
+        panels = soup.find_all("div", class_="panel panel-default row")
+
+        for panel in panels:
+            header = None
+            header_div = panel.find("div", class_="panel-heading panel-heading-custom")
+
+            if header_div:
+                header_elem = header_div.find("h2")
+                if header_elem:
+                    header = header_elem.text.strip()
+            else:
+                header_elem = panel.find("h2")
+                if header_elem:
+                    header = header_elem.text.strip()
+
+            if not header:
+                continue
+
+            panel_body = panel.find(class_="panel-body")
+            if not panel_body:
+                continue
+
+            if "Associated Discussion Sections or Labs" in header:
+                discussion_sections = []
+                section_divs = panel_body.find_all("div", class_="col-xs-6 col-sm-3")
+
+                for i in range(0, len(section_divs), 7):
+                    section_group = section_divs[i : i + 7]
+                    if len(section_group) == 7:
+                        try:
+                            section_code = section_group[0].text.strip()
+                            enroll_num = section_code.split()[0].replace("#", "")
+                            code = " ".join(section_code.split()[1:])
+
+                            section = {
+                                "code": code,
+                                "enroll_num": enroll_num,
+                                "schedule": section_group[1].text.strip(),
+                                "instructor": section_group[2].text.strip(),
+                                "location": section_group[3]
+                                .text.replace("Loc: ", "")
+                                .strip(),
+                                "class_count": section_group[4]
+                                .text.replace("Enrl: ", "")
+                                .strip(),
+                                "wait_count": section_group[5]
+                                .text.replace("Wait: ", "")
+                                .strip(),
+                                "class_status": section_group[6].text.strip(),
+                            }
+                            discussion_sections.append(section)
+                        except Exception:
+                            continue
+
+                course_details["discussion_sections"] = discussion_sections
+    except Exception as e:
+        print(f"Error processing course page: {e}")
+    return course_details
+
+
+def reduced_parse_course_panel(panel):
+    link_element = panel.find("a")
+    relative_url = link_element["href"]
+    link_url = f"https://pisa.ucsc.edu/class_search/{relative_url}"
+
+    status_element = panel.find("span", class_="sr-only")
+    class_status = status_element.text if status_element else "Unknown"
+
+    cols = panel.find_all("div", class_=["col-xs-6 col-sm-3", "col-xs-6 col-sm-6"])
+
+    enroll_num = None
+    for col in cols:
+        if "Class Number: " in col.text:
+            enroll_num = col.text.replace("Class Number: ", "").strip()
+            break
+
+
+    class_count = "N/A"
+    for col in cols:
+        count_text = col.text.strip()
+        if "Enrolled" in count_text:
+            try:
+                nums = [int(s) for s in count_text.split() if s.isdigit()]
+                if len(nums) >= 2:
+                    class_count = f"{nums[0]}/{nums[1]}"
+            except (ValueError, IndexError):
+                pass
+            break
+
+    return Course(
+        link=link_url,
+        class_count=class_count,
+        enroll_num=enroll_num,
+        class_status=class_status,
+    )
 
 
 if __name__ == "__main__":
-    ge_choices = [
-        "CC", "ER", "IM", "MF", "SI", "SR", "TA",
-        "PE-E", "PE-H", "PE-T", "PR-E", "PR-C", "PR-S", "C1", "C2",
-    ]
     print("Starting scraping process...")
-    
+
     # To scrape all courses
     courses = scrape_all_courses()
     print(f"Total courses scraped: {len(courses)}")
-    
+
     # Alternatively, to scrape specific GE courses:
     # courses = get_courses(ge_choices)
     # print(f"Total GE courses scraped: {len(courses)}")
