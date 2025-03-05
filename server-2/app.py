@@ -348,13 +348,14 @@ def init_app():
     try:
         #chatbot, doesn't work as intended
         # init_course_recommender(app) METHOD!!!
-        init_prereq_dict(app)
+        
         app.register_blueprint(courses_bp)
         init_db()
         #comment out store_courses_in_db() if you didn't change any
         #of the scraping part and you alr ran once
         
-        # store_courses_in_db() METHOD!!!
+        store_courses_in_db()
+        init_prereq_dict(app)
         # update_course_statuses() METHOD!!!
         init_scheduler()
         logger.info("Application initialized successfully")
