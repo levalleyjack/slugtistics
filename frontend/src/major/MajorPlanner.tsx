@@ -57,6 +57,7 @@ const MajorPlanner = ({ selectedMajor, onBack }: MajorPlannerProps) => {
   const [selectedSection, setSelectedSection] = useState<
     "Core" | "Capstone" | "DC" | "Electives"
   >("Core");
+  const [classesInput, setClassesInput] = useState<string>("");
 
   const { data: courseData, isLoading } = useQuery<CourseData>({
     queryKey: ["course-requirements"],
@@ -70,6 +71,15 @@ const MajorPlanner = ({ selectedMajor, onBack }: MajorPlannerProps) => {
       return response.json();
     },
   });
+
+  //Very case sensitive, need to improve
+  const processClassesInput = () => {
+    // Split by comma, get rid of whitespace and empty strings
+    const classes = classesInput.split(",").map((c) => c.trim()).filter((c) => c.length > 0);
+
+    setCompletedCourses(new Set(classes));
+
+  }
 
   const toggleCourseCompletion = (course: string) => {
     setCompletedCourses((prev) => {
@@ -90,6 +100,7 @@ const MajorPlanner = ({ selectedMajor, onBack }: MajorPlannerProps) => {
     const allCourses = courseGroups.flatMap(group => group.class);
     
     return (
+      
       <Box sx={{ mb: 4 }}>
         <SectionTitle variant="h5" gutterBottom>
           {title}
@@ -234,9 +245,46 @@ const MajorPlanner = ({ selectedMajor, onBack }: MajorPlannerProps) => {
       </Box>
 
       <ProgressPaper elevation={2}>
-        <Typography variant="h6" gutterBottom>
-          Overall Progress
-        </Typography>
+        <Box sx={{display: "flex", justifyContent: "space-between", alignItems: "center", width: "100%"}}>
+          <Typography variant="h6" gutterBottom>
+            Overall Progress
+          </Typography>
+          <Box sx={{ display: "flex", flexDirection: "column", width: "500px", gap: 1 }}>
+            <textarea
+              style={{ 
+                padding: "8px", 
+                fontSize: "16px", 
+                width: "100%", 
+                height: "100px", 
+                borderRadius: "4px", 
+                border: "1px solid #ccc",
+                resize: "vertical"
+              }}
+              placeholder="Enter classes taken... e.g. (CSE 30, CSE 16, Math 19A, CSE 120...)"
+              value={classesInput}
+              onChange={(e) => setClassesInput(e.target.value)}
+            />
+            <Box sx={{ display: "flex", justifyContent: "flex-end" }}>
+              <Tooltip title="Mark these classes as completed">
+                <IconButton 
+                  onClick={processClassesInput}
+                  color="primary"
+                  sx={{ 
+                    border: "1px solid",
+                    borderColor: "primary.main",
+                    borderRadius: 1,
+                    px: 2
+                  }}
+                >
+                  <Typography variant="button" sx={{ mr: 1 }}>Submit</Typography>
+                  <CheckCircleIcon />
+                </IconButton>
+              </Tooltip>
+            </Box>
+          </Box>
+        </Box>
+        
+        
         <Box sx={{ display: "flex", gap: 2 }}>
           <ProgressChip
             label={`${completedCourses.size} Completed`}
