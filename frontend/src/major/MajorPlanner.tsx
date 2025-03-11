@@ -22,7 +22,7 @@ import {
 } from "@mui/icons-material";
 
 interface MajorPlannerProps {
-    selectedMajor:string;
+  selectedMajor: string;
   onBack: () => void;
 }
 
@@ -56,8 +56,12 @@ interface RecommendationsResponse {
 }
 
 const MajorPlanner = ({ selectedMajor, onBack }: MajorPlannerProps) => {
-  const [completedCourses, setCompletedCourses] = useState<Set<string>>(new Set());
-  const [selectedSection, setSelectedSection] = useState< "Core" | "Capstone" | "DC" | "Electives">("Core");
+  const [completedCourses, setCompletedCourses] = useState<Set<string>>(
+    new Set()
+  );
+  const [selectedSection, setSelectedSection] = useState<
+    "Core" | "Capstone" | "DC" | "Electives"
+  >("Core");
   const [classesInput, setClassesInput] = useState<string>("");
   const [recommendedCourses, setRecommendedCourses] = useState<string[]>([]);
   const [isProcessing, setIsProcessing] = useState<boolean>(false);
@@ -75,45 +79,63 @@ const MajorPlanner = ({ selectedMajor, onBack }: MajorPlannerProps) => {
       return response.json();
     },
   });
-  
+
   // Calls get recommendations, usequery to constantly ipdate
-  const { data: recommendationsData, isLoading: isLoadingRecommendations, refetch: refetchRecommendations, error } = useQuery<RecommendationsResponse, Error>({
+  const {
+    data: recommendationsData,
+    isLoading: isLoadingRecommendations,
+    refetch: refetchRecommendations,
+    error,
+  } = useQuery<RecommendationsResponse, Error>({
     queryKey: ["recommendations", classesToRecommend],
     queryFn: () => getRecommendations(classesToRecommend),
-    enabled: classesToRecommend.length > 0
+    enabled: classesToRecommend.length > 0,
   });
-  
+
   //check if data is new and update
-  if (recommendationsData?.recommended_classes && recommendationsData.recommended_classes.length > 0) {
-    if (recommendedCourses.length === 0 || 
-        JSON.stringify(recommendationsData.recommended_classes) !== JSON.stringify(recommendedCourses)) {
+  if (
+    recommendationsData?.recommended_classes &&
+    recommendationsData.recommended_classes.length > 0
+  ) {
+    if (
+      recommendedCourses.length === 0 ||
+      JSON.stringify(recommendationsData.recommended_classes) !==
+        JSON.stringify(recommendedCourses)
+    ) {
       setRecommendedCourses(recommendationsData.recommended_classes);
+      setCompletedCourses(new Set(recommendationsData.recommended_classes))
     }
   }
-  
+
   if (error) {
     console.error("Error fetching recommendations:", error);
   }
 
   // Fetch recommendations with GET Reuqest
-  const getRecommendations = async (classes: string[]): Promise<RecommendationsResponse> => {
-    const classesParam = classes.join(',');
+  const getRecommendations = async (
+    classes: string[]
+  ): Promise<RecommendationsResponse> => {
+    const classesParam = classes.join(",");
     const response = await fetch(
-      `http://127.0.0.1:5000/major_recommendations?classes=${encodeURIComponent(classesParam)}`,
-      { method: 'GET' }
+      `http://127.0.0.1:5000/major_recommendations?classes=${encodeURIComponent(
+        classesParam
+      )}`,
+      { method: "GET" }
     );
-    
+
     if (!response.ok) {
-      throw new Error('Failed to get recommendations');
+      throw new Error("Failed to get recommendations");
     }
-    
     return response.json();
+    
   };
 
   // Process the classes input and get recommendations
   const processClassesInput = () => {
-    const classes = classesInput.split(",").map((c) => c.trim()).filter((c) => c.length > 0);
-    setCompletedCourses(new Set(classes));
+    const classes = classesInput
+      .split(",")
+      .map((c) => c.trim())
+      .filter((c) => c.length > 0);
     if (classes.length > 0) {
       setClassesToRecommend(classes);
       refetchRecommendations();
@@ -133,15 +155,13 @@ const MajorPlanner = ({ selectedMajor, onBack }: MajorPlannerProps) => {
     });
   };
 
-
   const renderCourseSection = (
-    title: string, 
+    title: string,
     courseGroups: Array<{ class: string[] }> = []
   ) => {
-    const allCourses = courseGroups.flatMap(group => group.class);
-    
+    const allCourses = courseGroups.flatMap((group) => group.class);
+
     return (
-      
       <Box sx={{ mb: 4 }}>
         <SectionTitle variant="h5" gutterBottom>
           {title}
@@ -150,11 +170,17 @@ const MajorPlanner = ({ selectedMajor, onBack }: MajorPlannerProps) => {
           </CourseCount>
         </SectionTitle>
         <Grid container spacing={2}>
-          {courseGroups.map((group, groupIndex) => 
+          {courseGroups.map((group, groupIndex) =>
             group.class.map((course) => {
               const isCompleted = completedCourses.has(course);
               return (
-                <Grid item xs={12} sm={6} md={3} key={`${course}-${groupIndex}`}>
+                <Grid
+                  item
+                  xs={12}
+                  sm={6}
+                  md={3}
+                  key={`${course}-${groupIndex}`}
+                >
                   <CourseCard
                     elevation={2}
                     completed={isCompleted}
@@ -173,8 +199,8 @@ const MajorPlanner = ({ selectedMajor, onBack }: MajorPlannerProps) => {
                         </Typography>
                         <Tooltip
                           title={
-                            isCompleted 
-                              ? "Mark as Incomplete" 
+                            isCompleted
+                              ? "Mark as Incomplete"
                               : "Mark as Complete"
                           }
                         >
@@ -206,61 +232,67 @@ const MajorPlanner = ({ selectedMajor, onBack }: MajorPlannerProps) => {
           Electives
           <CourseCount>
             Requirements:
-            {courseData.electives.required.math} Math, 
+            {courseData.electives.required.math} Math,
             {courseData.electives.required.upperDivision} Upper Division
           </CourseCount>
         </SectionTitle>
-        {Object.entries(courseData.electives.categories).map(([key, category]) => (
-          <Box key={key} sx={{ mb: 3 }}>
-            <Typography variant="h6" gutterBottom>
-              {category.name}
-            </Typography>
-            <Grid container spacing={2}>
-              {category.courses.map((courseGroup) => 
-                courseGroup.class.map((course) => {
-                  const isCompleted = completedCourses.has(course);
-                  return (
-                    <Grid item xs={12} sm={6} md={3} key={course}>
-                      <CourseCard
-                        elevation={2}
-                        completed={isCompleted}
-                        onClick={() => toggleCourseCompletion(course)}
-                      >
-                        <CourseCardContent>
-                          <Box
-                            sx={{
-                              display: "flex",
-                              justifyContent: "space-between",
-                              alignItems: "center",
-                            }}
-                          >
-                            <Typography variant="h6" component="div">
-                              {course}
-                            </Typography>
-                            <Tooltip
-                              title={
-                                isCompleted 
-                                  ? "Mark as Incomplete" 
-                                  : "Mark as Complete"
-                              }
+        {Object.entries(courseData.electives.categories).map(
+          ([key, category]) => (
+            <Box key={key} sx={{ mb: 3 }}>
+              <Typography variant="h6" gutterBottom>
+                {category.name}
+              </Typography>
+              <Grid container spacing={2}>
+                {category.courses.map((courseGroup) =>
+                  courseGroup.class.map((course) => {
+                    const isCompleted = completedCourses.has(course);
+                    return (
+                      <Grid item xs={12} sm={6} md={3} key={course}>
+                        <CourseCard
+                          elevation={2}
+                          completed={isCompleted}
+                          onClick={() => toggleCourseCompletion(course)}
+                        >
+                          <CourseCardContent>
+                            <Box
+                              sx={{
+                                display: "flex",
+                                justifyContent: "space-between",
+                                alignItems: "center",
+                              }}
                             >
-                              <IconButton
-                                size="small"
-                                color={isCompleted ? "success" : "default"}
+                              <Typography variant="h6" component="div">
+                                {course}
+                              </Typography>
+                              <Tooltip
+                                title={
+                                  isCompleted
+                                    ? "Mark as Incomplete"
+                                    : "Mark as Complete"
+                                }
                               >
-                                {isCompleted ? <CheckCircleIcon /> : <AddIcon />}
-                              </IconButton>
-                            </Tooltip>
-                          </Box>
-                        </CourseCardContent>
-                      </CourseCard>
-                    </Grid>
-                  );
-                })
-              )}
-            </Grid>
-          </Box>
-        ))}
+                                <IconButton
+                                  size="small"
+                                  color={isCompleted ? "success" : "default"}
+                                >
+                                  {isCompleted ? (
+                                    <CheckCircleIcon />
+                                  ) : (
+                                    <AddIcon />
+                                  )}
+                                </IconButton>
+                              </Tooltip>
+                            </Box>
+                          </CourseCardContent>
+                        </CourseCard>
+                      </Grid>
+                    );
+                  })
+                )}
+              </Grid>
+            </Box>
+          )
+        )}
       </Box>
     );
   };
@@ -286,20 +318,34 @@ const MajorPlanner = ({ selectedMajor, onBack }: MajorPlannerProps) => {
       </Box>
 
       <ProgressPaper elevation={2}>
-        <Box sx={{display: "flex", justifyContent: "space-between", alignItems: "center", width: "100%"}}>
+        <Box
+          sx={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            width: "100%",
+          }}
+        >
           <Typography variant="h6" gutterBottom>
             Overall Progress
           </Typography>
-          <Box sx={{ display: "flex", flexDirection: "column", width: "500px", gap: 1 }}>
+          <Box
+            sx={{
+              display: "flex",
+              flexDirection: "column",
+              width: "500px",
+              gap: 1,
+            }}
+          >
             <textarea
-              style={{ 
-                padding: "8px", 
-                fontSize: "16px", 
-                width: "100%", 
-                height: "100px", 
-                borderRadius: "4px", 
+              style={{
+                padding: "8px",
+                fontSize: "16px",
+                width: "100%",
+                height: "100px",
+                borderRadius: "4px",
                 border: "1px solid #ccc",
-                resize: "vertical"
+                resize: "vertical",
               }}
               placeholder="Enter classes taken... e.g. (CSE 30, CSE 16, Math 19A, CSE 120...)"
               value={classesInput}
@@ -307,15 +353,15 @@ const MajorPlanner = ({ selectedMajor, onBack }: MajorPlannerProps) => {
             />
             <Box sx={{ display: "flex", justifyContent: "flex-end" }}>
               <Tooltip title="Mark these classes as completed and get recommendations">
-                <IconButton 
+                <IconButton
                   onClick={processClassesInput}
                   color="primary"
                   disabled={isLoadingRecommendations}
-                  sx={{ 
+                  sx={{
                     border: "1px solid",
                     borderColor: "primary.main",
                     borderRadius: 1,
-                    px: 2
+                    px: 2,
                   }}
                 >
                   {isLoadingRecommendations ? (
@@ -325,7 +371,9 @@ const MajorPlanner = ({ selectedMajor, onBack }: MajorPlannerProps) => {
                     </>
                   ) : (
                     <>
-                      <Typography variant="button" sx={{ mr: 1 }}>Submit & Get Recommendations</Typography>
+                      <Typography variant="button" sx={{ mr: 1 }}>
+                        Submit & Get Recommendations
+                      </Typography>
                       <CheckCircleIcon />
                     </>
                   )}
@@ -334,8 +382,7 @@ const MajorPlanner = ({ selectedMajor, onBack }: MajorPlannerProps) => {
             </Box>
           </Box>
         </Box>
-        
-        
+
         <Box sx={{ display: "flex", gap: 2 }}>
           <ProgressChip
             label={`${completedCourses.size} Completed`}
@@ -351,22 +398,26 @@ const MajorPlanner = ({ selectedMajor, onBack }: MajorPlannerProps) => {
             color="primary"
           />
         </Box>
-        
+
         {isLoadingRecommendations && (
           <Box sx={{ display: "flex", alignItems: "center", mt: 2 }}>
             <CircularProgress size={24} sx={{ mr: 1 }} />
             <Typography>Getting recommendations...</Typography>
           </Box>
         )}
-        
+
         {recommendedCourses.length > 0 && !isLoadingRecommendations && (
           <Box sx={{ mt: 3 }}>
-            <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center' }}>
+            <Typography
+              variant="h6"
+              gutterBottom
+              sx={{ display: "flex", alignItems: "center" }}
+            >
               <SchoolIcon sx={{ mr: 1 }} />
               Recommended Next Courses
             </Typography>
-            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
-              {recommendedCourses.map(course => (
+            <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1 }}>
+              {recommendedCourses.map((course) => (
                 <Chip
                   key={course}
                   label={course}
@@ -379,7 +430,7 @@ const MajorPlanner = ({ selectedMajor, onBack }: MajorPlannerProps) => {
           </Box>
         )}
       </ProgressPaper>
-      
+
       <Box sx={{ padding: 2 }}>
         <Grid container spacing={1}>
           {[
@@ -392,7 +443,9 @@ const MajorPlanner = ({ selectedMajor, onBack }: MajorPlannerProps) => {
               <StyledChip
                 label={section.label}
                 onClick={() => setSelectedSection(section.value as any)}
-                color={selectedSection === section.value ? "primary" : "default"}
+                color={
+                  selectedSection === section.value ? "primary" : "default"
+                }
               />
             </Grid>
           ))}
@@ -401,12 +454,18 @@ const MajorPlanner = ({ selectedMajor, onBack }: MajorPlannerProps) => {
 
       {courseData && (
         <>
-          {selectedSection === "Core" && 
+          {selectedSection === "Core" &&
             renderCourseSection("Core Courses", courseData.requirements.core)}
-          {selectedSection === "Capstone" && 
-            renderCourseSection("Capstone Courses", courseData.requirements.capstone)}
-          {selectedSection === "DC" && 
-            renderCourseSection("Disciplinary Communication", courseData.requirements.dc)}
+          {selectedSection === "Capstone" &&
+            renderCourseSection(
+              "Capstone Courses",
+              courseData.requirements.capstone
+            )}
+          {selectedSection === "DC" &&
+            renderCourseSection(
+              "Disciplinary Communication",
+              courseData.requirements.dc
+            )}
           {selectedSection === "Electives" && renderElectivesSection()}
         </>
       )}
