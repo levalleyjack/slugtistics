@@ -309,3 +309,37 @@ def cleanup_request(exception=None):
         db.session.remove()
     if exception:
         logger.error(f"Exception during request teardown: {str(exception)}")
+
+# FIll out what classes have been taken
+@courses_bp.route("/major_recommendations", methods=["GET"])
+def major_recommendations():
+    # Get classes 
+    classes_str = request.args.get('classes', '')
+    if not classes_str:
+        return jsonify({
+            "error": "No classes provided in request",
+            "success": False
+        }), 400
+    
+    # Parse string for classes
+    classes_taken = [c.strip() for c in classes_str.split(',')]
+    
+    # replace with mongodb fetching
+    needed_classes = {
+        "CSE 20": [],
+        "CSE 30": [],
+        "MATH 19A": ["MATH 20A"],
+        "MATH 19B": ["MATH 20B"]
+    }
+    
+    result = set()
+    for c in classes_taken:
+        if c in needed_classes:
+            result.add(c)
+            for next_class in needed_classes.get(c, []):
+                result.add(next_class)
+    
+    return jsonify({
+        "recommended_classes": list(result),
+        "success": True
+    })

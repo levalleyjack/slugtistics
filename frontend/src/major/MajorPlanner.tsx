@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import {
   Box,
   Card,
@@ -50,14 +50,18 @@ interface CourseData {
   };
 }
 
+interface RecommendationsResponse {
+  recommended_classes: string[];
+  success: boolean;
+}
+
 const MajorPlanner = ({ selectedMajor, onBack }: MajorPlannerProps) => {
-  const [completedCourses, setCompletedCourses] = useState<Set<string>>(
-    new Set()
-  );
-  const [selectedSection, setSelectedSection] = useState<
-    "Core" | "Capstone" | "DC" | "Electives"
-  >("Core");
+  const [completedCourses, setCompletedCourses] = useState<Set<string>>(new Set());
+  const [selectedSection, setSelectedSection] = useState< "Core" | "Capstone" | "DC" | "Electives">("Core");
   const [classesInput, setClassesInput] = useState<string>("");
+  const [recommendedCourses, setRecommendedCourses] = useState<string[]>([]);
+  const [isProcessing, setIsProcessing] = useState<boolean>(false);
+  const [classesToRecommend, setClassesToRecommend] = useState<string[]>([]);
 
   const { data: courseData, isLoading } = useQuery<CourseData>({
     queryKey: ["course-requirements"],
@@ -71,16 +75,52 @@ const MajorPlanner = ({ selectedMajor, onBack }: MajorPlannerProps) => {
       return response.json();
     },
   });
-
-  //Very case sensitive, need to improve
-  const processClassesInput = () => {
-    // Split by comma, get rid of whitespace and empty strings
-    const classes = classesInput.split(",").map((c) => c.trim()).filter((c) => c.length > 0);
-
-    setCompletedCourses(new Set(classes));
-
+  
+  // Calls get recommendations, usequery to constantly ipdate
+  const { data: recommendationsData, isLoading: isLoadingRecommendations, refetch: refetchRecommendations, error } = useQuery<RecommendationsResponse, Error>({
+    queryKey: ["recommendations", classesToRecommend],
+    queryFn: () => getRecommendations(classesToRecommend),
+    enabled: classesToRecommend.length > 0
+  });
+  
+  //check if data is new and update
+  if (recommendationsData?.recommended_classes && recommendationsData.recommended_classes.length > 0) {
+    if (recommendedCourses.length === 0 || 
+        JSON.stringify(recommendationsData.recommended_classes) !== JSON.stringify(recommendedCourses)) {
+      setRecommendedCourses(recommendationsData.recommended_classes);
+    }
+  }
+  
+  if (error) {
+    console.error("Error fetching recommendations:", error);
   }
 
+  // Fetch recommendations with GET Reuqest
+  const getRecommendations = async (classes: string[]): Promise<RecommendationsResponse> => {
+    const classesParam = classes.join(',');
+    const response = await fetch(
+      `http://127.0.0.1:5000/major_recommendations?classes=${encodeURIComponent(classesParam)}`,
+      { method: 'GET' }
+    );
+    
+    if (!response.ok) {
+      throw new Error('Failed to get recommendations');
+    }
+    
+    return response.json();
+  };
+
+  // Process the classes input and get recommendations
+  const processClassesInput = () => {
+    const classes = classesInput.split(",").map((c) => c.trim()).filter((c) => c.length > 0);
+    setCompletedCourses(new Set(classes));
+    if (classes.length > 0) {
+      setClassesToRecommend(classes);
+      refetchRecommendations();
+    }
+  };
+
+  // Update the completed courses set
   const toggleCourseCompletion = (course: string) => {
     setCompletedCourses((prev) => {
       const newSet = new Set(prev);
@@ -92,6 +132,7 @@ const MajorPlanner = ({ selectedMajor, onBack }: MajorPlannerProps) => {
       return newSet;
     });
   };
+
 
   const renderCourseSection = (
     title: string, 
@@ -265,10 +306,11 @@ const MajorPlanner = ({ selectedMajor, onBack }: MajorPlannerProps) => {
               onChange={(e) => setClassesInput(e.target.value)}
             />
             <Box sx={{ display: "flex", justifyContent: "flex-end" }}>
-              <Tooltip title="Mark these classes as completed">
+              <Tooltip title="Mark these classes as completed and get recommendations">
                 <IconButton 
                   onClick={processClassesInput}
                   color="primary"
+                  disabled={isLoadingRecommendations}
                   sx={{ 
                     border: "1px solid",
                     borderColor: "primary.main",
@@ -276,8 +318,17 @@ const MajorPlanner = ({ selectedMajor, onBack }: MajorPlannerProps) => {
                     px: 2
                   }}
                 >
-                  <Typography variant="button" sx={{ mr: 1 }}>Submit</Typography>
-                  <CheckCircleIcon />
+                  {isLoadingRecommendations ? (
+                    <>
+                      <CircularProgress size={20} sx={{ mr: 1 }} />
+                      <Typography variant="button">Processing...</Typography>
+                    </>
+                  ) : (
+                    <>
+                      <Typography variant="button" sx={{ mr: 1 }}>Submit & Get Recommendations</Typography>
+                      <CheckCircleIcon />
+                    </>
+                  )}
                 </IconButton>
               </Tooltip>
             </Box>
@@ -300,6 +351,33 @@ const MajorPlanner = ({ selectedMajor, onBack }: MajorPlannerProps) => {
             color="primary"
           />
         </Box>
+        
+        {isLoadingRecommendations && (
+          <Box sx={{ display: "flex", alignItems: "center", mt: 2 }}>
+            <CircularProgress size={24} sx={{ mr: 1 }} />
+            <Typography>Getting recommendations...</Typography>
+          </Box>
+        )}
+        
+        {recommendedCourses.length > 0 && !isLoadingRecommendations && (
+          <Box sx={{ mt: 3 }}>
+            <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center' }}>
+              <SchoolIcon sx={{ mr: 1 }} />
+              Recommended Next Courses
+            </Typography>
+            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+              {recommendedCourses.map(course => (
+                <Chip
+                  key={course}
+                  label={course}
+                  color="secondary"
+                  sx={{ fontWeight: 500 }}
+                  onClick={() => toggleCourseCompletion(course)}
+                />
+              ))}
+            </Box>
+          </Box>
+        )}
       </ProgressPaper>
       
       <Box sx={{ padding: 2 }}>
@@ -400,4 +478,4 @@ const CourseCardContent = styled(CardContent)({
   },
 });
 
-export default MajorPlanner; 
+export default MajorPlanner;
