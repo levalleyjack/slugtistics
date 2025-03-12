@@ -273,7 +273,10 @@ export interface CourseApiResponse {
     id: number;
     description: string;
     class_notes: string;
-    enrollment_reqs: string;
+    enrollment_reqs: {
+      description: string;
+      courses: string[][];
+    };
     discussion_sections: DiscussionSection[];
   };
   success: boolean;
@@ -677,13 +680,13 @@ export const calculateNormalizedCourseScore = (
 ): number => {
   const defaultGpa = 3;
   const defaultRating = 2.5;
-  
+
   const normalizedGpa = (gpa ?? defaultGpa) / 4;
   const normalizedRating = (instructorRating ?? defaultRating) / 5;
-  
+
   const enhancedGpa = 1 / (1 + Math.exp(-6 * (normalizedGpa - 0.5)));
   const enhancedRating = 1 / (1 + Math.exp(-4 * (normalizedRating - 0.5)));
-  
+
   return gpaWeight * enhancedGpa + (1 - gpaWeight) * enhancedRating;
 };
 
@@ -699,4 +702,3 @@ export const calculateCourseScoreOutOf10 = (
   );
   return normalizedScore * 10;
 };
-

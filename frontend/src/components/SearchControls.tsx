@@ -5,6 +5,7 @@ import GlobalSearch from "./GlobalSearchDropdownList";
 import ExpandButton from "./ExpandButton";
 import FilterDropdown from "./FilterDropdown";
 import { fetchLastUpdate } from "../pages/FetchLastUpdate";
+import { useQuery } from "@tanstack/react-query";
 
 const HeaderContainer = styled("div")(({ theme }) => ({
   display: "flex",
@@ -84,10 +85,11 @@ export const SearchControls: React.FC<SearchControlsProps> = ({
   selectedCareers,
   setSelectedCareers,
 }) => {
-  const [lastUpdated, setLastUpdated] = React.useState<string>("None");
-  fetchLastUpdate()
-    .then((result) => setLastUpdated(result))
-    .catch(() => setLastUpdated("Error loading update time"));
+  const { data: lastUpdated = "Loading..." } = useQuery({
+    queryKey: ["lastUpdate"],
+    queryFn: fetchLastUpdate,
+    staleTime: 5 * 60 * 1000,
+  });
   return (
     <HeaderContainer>
       <SearchSection>

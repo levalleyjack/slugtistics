@@ -4,15 +4,49 @@ from contextlib import contextmanager
 from sqlalchemy import func, case
 from tenacity import retry, stop_after_attempt, wait_exponential
 import logging
-import uuid
-import hashlib
 from scraping.ratings import get_detailed_professor_info
 from models.data_models import CourseModel, LastUpdateModel, VisitorModel, db
 from config import app
-
+from helper_functions import get_majors
+from chatbot.course_recommender import CourseRecommender
 logger = logging.getLogger(__name__)
 courses_bp = Blueprint("courses", __name__)
+#chatbot, ignore
+# course_recommender = None
+# def init_course_recommender(app):
+#     """Initialize the global CourseRecommender instance"""
+#     global course_recommender
+#     try:
+#         with app.app_context():
+#             session = db.session()
+#             try:
+#                 courses = session.query(CourseModel).all()
+#                 course_recommender = CourseRecommender(courses=courses)
+#                 logger.info("CourseRecommender initialized successfully")
+#             finally:
+#                 session.close()
+#     except Exception as e:
+#         logger.error(f"Error initializing CourseRecommender: {str(e)}")
+#         raise
 
+
+prereq_dict = {}
+def init_prereq_dict(app):
+    "make prereq dict"
+    global prereq_dict
+    with app.app_context():
+        session = db.session()
+        try:
+            courses = session.query(CourseModel).all()
+            for course in courses:
+                key = f"{course.subject} {course.catalog_num}"
+                prereq_dict[key] = course.enrollment_reqs["courses"]
+            print(prereq_dict["CSE 101"])
+            return prereq_dict
+            
+        except Exception as e:
+            logger.error(f"Error initializing prereq_list: {str(e)}")
+            raise
 
 @contextmanager
 def session_scope():
@@ -41,111 +75,34 @@ def execute_with_retry(query_func):
     with app.app_context():
         return query_func()
 
-
-
-
-@courses_bp.before_app_request
-def track_visitor():
-    if not request.path.startswith(('/static/', '/favicon.ico')):
-        try:
-            ip = request.remote_addr
-            user_agent = request.user_agent.string
-            visitor_signature = f"{ip}_{user_agent}"
-            
-            yesterday = datetime.now() - timedelta(days=1)
-            with session_scope() as session:
-                recent_visit = session.query(VisitorModel).filter(
-                    VisitorModel.ip_address == ip,
-                    VisitorModel.user_agent == user_agent, 
-                    VisitorModel.path == request.path,
-                    VisitorModel.timestamp >= yesterday
-                ).first()
-                
-                is_unique = recent_visit is None
-
-                visitor = VisitorModel(
-                    path=request.path,
-                    ip_address=ip,
-                    user_agent=user_agent,
-                    referrer=request.referrer,
-                    is_unique=is_unique
-                )
-                session.add(visitor)
-        except Exception as e:
-            logger.error(f"Error tracking visitor: {str(e)}")
-            
-
-@courses_bp.route("/api/pyback/visitors/stats", methods=["GET"])
-def get_visitor_stats():
-    try:
-        days = request.args.get('days', 30, type=int)
-        start_date = datetime.now() - timedelta(days=days)
-        
-        with session_scope() as session:
-            # Total visits
-            total_visits = session.query(func.count(VisitorModel.id))\
-                .filter(VisitorModel.timestamp >= start_date).scalar()
-
-            # Unique visits
-            unique_visits = session.query(func.count(VisitorModel.id))\
-                .filter(
-                    VisitorModel.timestamp >= start_date,
-                    VisitorModel.is_unique == True
-                ).scalar()
-                
-            # Daily visits (total and unique)
-            daily_stats = session.query(
-                func.date(VisitorModel.timestamp).label('date'),
-                func.count(VisitorModel.id).label('total_visits'),
-                func.sum(case((VisitorModel.is_unique == True, 1), else_=0)).label('unique_visits')
-            ).filter(VisitorModel.timestamp >= start_date)\
-             .group_by(func.date(VisitorModel.timestamp))\
-             .all()
-                
-            # Most visited pages
-            popular_pages = session.query(
-                VisitorModel.path,
-                func.count(VisitorModel.id).label('total_visits'),
-                func.sum(case((VisitorModel.is_unique == True, 1), else_=0)).label('unique_visits')
-            ).filter(VisitorModel.timestamp >= start_date)\
-             .group_by(VisitorModel.path)\
-             .order_by(func.count(VisitorModel.id).desc())\
-             .limit(10)\
-             .all()
-            
-            return jsonify({
-                'success': True,
-                'data': {
-                    'total_visits': total_visits,
-                    'unique_visits': unique_visits,
-                    'daily_stats': [{
-                        'date': str(date),
-                        'total_visits': total,
-                        'unique_visits': unique
-                    } for date, total, unique in daily_stats],
-                    'popular_pages': [{
-                        'path': path,
-                        'total_visits': total,
-                        'unique_visits': unique
-                    } for path, total, unique in popular_pages]
-                }
-            })
-
-    except Exception as e:
-        logger.error(f"Error retrieving visitor stats: {str(e)}")
-        return jsonify({
-            'error': "Failed to retrieve visitor statistics",
-            'message': str(e),
-            'success': False
-        }), 500
-
-
 @courses_bp.route("/instructor_ratings", methods=["GET"])
 def get_instructor_ratings():
     instructor = request.args.get("instructor")
     course = request.args.get("course")
     instructor_ratings = get_detailed_professor_info(instructor, course)
     return instructor_ratings.to_dict() if instructor_ratings else None
+
+@courses_bp.route("/all_majors", methods=["GET"])
+def get_all_majors():
+    majors_data = get_majors()
+    all_majors = [
+        {
+            "name": major_name,
+        }
+        for major_name in majors_data.keys()
+    ]
+    return jsonify(all_majors)
+
+
+@courses_bp.route("/major_courses/<major>", methods=["GET"])
+def get_major_classes(major):
+    majors_data = get_majors()
+    return jsonify(majors_data[major])
+
+@courses_bp.route("/prereq/<prereq>", methods=["GET"])
+def get_prereq(prereq):
+    return jsonify(prereq_dict[prereq])
+    
 
 
 @courses_bp.route("/course_details/<enroll_num>", methods=["GET"])
@@ -194,24 +151,33 @@ def get_google_maps_api():
         "key": "AIzaSyBnCh2ugCrcyKDKT3HHry5KjkjS4ps4PT0"
     })
 
-@courses_bp.route("/recommend_class", methods=["POST"])
-def recommend_class():
-    if 'file' not in request.files:
-        return "No file part in the request", 400
+# @courses_bp.route("/recommend_class", methods=["POST"])
+# def recommend_class():
+#     if 'file' not in request.files:
+#         return jsonify({"error": "No file part in the request"}), 400
 
-    file = request.files['file']
-    if file.filename == '':
-        return "No file selected", 400
+#     transcript = request.files['file']
+#     if transcript.filename == '':
+#         return jsonify({"error": "No file selected"}), 400
     
-    preferences = request.form.get('preferences', '')
-    #AI Logic
-    # variable "file" is the transcript file
-    # variable "preferences" is the optional user preferences
-    
-    recommended_class = f"AI recommends class for: {file.filename} with preferences: {preferences}"
-    
-    return {"recommended_class": recommended_class}, 200
+#     preferences = request.form.get('preferences', '')
 
+#     courses = scrape_transcript(transcript)
+#     print(courses)
+#     if course_recommender is None:
+#         return jsonify({"error": "Course recommender not initialized"}), 500
+    
+#     try:
+#         recommended_class = course_recommender.get_recommendations(transcript=courses)
+#         return jsonify({"recommended_class": recommended_class, "success": True}), 200
+#     except Exception as e:
+#         logger.error(f"Error getting recommendations: {str(e)}")
+#         return jsonify({
+#             "error": "Failed to get recommendations",
+#             "message": str(e),
+#             "success": False
+#         }), 500
+    
 @courses_bp.route("/ge_courses", methods=["GET"])
 def get_ge_courses():
     try:

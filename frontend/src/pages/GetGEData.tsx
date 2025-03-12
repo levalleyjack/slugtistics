@@ -4,7 +4,6 @@ import React, { useCallback, useState } from "react";
 import { Course } from "../Constants";
 
 export const local = "https://api.slugtistics.com/api/pyback";
-
 const CONFIG = {
   staleTime: 5 * 60 * 1000,
   gcTime: 30 * 60 * 1000,
