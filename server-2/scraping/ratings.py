@@ -277,7 +277,7 @@ def _search_professor(
 
     try:
         variables = {
-            "query": {"schoolID": school_id, "text": search_query},
+            "query": {"schoolID": school_id, "text": search_query, "fallback": True, },
         }
         #filter by course code if any
         if course_filter is not None:
@@ -286,10 +286,12 @@ def _search_professor(
         #query RMP using graphQL
         response = requests.post(
             rmp_url,
-            headers={
-                "Authorization": "Basic dGVzdDp0ZXN0",
-                "Content-Type": "application/json",
-            },
+            headers = {
+            "Authorization": "Basic dGVzdDp0ZXN0",
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/87.0.4280.88 Safari/537.36",
+            "Content-Type": "application/json",
+            "Referer": f"https://www.ratemyprofessors.com/search/teachers/{school_id.replace('U2Nob29sLQ==', '')}?q={search_query}"
+        },
             json={
                 "query": query,
                 "variables": variables,

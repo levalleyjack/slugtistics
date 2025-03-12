@@ -3,8 +3,7 @@ import axios from "axios";
 import React, { useCallback, useState } from "react";
 import { Course } from "../Constants";
 
-export const local = "http://127.0.0.1:5000";
-
+export const local = "https://api.slugtistics.com/api/pyback";
 const CONFIG = {
   staleTime: 5 * 60 * 1000,
   gcTime: 30 * 60 * 1000,
