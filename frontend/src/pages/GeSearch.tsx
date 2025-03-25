@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useMemo, useRef } from "react";
-import { useTheme, useMediaQuery, styled } from "@mui/material";
+import { useTheme, useMediaQuery, styled, Typography } from "@mui/material";
 import {
   calculateCourseScoreOutOf10,
   COLORS,
@@ -9,6 +9,7 @@ import {
 } from "../Constants";
 import {
   useGECourseData,
+  useGEState,
   useLocalStorage,
   useSessionStorage,
 } from "./GetGEData";
@@ -16,11 +17,11 @@ import CategoryDrawer from "../components/CategoryDrawer";
 import { SearchControls } from "../components/SearchControls";
 import { CourseList } from "./VirtualizedCourseList";
 import { PanelDrawer } from "../components/PanelDrawer";
+import { useLocation, useNavigate } from "react-router-dom";
 import EnhancedCourseComparison from "../components/CourseComparisonTabs";
 
 const BREAKPOINT_CATEGORY = 1340;
-const BREAKPOINT_DISTRIBUTION = 990;
-
+const BREAKPOINT_DISTRIBUTION = 1047;
 const filterCourses = (courses: Course[] = [], search: string) => {
   if (!search) return courses;
   const searchLower = search.toLowerCase();
@@ -121,25 +122,39 @@ const GeSearch: React.FC = () => {
     `(max-width:${BREAKPOINT_DISTRIBUTION}px)`
   );
   const isSmallScreen = useMediaQuery(theme.breakpoints.down("sm"));
+  const [headerVisible, setHeaderVisible] = useState(true);
+  const lastScrollPosition = useRef(0);
+  const handleScrollPositionChange = (position: number) => {
+    const scrollingUp = lastScrollPosition.current - position > -5;
+    const scrolledPastThreshold = position > 5;
+    const scrolledUpEnough = lastScrollPosition.current - position > 25;
+    if (!scrolledPastThreshold) {
+      setHeaderVisible(true);
+    } else if (scrollingUp && scrolledPastThreshold && scrolledUpEnough) {
+      setHeaderVisible(true);
+    } else if (!scrollingUp && scrolledPastThreshold) {
+      setHeaderVisible(false);
+    }
+
+    lastScrollPosition.current = position;
+  };
 
   const [search, setSearch] = useState("");
-  const [panelData, setPanelData] = useSessionStorage<PanelData | null>(
-    "gePanelData",
-    null
-  );
-  const [activePanel, setActivePanel] = useSessionStorage<
+  const [panelData, setPanelData] = useState<PanelData | null>(null);
+  const [activePanel, setActivePanel] = useState<
     "distribution" | "ratings" | "courseDetails" | null
-  >("geActivePanel", null);
+  >(null);
 
   const [isOpen, setIsOpen] = useState(false);
-  const [scrollToCourseId, setScrollToCourseId] = useState<string>();
-  const [expandedCodesMap, setExpandedCodesMap] = useState(
-    new Map<string, boolean>()
-  );
+  const [selectedCourse, setSelectedCourse] = useState<string>("");
   const isAllExpanded = useRef(false);
 
   const [sortBy, setSortBy] = useSessionStorage("sortBy", "DEFAULT");
-  const [selectedGE, setSelectedGE] = useSessionStorage("selectedGE", "AnyGE");
+  const location = useLocation();
+  const navigate = useNavigate();
+  const queryParams = new URLSearchParams(location.search);
+  const [selectedGE, setSelectedGE] = useGEState("AnyGE");
+
   const [selectedClassTypes, setSelectedClassTypes] = useSessionStorage<
     string[]
   >("selectedClassTypes", []);
@@ -162,13 +177,13 @@ const GeSearch: React.FC = () => {
     "selectedSubjects",
     []
   );
-  const [comparisonCourses, setComparisonCourses] = useLocalStorage<Course[]>(
-    "comparisonCourses",
+  const [favoriteCourses, setFavoriteCourses] = useLocalStorage<Course[]>(
+    "favoriteCourses",
     []
   );
 
-  const [isComparisonOpen, setIsComparisonOpen] = useLocalStorage(
-    "isComparisonOpen",
+  const [isFavoritesOpen, setIsFavoritesOpen] = useLocalStorage(
+    "isFavoritesOpen",
     false
   );
 
@@ -176,21 +191,26 @@ const GeSearch: React.FC = () => {
     "isCategoriesVisible",
     false
   );
-  const handleAddToComparison = (course: Course) => {
-    if (!comparisonCourses.find((c) => c.id === course.id)) {
-      setComparisonCourses((prev) => [...prev, course]);
-      setIsComparisonOpen(true);
+
+  const handleAddToFavorites = (course: Course) => {
+    if (!favoriteCourses.find((c) => c.enroll_num === course.enroll_num)) {
+      setFavoriteCourses((prev) => [...prev, course]);
+      setIsFavoritesOpen(true);
     }
   };
 
-  const handleRemoveFromComparison = (index: number) => {
-    setComparisonCourses((prev) => prev.filter((_, i) => i !== index));
+  const handleRemoveFromFavorites = (index: number) => {
+    setFavoriteCourses((prev) => prev.filter((_, i) => i !== index));
   };
   const handleClearAll = () => {
-    setComparisonCourses([]);
+    setFavoriteCourses([]);
   };
 
-  const { data: courses, isLoading: isFetchLoading } = useGECourseData();
+  const {
+    data: courses,
+    isLoading: isFetchLoading,
+    error: coursesError,
+  } = useGECourseData();
   const currentCourses = courses?.[selectedGE];
 
   const codes = useMemo(
@@ -226,24 +246,22 @@ const GeSearch: React.FC = () => {
     (course: Course, courseId: string, category?: string) => {
       handleClearFilters();
       setSelectedGE(category ?? "AnyGE");
-      setScrollToCourseId(courseId);
-      setExpandedCodesMap((prev) => new Map(prev).set(courseId, true));
-
+      setSelectedCourse(courseId);
       setPanelData(course);
       setActivePanel("courseDetails");
     },
     [handleClearFilters, setSelectedGE, setPanelData, setActivePanel]
   );
 
-  const handleExpandAll = useCallback(() => {
-    isAllExpanded.current = !isAllExpanded.current;
-    setExpandedCodesMap(
-      new Map(
-        currentCourses?.map((course) => [course.id, isAllExpanded.current]) ??
-          []
-      )
-    );
-  }, [currentCourses]);
+  // const handleExpandAll = useCallback(() => {
+  //   isAllExpanded.current = !isAllExpanded.current;
+  //   setExpandedCodesMap(
+  //     new Map(
+  //       currentCourses?.map((course) => [course.id, isAllExpanded.current]) ??
+  //         []
+  //     )
+  //   );
+  // }, [currentCourses]);
 
   const filteredCourses = useMemo(() => {
     const searchFiltered = filterCourses(currentCourses, search);
@@ -290,7 +308,7 @@ const GeSearch: React.FC = () => {
       <MainContent>
         <ContentContainer>
           <SearchControls
-            isSmallScreen={isSmallScreen}
+            headerVisible={headerVisible}
             isCategoryDrawer={isCategoryDrawer}
             handleCategoryToggle={() =>
               setIsCategoriesVisible(!isCategoriesVisible)
@@ -299,8 +317,6 @@ const GeSearch: React.FC = () => {
             courses={courses}
             handleGlobalCourseSelect={handleGlobalCourseSelect}
             selectedGE={selectedGE}
-            isAllExpanded={isAllExpanded.current}
-            handleExpandAll={handleExpandAll}
             codes={codes}
             GEs={GEs}
             sortBy={sortBy}
@@ -319,12 +335,12 @@ const GeSearch: React.FC = () => {
             setSelectedPrereqs={setSelectedPrereqs}
           />
 
-          {isComparisonOpen && comparisonCourses.length > 0 && (
-            <ComparisonContainer>
+          {isFavoritesOpen && favoriteCourses.length > 0 && (
+            <FavoritesContainer>
               <EnhancedCourseComparison
                 onClearAll={handleClearAll}
-                courses={comparisonCourses}
-                onRemoveCourse={handleRemoveFromComparison}
+                courses={favoriteCourses}
+                onRemoveCourse={handleRemoveFromFavorites}
                 onDistributionOpen={(courseCode, professorName) => {
                   setPanelData({ courseCode, professorName });
                   setActivePanel("distribution");
@@ -338,28 +354,43 @@ const GeSearch: React.FC = () => {
                   setActivePanel("courseDetails");
                 }}
               />
-            </ComparisonContainer>
+            </FavoritesContainer>
           )}
 
-          <ListContainer isComparisonOpen={isComparisonOpen}>
-            <CourseList
-              isFetchLoading={isFetchLoading}
-              filteredCourses={filteredCourses}
-              isSmallScreen={isSmallScreen}
-              expandedCodesMap={expandedCodesMap}
-              setExpandedCodesMap={setExpandedCodesMap}
-              scrollToCourseId={scrollToCourseId}
-              selectedGE={selectedGE}
-              setSelectedGE={setSelectedGE}
-              setPanelData={setPanelData}
-              setActivePanel={setActivePanel}
-              handleClearFilters={handleClearFilters}
-              handleAddToComparison={handleAddToComparison}
-            />
+          <ListContainer isFavoritesOpen={isFavoritesOpen}>
+            {!coursesError ? (
+              <CourseList
+                isFetchLoading={isFetchLoading}
+                filteredCourses={filteredCourses}
+                isSmallScreen={isSmallScreen}
+                selectedCourse={selectedCourse}
+                comparisonCourses={favoriteCourses}
+                setSelectedCourse={setSelectedCourse}
+                selectedGE={selectedGE}
+                setSelectedGE={setSelectedGE}
+                setPanelData={setPanelData}
+                setActivePanel={setActivePanel}
+                handleClearFilters={handleClearFilters}
+                handleAddToFavorites={handleAddToFavorites}
+                onScrollPositionChange={handleScrollPositionChange}
+              />
+            ) : (
+              <div
+                style={{
+                  display: "flex",
+                  height: "100%",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                <Typography color="text.secondary">
+                  Server is starting soon, please wait...
+                </Typography>
+              </div>
+            )}
           </ListContainer>
         </ContentContainer>
       </MainContent>
-
       <PanelDrawer
         activePanel={activePanel}
         panelData={panelData}
@@ -368,6 +399,7 @@ const GeSearch: React.FC = () => {
         onClose={() => {
           setActivePanel(null);
           setPanelData(null);
+          setSelectedCourse("");
         }}
       />
     </Root>
@@ -376,9 +408,7 @@ const GeSearch: React.FC = () => {
 
 const Root = styled("div")({
   display: "flex",
-  backgroundColor: COLORS.GRAY_50,
   height: "calc(100dvh - 64px)",
-  overflow: "hidden",
 });
 
 const MainContent = styled("div")({
@@ -396,18 +426,17 @@ const ContentContainer = styled("div")({
   backgroundColor: COLORS.WHITE,
 });
 
-const ComparisonContainer = styled("div")(({ theme }) => ({
+const FavoritesContainer = styled("div")(({ theme }) => ({
   backgroundColor: COLORS.WHITE,
   borderBottom: `1px solid ${theme.palette.divider}`,
 }));
 
-const ListContainer = styled("div")<{ isComparisonOpen: boolean }>(
+const ListContainer = styled("div")<{ isFavoritesOpen: boolean }>(
   ({ theme }) => ({
     flex: 1,
     display: "flex",
     flexDirection: "column",
     overflow: "auto",
-    backgroundColor: COLORS.GRAY_50,
   })
 );
 export default GeSearch;

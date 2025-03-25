@@ -54,7 +54,7 @@ const StyledFormControl = styled(FormControl)(({ theme }) => ({
   marginBottom: theme.spacing(2),
   "& .MuiOutlinedInput-root": {
     backgroundColor: "white",
-    borderRadius: "8px",
+    borderRadius: "4px",
     transition: "all 0.2s ease-in-out",
     "&:hover": {
       backgroundColor: alpha(theme.palette.primary.main, 0.04),
@@ -77,6 +77,11 @@ const StyledFilterButton = styled(Button)(({ theme }) => ({
     backgroundColor: alpha(theme.palette.primary.main, 0.04),
     borderColor: theme.palette.primary.main,
     boxShadow: `0 2px 8px ${alpha(theme.palette.primary.main, 0.15)}`,
+  },
+  [theme.breakpoints.down("sm")]: {
+    ".MuiButton-startIcon, .MuiButton-endIcon": {
+      margin: 0, // Remove margin for small screens
+    },
   },
   transition: "all 0.2s ease-in-out",
 }));
@@ -125,6 +130,7 @@ const StyledPopover = styled(Popover)(({ theme }) => ({
 }));
 const StyledPopoverContent = styled(Box)(({ theme }) => ({
   padding: theme.spacing(3),
+  paddingBottom: 0,
   width: 320,
   overflow: "auto",
 
@@ -142,6 +148,7 @@ const StyledPopoverContent = styled(Box)(({ theme }) => ({
 const StyledToggleButtonGroup = styled(ToggleButtonGroup)(({ theme }) => ({
   width: "100%",
   "& .MuiToggleButtonGroup-grouped": {
+
     borderRadius: "8px",
     flex: 1,
     border: `1px solid ${theme.palette.divider}`,
@@ -161,32 +168,28 @@ const StyledToggleButtonGroup = styled(ToggleButtonGroup)(({ theme }) => ({
 }));
 
 const StyledMenuItem = styled(MenuItem)(({ theme }) => ({
-  margin: "4px 0",
-  borderRadius: "10px",
-  padding: "10px 16px",
   minHeight: "44px",
+  color: theme.palette.text.secondary,
   gap: "8px",
-  transition: "all 0.2s ease",
   "&:hover": {
     backgroundColor: alpha(theme.palette.primary.main, 0.08),
-    transform: "translateX(4px)",
+    color: theme.palette.primary.main, 
   },
   "&.Mui-selected": {
+    color: theme.palette.text.primary, 
+    "& .MuiSvgIcon-root": {
+      color: theme.palette.primary.main, 
+    },
     backgroundColor: alpha(theme.palette.primary.main, 0.12),
     "&:hover": {
       backgroundColor: alpha(theme.palette.primary.main, 0.16),
     },
   },
-  [theme.breakpoints.down("sm")]: {
-    "&:hover": {
-      transform: "translateX(0px)",
-    },
-  },
+  
 }));
 const MenuProps: SelectProps["MenuProps"] = {
   PaperProps: {
     style: {
-      borderRadius: "8px",
       maxHeight: 300,
     },
     elevation: 3,
@@ -258,7 +261,9 @@ const FilterDropdown: React.FC<FilterDropdownProps> = ({
       (GEs?.length > 1 ? selectedGEs.length : 0) +
       selectedCareers.length +
       selectedPrereqs.length;
-    return `Filters ${totalFilters > 0 ? `(${totalFilters})` : ""}`;
+    return `${isMobile ? "" : "Filters"} ${
+      totalFilters > 0 ? `(${totalFilters})` : ""
+    }`;
   }, [
     selectedSubjects,
     selectedClassTypes,
@@ -267,6 +272,7 @@ const FilterDropdown: React.FC<FilterDropdownProps> = ({
     GEs,
     selectedCareers,
     selectedPrereqs,
+    isMobile,
   ]);
 
   const handleSortChange = useCallback(
@@ -374,6 +380,15 @@ const FilterDropdown: React.FC<FilterDropdownProps> = ({
         transformOrigin={{
           vertical: "top",
           horizontal: "right",
+        }}
+        slotProps={{
+          root: {
+            slotProps: {
+              backdrop: {
+                open: true,
+              },
+            },
+          },
         }}
         elevation={4}
       >

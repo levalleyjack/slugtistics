@@ -34,7 +34,9 @@ interface CourseComparisonProps {
 
 const Container = styled(Paper)({
   width: "100%",
+  borderRadius: "4px !important",
   height: "fit-content",
+
   display: "flex",
   flexDirection: "column",
   overflow: "hidden",

@@ -49,19 +49,6 @@ const StatisticsContent = styled(Box)(({ theme }) => ({
   padding: theme.spacing(2),
 
   overflowY: "auto",
-  "&::-webkit-scrollbar": {
-    width: "6px",
-  },
-  "&::-webkit-scrollbar-track": {
-    background: "transparent",
-  },
-  "&::-webkit-scrollbar-thumb": {
-    background: theme.palette.divider,
-    borderRadius: "3px",
-  },
-  "&::-webkit-scrollbar-thumb:hover": {
-    background: theme.palette.action.hover,
-  },
 }));
 
 

@@ -1,5 +1,5 @@
 import React from "react";
-import { Drawer } from "@mui/material";
+import { Drawer, useTheme } from "@mui/material";
 import { CourseDistribution } from "../pages/CourseDistribution";
 import RatingsPanel from "./RatingsPanel";
 import { CourseDetailsPanel } from "./CourseDetails";
@@ -18,10 +18,16 @@ export const PanelDrawer: React.FC<PanelDrawerProps> = ({
       anchor="right"
       open={Boolean(activePanel)}
       onClose={onClose}
+      transitionDuration={{ enter: 200, exit: 200 }}
       sx={{
         width: activePanel ? (isSmallScreen ? "100%" : "min(400px, 90dvw)") : 0,
         flexShrink: 0,
+        opacity: activePanel || isDistributionDrawer ? 1 : 0,
+
+        transition: "width 0.2s, opacity 0.3s",
         "& .MuiDrawer-paper": {
+          border: "none",
+
           width: isSmallScreen ? "100%" : "min(400px, 90dvw)",
           marginTop: "64px",
           height: "calc(100% - 64px)",

@@ -487,21 +487,7 @@ const MessageList: React.FC<MessageListProps> = ({ messages, theme }) => (
       flexDirection: "column",
       gap: "12px",
       backgroundColor: theme.palette.grey[50],
-      "&::-webkit-scrollbar": {
-        width: "8px",
-        borderRadius: "8px",
-      },
-      "&::-webkit-scrollbar-track": {
-        background: theme.palette.grey[200],
-        borderRadius: "8px",
-      },
-      "&::-webkit-scrollbar-thumb": {
-        background: theme.palette.grey[400],
-        borderRadius: "8px",
-        "&:hover": {
-          background: theme.palette.grey[500],
-        },
-      },
+     
     }}
   >
     {messages.map((message) => (

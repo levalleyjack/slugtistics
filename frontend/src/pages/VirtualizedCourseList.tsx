@@ -1,20 +1,24 @@
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  UIEvent,
+} from "react";
 import { Virtuoso } from "react-virtuoso";
-import { Box, Button, styled, Typography } from "@mui/material";
+import { Box, Divider, styled, Typography } from "@mui/material";
 import { CourseCard } from "../components/CourseCard";
 import { COLORS, Course, CourseCode } from "../Constants";
 import { LoadingCourseCard } from "../components/LoadingComponents";
 import SentimentVeryDissatisfiedIcon from "@mui/icons-material/SentimentVeryDissatisfied";
-interface CardRefs {
-  [key: string]: HTMLDivElement | null;
-}
 
 interface DynamicCourseListProps {
   filteredCourses: Course[];
   isSmallScreen: boolean;
-  expandedCodesMap: Map<string, boolean>;
-  handleExpandCard: (courseId: string) => void;
-  scrollToCourseId?: string;
+  selectedCourse: string;
+  handleSelectedCourse: (courseId: string) => void;
+  comparisonCourses: Course[];
+
   setSelectedGE?: (category: string) => void;
   onDistributionOpen: (courseCode: string, professorName: string) => void;
   onRatingsOpen: (
@@ -23,7 +27,8 @@ interface DynamicCourseListProps {
     courseCodes: CourseCode[]
   ) => void;
   onCourseDetailsOpen: (course: Course) => void;
-  handleAddToComparison?: (course: Course) => void;
+  handleAddToFavorites?: (course: Course) => void;
+  onScrollPositionChange?: (position: number) => void;
 }
 
 const ListWrapper = styled("div")({
@@ -44,55 +49,53 @@ const NoResults = styled(Typography)(({ theme }) => ({
   color: COLORS.GRAY_400,
 }));
 
-const ItemWrapper = styled("div")<{ isLastItem?: boolean }>(
-  ({ theme, isLastItem }) => ({
-    padding: "16px",
-    paddingBottom: isLastItem ? "16px" : 0,
-    boxSizing: "border-box",
-  })
-);
-
+const ItemWrapper = styled("div")<{
+  isFirstItem?: boolean;
+  isLastItem?: boolean;
+}>(({ theme, isFirstItem, isLastItem }) => ({
+  boxSizing: "border-box",
+  display: "flex",
+  justifyContent: "center",
+  width: "100%",
+}));
 export const DynamicCourseList: React.FC<DynamicCourseListProps> = ({
   filteredCourses,
   isSmallScreen,
-  expandedCodesMap,
-  handleExpandCard,
-  scrollToCourseId,
+  selectedCourse,
+  handleSelectedCourse,
+  comparisonCourses,
   setSelectedGE,
   onDistributionOpen,
   onRatingsOpen,
   onCourseDetailsOpen,
-  handleAddToComparison,
+  handleAddToFavorites,
+  onScrollPositionChange,
 }) => {
-  const cardRefs = useRef<CardRefs>({});
   const virtuosoRef = useRef<any>(null);
   const scrollTimeoutRef = useRef<NodeJS.Timeout>();
   const [lastScrolledId, setLastScrolledId] = useState<string | null>(null);
+  const scrollRef = useRef<HTMLDivElement | null>(null);
   const previousFilteredCoursesRef = useRef<Course[]>(filteredCourses);
+  const handleScroll = (event: any) => {
+    const scrollTop =
+      typeof event.scrollTop !== "undefined"
+        ? event.scrollTop
+        : event.target?.scrollTop || event.currentTarget?.scrollTop || 0;
+
+    if (onScrollPositionChange) {
+      onScrollPositionChange(scrollTop);
+    }
+  };
 
   useEffect(() => {
     previousFilteredCoursesRef.current = filteredCourses;
   }, [filteredCourses]);
 
   useEffect(() => {
-    filteredCourses.forEach((course) => {
-      if (!cardRefs.current[course.id]) {
-        cardRefs.current[course.id] = null;
-      }
-    });
-
-    Object.keys(cardRefs.current).forEach((unique_id) => {
-      if (!filteredCourses.find((course) => course.id === unique_id)) {
-        delete cardRefs.current[unique_id];
-      }
-    });
-  }, [filteredCourses]);
-
-  useEffect(() => {
-    if (!scrollToCourseId || !virtuosoRef.current) return;
+    if (!selectedCourse || !virtuosoRef.current) return;
 
     const courseIndex = filteredCourses.findIndex(
-      (course) => course.id === scrollToCourseId
+      (course) => course.id === selectedCourse
     );
 
     if (courseIndex === -1) return;
@@ -106,7 +109,7 @@ export const DynamicCourseList: React.FC<DynamicCourseListProps> = ({
     }
 
     if (
-      scrollToCourseId !== lastScrolledId ||
+      selectedCourse !== lastScrolledId ||
       previousFilteredCoursesRef.current !== filteredCourses
     ) {
       scrollTimeoutRef.current = setTimeout(() => {
@@ -115,7 +118,7 @@ export const DynamicCourseList: React.FC<DynamicCourseListProps> = ({
           align: "center",
           behavior: "smooth",
         });
-        setLastScrolledId(scrollToCourseId);
+        setLastScrolledId(selectedCourse);
       }, 100);
     }
 
@@ -124,56 +127,74 @@ export const DynamicCourseList: React.FC<DynamicCourseListProps> = ({
         clearTimeout(scrollTimeoutRef.current);
       }
     };
-  }, [scrollToCourseId, filteredCourses, lastScrolledId]);
-
-  const setCardRef = useCallback(
-    (courseId: string, element: HTMLDivElement | null) => {
-      cardRefs.current[courseId] = element;
-    },
-    []
-  );
+  }, [selectedCourse, filteredCourses, lastScrolledId]);
 
   const itemContent = useCallback(
     (index: number) => {
       const course = filteredCourses[index];
-      const isExpanded = expandedCodesMap.get(course.id);
+      const isExpanded = course.id === selectedCourse;
       const isLastItem = index === filteredCourses.length - 1;
       const isFirstItem = index === 0;
+      const favorited = comparisonCourses.some(
+        (c) => c.enroll_num == course.enroll_num
+      );
+      const isBottomExpanded =
+        !isLastItem && filteredCourses[index + 1].id === selectedCourse;
 
       return (
         <ItemWrapper
+          isFirstItem={isFirstItem}
           isLastItem={isLastItem}
-          ref={(el) => setCardRef(course.id, el as HTMLDivElement)}
           data-course-id={course.id}
         >
-          <CourseCard
-            course={course}
-            isSmallScreen={isSmallScreen}
-            expanded={!!isExpanded}
-            onExpandChange={() => handleExpandCard(course.id)}
-            {...(setSelectedGE ? { setSelectedGE } : {})} // Conditionally add setSelectedGE
-            onDistributionOpen={onDistributionOpen}
-            onRatingsOpen={onRatingsOpen}
-            onCourseDetailsOpen={onCourseDetailsOpen}
-            handleAddToComparison={handleAddToComparison}
-            hideCompareButton={handleAddToComparison ? false : true}
-          />
+          <Box
+            sx={{
+              width: "600px",
+              maxWidth: "100%", //make sure responsive on small screens
+            }}
+          >
+            <CourseCard
+              course={course}
+              isSmallScreen={isSmallScreen}
+              expanded={!!isExpanded}
+              onExpandChange={() => {
+                handleSelectedCourse(course.id);
+              }}
+              isFavorited={favorited}
+              {...(setSelectedGE ? { setSelectedGE } : {})} //conditionally adds selectge
+              onDistributionOpen={onDistributionOpen}
+              onRatingsOpen={onRatingsOpen}
+              onCourseDetailsOpen={onCourseDetailsOpen}
+              handleAddToFavorites={handleAddToFavorites}
+              hideCompareButton={handleAddToFavorites ? false : true}
+            />
+
+            <Divider
+              sx={{
+                display: "flex",
+                mb: "1.5px",
+                mt: "1.5px",
+                visibility:
+                  isExpanded || isBottomExpanded ? "hidden" : "visible",
+              }}
+            />
+          </Box>
         </ItemWrapper>
       );
     },
     [
       filteredCourses,
       isSmallScreen,
-      expandedCodesMap,
-      handleExpandCard,
-      setCardRef,
-      handleAddToComparison,
+      selectedCourse,
+      handleSelectedCourse,
+      handleAddToFavorites,
     ]
   );
 
   return (
     <ListWrapper>
       <Virtuoso
+        fixedItemHeight={160}
         ref={virtuosoRef}
         style={{ height: "100%" }}
         totalCount={filteredCourses.length}
@@ -183,6 +204,10 @@ export const DynamicCourseList: React.FC<DynamicCourseListProps> = ({
           (index) => filteredCourses[index].id,
           [filteredCourses]
         )}
+        onScroll={handleScroll}
+        scrollerRef={(ref) => {
+          scrollRef.current = ref as HTMLDivElement | null;
+        }}
       />
     </ListWrapper>
   );
@@ -192,9 +217,10 @@ interface CourseListProps {
   isFetchLoading: boolean;
   filteredCourses: Course[];
   isSmallScreen: boolean;
-  expandedCodesMap: Map<string, boolean>;
-  setExpandedCodesMap: (value: Map<string, boolean>) => void;
-  scrollToCourseId?: string;
+  selectedCourse: string;
+  setSelectedCourse: (courseId: string) => void;
+  comparisonCourses: Course[];
+
   selectedGE: string;
   setSelectedGE: (ge: string) => void;
   setPanelData: (data: any) => void;
@@ -202,30 +228,48 @@ interface CourseListProps {
     panel: "distribution" | "ratings" | "courseDetails" | null
   ) => void;
   handleClearFilters: () => void;
-  handleAddToComparison: (course: Course) => void; // Add this line
+  handleAddToFavorites: (course: Course) => void;
+  onScrollPositionChange?: (position: number) => void;
 }
 
 export const CourseList: React.FC<CourseListProps> = ({
   isFetchLoading,
   filteredCourses,
   isSmallScreen,
-  expandedCodesMap,
-  setExpandedCodesMap,
-  scrollToCourseId,
+  selectedCourse,
+  setSelectedCourse,
+  comparisonCourses,
   selectedGE,
   setSelectedGE,
   setPanelData,
   setActivePanel,
   handleClearFilters,
-  handleAddToComparison,
+  handleAddToFavorites,
+  onScrollPositionChange,
 }) => {
   if (isFetchLoading) {
     return (
-      <Box sx={{ p: 0 }}>
+      <ListWrapper>
         {Array.from({ length: 5 }).map((_, i) => (
-          <LoadingCourseCard key={i} />
+          <ItemWrapper key={i}>
+            <Box
+              sx={{
+                width: "600px",
+                maxWidth: "100%", //make sure responsive on small screens
+              }}
+            >
+              <LoadingCourseCard />
+              <Divider
+                sx={{
+                  display: "flex",
+                  mb: "1.5px",
+                  mt: "1.5px",
+                }}
+              />
+            </Box>
+          </ItemWrapper>
         ))}
-      </Box>
+      </ListWrapper>
     );
   }
 
@@ -251,27 +295,28 @@ export const CourseList: React.FC<CourseListProps> = ({
       <DynamicCourseList
         filteredCourses={filteredCourses}
         isSmallScreen={isSmallScreen}
-        expandedCodesMap={expandedCodesMap}
-        handleExpandCard={(id) =>
-          setExpandedCodesMap(
-            new Map(expandedCodesMap.set(id, !expandedCodesMap.get(id)))
-          )
-        }
-        scrollToCourseId={scrollToCourseId}
+        selectedCourse={selectedCourse}
+        handleSelectedCourse={(id: string) => setSelectedCourse(id)}
         {...(selectedGE === "AnyGE" && { setSelectedGE })}
         onDistributionOpen={(courseCode, professorName) => {
           setPanelData({ courseCode, professorName });
           setActivePanel("distribution");
         }}
-        onRatingsOpen={(professorName, currentClass, courseCodes) => {
-          setPanelData({ professorName, currentClass, courseCodes });
+        onRatingsOpen={(professorName, courseCode, courseCodes) => {
+          setPanelData({
+            professorName,
+            currentClass: courseCode,
+            courseCodes,
+          });
           setActivePanel("ratings");
         }}
         onCourseDetailsOpen={(course) => {
           setPanelData(course);
           setActivePanel("courseDetails");
         }}
-        handleAddToComparison={handleAddToComparison}
+        handleAddToFavorites={handleAddToFavorites}
+        onScrollPositionChange={onScrollPositionChange}
+        comparisonCourses={comparisonCourses}
       />
     </>
   );

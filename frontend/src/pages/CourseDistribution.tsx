@@ -24,8 +24,12 @@ import { useQuery } from "@tanstack/react-query";
 import "chart.js/auto";
 import { ChartOptions } from "chart.js";
 import { Close, ArrowForward as ArrowForwardIcon } from "@mui/icons-material";
-import { ChartData, CourseDistributionProps, distributionAPIResponse, GradeDistribution } from "../Constants";
-
+import {
+  ChartData,
+  CourseDistributionProps,
+  distributionAPIResponse,
+  GradeDistribution,
+} from "../Constants";
 
 const BORDER_RADIUS = "12px";
 
@@ -303,6 +307,7 @@ export const CourseDistribution: React.FC<CourseDistributionProps> = ({
         sx={{
           p: 2,
           borderBottom: 1,
+          borderLeft: 1,
           borderColor: "divider",
           display: "flex",
           justifyContent: "space-between",

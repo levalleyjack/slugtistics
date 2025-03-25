@@ -39,6 +39,7 @@ import ClearIcon from "@mui/icons-material/Clear";
 
 const StyledPopper = styled(Popper)(({ theme }) => ({
   width: "100%",
+  zIndex: 10,
   position: "fixed",
 }));
 
@@ -113,6 +114,7 @@ const GlobalSearch = ({
   onCourseSelect,
   selectedGE,
   lastUpdated,
+  disabled = false,
 }: GlobalSearchDropdownProps) => {
   const [search, setSearch] = useState("");
   const [isOpen, setIsOpen] = useState(false);
@@ -268,6 +270,9 @@ const GlobalSearch = ({
     setSearch("");
     setIsOpen(false);
   };
+  if (disabled && isOpen) {
+    setIsOpen(false);
+  }
 
   const toggleExpand = () => {
     setIsOpen(!isOpen);
@@ -298,7 +303,6 @@ const GlobalSearch = ({
                     fontSize: "0.7rem",
                   }}
                   interactive={0}
-
                 />
               </Tooltip>
             )}
@@ -340,7 +344,7 @@ const GlobalSearch = ({
                 {rmpData && (
                   <div style={{ flexDirection: "row" }}>
                     <RatingChip
-                      icon={<StarIcon color="inherit" fontSize="small"/>}
+                      icon={<StarIcon color="inherit" fontSize="small" />}
                       label={`${rmpData.avg_rating?.toFixed(1) || "N/A"}/5`}
                       size="small"
                       sx={{
@@ -455,19 +459,11 @@ const GlobalSearch = ({
               }}
             />
           </div>
-
           <StyledPopper
             open={isOpen && search.length > 0}
             anchorEl={anchorRef.current}
             placement="bottom-start"
             modifiers={[
-              {
-                name: "offset",
-                options: {
-                  offset: [0, 0],
-                },
-              },
-
               {
                 name: "matchWidth",
                 enabled: true,

@@ -10,9 +10,48 @@ import AllCourses from "./pages/AllCourses";
 import { ReactNode } from "react";
 import { Chatbot } from "./components/ChatBot";
 import MajorSearch from "./major/MajorSearch";
+import { alpha, createTheme, ThemeProvider } from "@mui/material/styles";
 
 const queryClient = new QueryClient();
+const theme = createTheme({
+  components: {
+    MuiList: {
+      styleOverrides: {
+        root: {
+          padding: 0,
+        },
+      },
+    },
+    MuiMenuItem: {
+      styleOverrides: {
+        root: ({ theme }) => ({
+          padding: "12px 16px",
 
+          display: "flex",
+          gap: "10px",
+          transition: "background-color 0.2s",
+          "&:hover": {
+            backgroundColor: alpha(theme.palette.primary.main, 0.08),
+            color: theme.palette.primary.main,
+            "& .MuiSvgIcon-root": {
+              color: theme.palette.primary.main,
+            },
+          },
+          "&.Mui-selected": {
+            color: theme.palette.text.primary,
+            "& .MuiSvgIcon-root": {
+              color: theme.palette.primary.main,
+            },
+            backgroundColor: alpha(theme.palette.primary.main, 0.12),
+            "&:hover": {
+              backgroundColor: alpha(theme.palette.primary.main, 0.16),
+            },
+          },
+        }),
+      },
+    },
+  },
+});
 const PageLayout = ({
   title,
   children,
@@ -83,11 +122,13 @@ const AppContent = () => {
 
 function App() {
   return (
-    <QueryClientProvider client={queryClient}>
-      <BrowserRouter>
-        <AppContent />
-      </BrowserRouter>
-    </QueryClientProvider>
+    <ThemeProvider theme={theme}>
+      <QueryClientProvider client={queryClient}>
+        <BrowserRouter>
+          <AppContent />
+        </BrowserRouter>
+      </QueryClientProvider>
+    </ThemeProvider>
   );
 }
 
