@@ -6,10 +6,12 @@
   background: var(--primary-color);
   color: #f5f5f5;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-  position: sticky;
+  position: fixed;
+  width: 100vw;
+  box-sizing: border-box;
   top: 0;
   z-index: 1299;
-  min-height: 48px;
+  min-height: 64px;
 }
 
 .navbar-left,

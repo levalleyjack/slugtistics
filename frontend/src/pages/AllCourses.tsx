@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useMemo } from "react";
+import React, { useState, useCallback, useMemo, useRef } from "react";
 import {
   Typography,
   IconButton,
@@ -9,6 +9,7 @@ import {
 } from "@mui/material";
 import { useMediaQuery } from "@mui/material";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
+
 import {
   calculateCourseScoreOutOf10,
   COLORS,
@@ -30,7 +31,6 @@ import EnhancedCourseComparison from "../components/CourseComparisonTabs";
 
 const Root = styled("div")(({ theme }) => ({
   display: "flex",
-  backgroundColor: COLORS.GRAY_50,
   height: "calc(100dvh - 64px)",
   overflow: "hidden",
   [theme.breakpoints.down("sm")]: {
@@ -38,7 +38,8 @@ const Root = styled("div")(({ theme }) => ({
     height: "calc(100dvh - 64px)",
   },
 }));
-
+const BREAKPOINT_CATEGORY = 1340;
+const BREAKPOINT_DISTRIBUTION = 1047;
 const CourseContainer = styled("div")<{}>(({ theme }) => ({
   flex: 1,
   height: "100%",
@@ -66,9 +67,18 @@ const ListContainer = styled("div")<{ isComparisonOpen: boolean }>(
     display: "flex",
     flexDirection: "column",
     overflow: "auto",
-    backgroundColor: COLORS.GRAY_50,
   })
 );
+const DotAnimation = styled("span")`
+  display: inline-block;
+  font-size: 2rem;
+  animation: dotBlink 1.5s infinite;
+
+  @keyframes dotBlink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0; }
+  }
+`;
 
 const filterBySort = (
   sortBy: string,
@@ -177,12 +187,36 @@ const AllCourses = () => {
     []
   );
 
-  const [scrollToCourseId, setScrollToCourseId] = useState<
-    string | undefined
-  >();
-  const [expandedCodesMap, setExpandedCodesMap] = useState<
-    Map<string, boolean>
-  >(new Map());
+  const [headerVisible, setHeaderVisible] = useState(true);
+  const lastScrollPosition = useRef(0);
+  const accumulatedDelta = useRef(0);
+  const scrollDirectionRef = useRef<"up" | "down" | null>(null);
+  
+  const handleScrollPositionChange = (position: number) => {
+    const delta = position - lastScrollPosition.current;
+    const newDirection = delta > 0 ? "down" : delta < 0 ? "up" : null;
+  
+    if (newDirection !== scrollDirectionRef.current) {
+      accumulatedDelta.current = 0;
+      scrollDirectionRef.current = newDirection;
+    }
+  
+    accumulatedDelta.current += Math.abs(delta);
+  
+    if (position === 0) {
+      setHeaderVisible(true);
+      accumulatedDelta.current = 0;
+    } else if (scrollDirectionRef.current === "up" && accumulatedDelta.current > 120) {//scrolls up an entire course
+      setHeaderVisible(true);
+      accumulatedDelta.current = 0; 
+    } else if (scrollDirectionRef.current === "down" && accumulatedDelta.current > 5 && position > 0) {
+      setHeaderVisible(false);
+      accumulatedDelta.current = 0; 
+    }
+  
+    lastScrollPosition.current = position;
+  };
+
   const [panelData, setPanelData] = useSessionStorage<PanelData | null>(
     "allPanelData",
     null
@@ -202,27 +236,26 @@ const AllCourses = () => {
   );
 
   const [isOpen, setIsOpen] = useState(false);
+  const [selectedCourse, setSelectedCourse] = useState<string>("");
 
   const handleDrawerToggle = () => {
     setIsDrawerOpen(!isDrawerOpen);
   };
 
-  const isAllExpanded = React.useRef(false);
   const isSmallScreen = useMediaQuery(theme.breakpoints.down("sm"));
-  const isMediumScreen = useMediaQuery(theme.breakpoints.down("md"));
-  const isDistributionDrawer = useMediaQuery("(max-width: 990px)");
+  const isDistributionDrawer = useMediaQuery(
+    `(max-width:${BREAKPOINT_DISTRIBUTION}px)`
+  );
 
-  const { data: lastUpdated } = useQuery({
-    queryKey: ["lastUpdate"],
-    queryFn: fetchLastUpdate,
-    refetchInterval: 300000,
-    refetchIntervalInBackground: true,
-    refetchOnWindowFocus: false,
-    refetchOnMount: false,
-  });
-  const isCategoryDrawer = useMediaQuery(`(max-width:${`1340`}px)`);
+  const isCategoryDrawer = useMediaQuery(
+    `(max-width:${BREAKPOINT_CATEGORY}px)`
+  );
 
-  const { data: coursesData, isLoading: isFetchLoading } = useAllCourseData();
+  const {
+    data: coursesData,
+    isLoading: isFetchLoading,
+    error: courseError,
+  } = useAllCourseData();
   const currentCourses = useMemo(() => {
     return Array.isArray(coursesData) ? coursesData : [];
   }, [coursesData]);
@@ -233,7 +266,7 @@ const AllCourses = () => {
     },
     [setSortBy]
   );
-  const handleAddToComparison = (course: Course) => {
+  const handleAddToFavorites = (course: Course) => {
     if (!comparisonCourses.find((c) => c.id === course.id)) {
       setComparisonCourses((prev) => [...prev, course]);
       setIsComparisonOpen(true);
@@ -246,16 +279,6 @@ const AllCourses = () => {
   const handleClearAll = () => {
     setComparisonCourses([]);
   };
-
-  const handleExpandAll = useCallback(() => {
-    isAllExpanded.current = !isAllExpanded.current;
-    setExpandedCodesMap(
-      new Map(
-        currentCourses?.map((course) => [course.id, isAllExpanded.current]) ||
-          []
-      )
-    );
-  }, [currentCourses]);
 
   const filteredCourses = useMemo(() => {
     return filterBySort(
@@ -290,9 +313,7 @@ const AllCourses = () => {
   const handleGlobalCourseSelect = useCallback(
     (course: Course, courseId: string) => {
       handleClearFilters();
-      setScrollToCourseId(courseId);
-      setExpandedCodesMap((prev) => new Map(prev).set(courseId, true));
-
+      setSelectedCourse(courseId);
       setPanelData(course);
       setActivePanel("courseDetails");
     },
@@ -325,15 +346,13 @@ const AllCourses = () => {
       />
       <CourseContainer>
         <SearchControls
-          isSmallScreen={isSmallScreen}
-          isCategoryDrawer={isSmallScreen}
+          headerVisible={headerVisible}
+          isCategoryDrawer={isCategoryDrawer}
           handleCategoryToggle={handleDrawerToggle}
           isCategoriesVisible={isDrawerOpen}
           courses={currentCourses}
           handleGlobalCourseSelect={handleGlobalCourseSelect}
           selectedGE={""}
-          isAllExpanded={isAllExpanded.current}
-          handleExpandAll={handleExpandAll}
           codes={codes}
           GEs={GEs}
           sortBy={sortBy}
@@ -375,20 +394,38 @@ const AllCourses = () => {
         )}
 
         <ListContainer isComparisonOpen={isComparisonOpen}>
-          <CourseList
-            isFetchLoading={isFetchLoading}
-            filteredCourses={filteredCourses}
-            isSmallScreen={isSmallScreen}
-            expandedCodesMap={expandedCodesMap}
-            setExpandedCodesMap={setExpandedCodesMap}
-            scrollToCourseId={scrollToCourseId}
-            selectedGE={""}
-            setSelectedGE={() => {}}
-            setPanelData={setPanelData}
-            setActivePanel={setActivePanel}
-            handleClearFilters={handleClearFilters}
-            handleAddToComparison={handleAddToComparison}
-          />
+          {!courseError ? (
+            <CourseList
+              isFetchLoading={isFetchLoading}
+              filteredCourses={filteredCourses}
+              isSmallScreen={isSmallScreen}
+              selectedCourse={selectedCourse}
+              setSelectedCourse={setSelectedCourse}
+              comparisonCourses={comparisonCourses}
+              selectedGE={""}
+              setSelectedGE={() => {}}
+              setPanelData={setPanelData}
+              setActivePanel={setActivePanel}
+              handleClearFilters={handleClearFilters}
+              handleAddToFavorites={handleAddToFavorites}
+              onScrollPositionChange={handleScrollPositionChange}
+            />
+          ) : (
+            <div
+              style={{
+                display: "flex",
+                height: "100%",
+
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              <Typography color="text.secondary">
+                Server is starting soon, please wait
+                <DotAnimation />
+              </Typography>
+            </div>
+          )}
         </ListContainer>
       </CourseContainer>
 
@@ -400,6 +437,7 @@ const AllCourses = () => {
         onClose={() => {
           setActivePanel(null);
           setPanelData(null);
+          setSelectedCourse("");
         }}
       />
     </Root>

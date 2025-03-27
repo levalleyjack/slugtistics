@@ -100,6 +100,18 @@ const LocationMap: React.FC<LocationMapProps> = ({
     if (loc.includes("Steven Acad")) {
       return "Stevenson Academic 150";
     }
+    if (loc.includes("Crown Clrm")) {
+      return "Crown Classrooms";
+    }
+    if (loc.includes("Cowell Acad")) {
+      return "Cowell Classrooms";
+    }
+    if (loc.includes("Phy")) {
+      return "Physical Sciences Bldg";
+    }
+    if (loc.includes("Digital Arts")) {
+      return "Digital Arts and New Media";
+    }
     return `UC Santa Cruz ${loc}`;
   };
 

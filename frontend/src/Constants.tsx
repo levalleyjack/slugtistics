@@ -12,7 +12,7 @@ import VolunteerActivismIcon from "@mui/icons-material/VolunteerActivism";
 import AppsIcon from "@mui/icons-material/Apps";
 import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
 import BookIcon from "@mui/icons-material/Book";
-import { Chip, ChipProps, styled, Theme, useTheme } from "@mui/material";
+import { alpha, Chip, ChipProps, styled, Theme, useTheme } from "@mui/material";
 import Diversity2Icon from "@mui/icons-material/Diversity2";
 import HandshakeIcon from "@mui/icons-material/Handshake";
 import Diversity3Icon from "@mui/icons-material/Diversity3";
@@ -288,6 +288,11 @@ export interface CourseCardProps {
   course: Course;
   isSmallScreen: boolean;
   expanded: boolean;
+  ratingsOpen?: boolean;
+  distributionOpen?: boolean;
+  courseDetailsOpen?: boolean;
+  isFavorited?:boolean;
+
   onExpandChange?: (courseCode: string) => void;
   setSelectedGE?: (category: string) => void;
   onDistributionOpen: (courseCode: string, professorName: string) => void;
@@ -297,7 +302,7 @@ export interface CourseCardProps {
     courseCodes: CourseCode[]
   ) => void;
   onCourseDetailsOpen: (course: Course) => void;
-  handleAddToComparison?: (course: Course) => void;
+  handleAddToFavorites?: (course: Course) => void;
   hideCompareButton: boolean;
 }
 
@@ -359,9 +364,9 @@ export interface StatisticsDrawerProps {
   isDistributionDrawer: boolean;
 }
 export interface SearchControlsProps {
-  isSmallScreen: boolean;
   isCategoryDrawer: boolean;
   handleCategoryToggle: () => void;
+  headerVisible: boolean;
   isCategoriesVisible: boolean;
   courses: any;
   handleGlobalCourseSelect: (
@@ -370,8 +375,6 @@ export interface SearchControlsProps {
     category?: string
   ) => void;
   selectedGE: string;
-  isAllExpanded: boolean;
-  handleExpandAll: () => void;
   codes: string[];
   GEs: string[];
   sortBy: string;
@@ -435,47 +438,76 @@ export interface GlobalSearchDropdownProps {
   onCourseSelect: (course: Course, courseId: string, category?: string) => void;
   selectedGE?: string;
   lastUpdated: string;
+  disabled:boolean;
 }
 export const categories = [
-  { id: "AnyGE", name: "All Courses", icon: <AppsIcon /> },
-  { id: "C", name: "Composition", icon: <BookIcon /> },
+  { id: "AnyGE", name: "All Courses", icon: <AppsIcon color="inherit" /> },
+  { id: "C", name: "Composition", icon: <BookIcon color="inherit" /> },
 
-  { id: "CC", name: "Cross-Cultural Analysis", icon: <Diversity3Icon /> },
-  { id: "ER", name: "Ethnicity and Race", icon: <Diversity2Icon /> },
-  { id: "IM", name: "Interpreting Arts and Media", icon: <MenuBookIcon /> },
+  {
+    id: "CC",
+    name: "Cross-Cultural Analysis",
+    icon: <Diversity3Icon color="inherit" />,
+  },
+  {
+    id: "ER",
+    name: "Ethnicity and Race",
+    icon: <Diversity2Icon color="inherit" />,
+  },
+  {
+    id: "IM",
+    name: "Interpreting Arts and Media",
+    icon: <MenuBookIcon color="inherit" />,
+  },
   {
     id: "MF",
     name: "Mathematical and Formal Reasoning",
-    icon: <CalculateIcon />,
+    icon: <CalculateIcon color="inherit" />,
   },
-  { id: "SI", name: "Scientific Inquiry", icon: <ScienceIcon /> },
-  { id: "SR", name: "Statistical Reasoning", icon: <BarChartIcon /> },
-  { id: "TA", name: "Textual Analysis", icon: <AutoStoriesIcon /> },
+  {
+    id: "SI",
+    name: "Scientific Inquiry",
+    icon: <ScienceIcon color="inherit" />,
+  },
+  {
+    id: "SR",
+    name: "Statistical Reasoning",
+    icon: <BarChartIcon color="inherit" />,
+  },
+  {
+    id: "TA",
+    name: "Textual Analysis",
+    icon: <AutoStoriesIcon color="inherit" />,
+  },
   {
     id: "PE-E",
     name: "Perspectives: Environmental Awareness",
-    icon: <ParkIcon />,
+    icon: <ParkIcon color="inherit" />,
   },
   {
     id: "PE-H",
     name: "Perspectives: Human Behavior",
-    icon: <PsychologyIcon />,
+    icon: <PsychologyIcon color="inherit" />,
   },
   {
     id: "PE-T",
     name: "Perspectives: Technology and Society",
-    icon: <PrecisionManufacturingIcon />,
+    icon: <PrecisionManufacturingIcon color="inherit" />,
   },
   {
     id: "PR-E",
     name: "Practice: Collaborative Endeavor",
-    icon: <HandshakeIcon />,
+    icon: <HandshakeIcon color="inherit" />,
   },
-  { id: "PR-C", name: "Practice: Creative Process", icon: <PaletteIcon /> },
+  {
+    id: "PR-C",
+    name: "Practice: Creative Process",
+    icon: <PaletteIcon color="inherit" />,
+  },
   {
     id: "PR-S",
     name: "Practice: Service Learning",
-    icon: <VolunteerActivismIcon />,
+    icon: <VolunteerActivismIcon color="inherit" />,
   },
 ];
 
@@ -516,7 +548,7 @@ export const BaseChip = styled(Chip)(({ theme }) => ({
   height: "28px",
   fontWeight: "bold",
   "&.MuiChip-clickable": {
-    boxShadow: "0 2px 8px rgba(0, 0, 0, 0.15)",
+    boxShadow: "0 2px 8px rgba(0, 0, 0, 0.1)",
     "&:hover": {
       transform: "translateY(-2px)",
       filter: "brightness(110%)",
@@ -535,16 +567,13 @@ export const RatingChip = styled(BaseChip)(({ theme }) => ({
 }));
 export const ReviewCountChip = styled(BaseChip)(({ theme }) => ({
   height: "24px",
-  fontWeight: "lighter",
-  background: `linear-gradient(90deg,
-    ${theme.palette.primary.light} 0%,
-    ${theme.palette.secondary.light} 100%)`,
-  color: "white",
+
+  color: theme.palette.text.secondary,
+  backgroundColor: theme.palette.background.paper,
   "&.MuiChip-clickable:hover": {
-    background: `linear-gradient(135deg,
-      ${theme.palette.secondary.light} 0%,
-      ${theme.palette.primary.light} 100%)`,
-    color: "white",
+    backgroundColor: "transparent",
+
+    color: theme.palette.primary.main,
   },
 }));
 export const DifficultyChip = styled(BaseChip)<DifficultyChipProps>(
@@ -596,14 +625,19 @@ export const GECategoryChip = styled(BaseChip)(({ theme }) => ({
   background: `linear-gradient(135deg, 
     ${theme.palette.secondary.dark} 0%, 
     ${theme.palette.secondary.light} 100%)`,
-  fontWeight: "lighter",
   color: "white",
-  letterSpacing: "0.5px",
-  padding: "0 4px",
+  "& .MuiChip-icon": {
+    fontSize: "18px",
+    marginLeft: "4px",
+    marginRight: "-12px",
+  },
   "&.MuiChip-clickable:hover": {
     background: `linear-gradient(135deg, 
       ${theme.palette.secondary.light} 0%, 
       ${theme.palette.secondary.main} 100%)`,
+  },
+  "&.MuiChip-root": {
+    padding: "16px 8px",
   },
 }));
 

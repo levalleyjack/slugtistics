@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import axios from "axios";
 import React, { useCallback, useState } from "react";
 import { Course } from "../Constants";
+import { useNavigate, useSearchParams } from "react-router-dom";
 
 export const local = "https://api.slugtistics.com/api/pyback";
 const CONFIG = {
@@ -75,6 +76,27 @@ export const useAllCourseData = () => {
   };
 };
 
+export const useGEState = (defaultValue: string) => {
+  const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
+
+  const [selectedGE, setSelectedGE] = useState(() => {
+    return searchParams.get("ge") ?? defaultValue;
+  });
+
+  const setGEWithNavigation = useCallback(
+    (value: string | ((prev: string) => string)) => {
+      setSelectedGE((prev) => {
+        const newValue = typeof value === "function" ? value(prev) : value;
+        navigate(`/ge?ge=${newValue}`);
+        return newValue;
+      });
+    },
+    [navigate]
+  );
+
+  return [selectedGE, setGEWithNavigation] as const;
+};
 export const useSessionStorage = <T,>(key: string, defaultValue: T) => {
   const [state, setState] = useState<T>(() => {
     const stored = sessionStorage.getItem(key);

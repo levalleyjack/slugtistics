@@ -7,7 +7,7 @@ const StyledButton = styled(Button, {
   shouldForwardProp: (prop) => prop !== "fullWidth",
 })<StyledButtonProps>(({ theme, fullWidth }) => ({
   height: "36px",
-  borderRadius: "12px",
+  borderRadius: "8px",
   padding: "6px 16px",
   textTransform: "none",
   backgroundColor: theme.palette.primary.main,
@@ -17,7 +17,6 @@ const StyledButton = styled(Button, {
   background: `linear-gradient(135deg,
     ${theme.palette.primary.dark} 0%,
     ${theme.palette.primary.main} 100%)`,
-  transition: "all 0.2s ease-in-out",
 
   "&:hover": {
     boxShadow: "0 6px 16px rgba(0, 0, 0, 0.2)",
@@ -35,8 +34,9 @@ const StyledButton = styled(Button, {
   [theme.breakpoints.down("sm")]: {
     flex: fullWidth ? 1 : "initial",
     minWidth: fullWidth ? "120px" : "initial",
-    marginLeft: fullWidth ? theme.spacing(1) : "initial",
   },
+  transition: "all 0.5s",
+
 }));
 
 const ExpandButton: React.FC<ExpandButtonProps> = ({

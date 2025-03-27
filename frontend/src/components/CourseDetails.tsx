@@ -49,6 +49,7 @@ import StatusIcon from "./StatusIcon";
 import LocationMap from "./LocationComponent";
 import PrerequisitesSection from "./PrereqComponent";
 import { local } from "../pages/GetGEData";
+import RefreshIcon from "@mui/icons-material/Refresh";
 
 const ContentContainer = styled(Box)(({ theme }) => ({
   display: "flex",
@@ -60,13 +61,11 @@ const ContentContainer = styled(Box)(({ theme }) => ({
   maxWidth: "100%",
 }));
 
-const InfoSection = styled(Paper)(({ theme }) => ({
+const InfoSection = styled("div")(({ theme }) => ({
   borderRadius: "12px",
 
-  padding: theme.spacing(2),
+  padding: theme.spacing(1),
   marginBottom: theme.spacing(2),
-  backgroundColor: theme.palette.background.paper,
-  boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
   transition: "box-shadow 0.2s ease",
 }));
 
@@ -164,8 +163,8 @@ const DetailItem: React.FC<{
   if (!value) return null;
 
   return (
-    <Box sx={{ mb: 1.5, display: "flex", alignItems: "flex-start", gap: 1.5 }}>
-      <Box sx={{ color: "primary.main", mt: 0.5 }}>{icon}</Box>
+    <Box sx={{ display: "flex", alignItems: "flex-start", gap: 1.5 }}>
+      <Box sx={{ color: "primary.main" }}>{icon}</Box>
       <Box sx={{ flex: 1, minWidth: 0 }}>
         <Typography
           variant="caption"
@@ -180,7 +179,6 @@ const DetailItem: React.FC<{
           sx={{
             fontWeight: 500,
             wordBreak: "break-word",
-            fontSize: { xs: "0.875rem", sm: "1rem" },
           }}
         >
           {value}
@@ -188,6 +186,11 @@ const DetailItem: React.FC<{
       </Box>
     </Box>
   );
+};
+const isValidLocation = (location: string): boolean => {
+  if (!location) return false;
+  const invalidLocations = ["Online", "N/A", "Remote Instruction", "TBD"];
+  return !invalidLocations.includes(location) && !location.includes("TBD");
 };
 
 const CopyButton: React.FC<{ copyString: string; tooltip?: string }> = ({
@@ -228,6 +231,50 @@ export const CourseDetailsPanel: React.FC<CourseDetailsProps> = ({
   onClose,
   maxWidth = "100%",
 }) => {
+  const enrollmentQuery = useQuery({
+    queryKey: [
+      "enrollment",
+      course.subject,
+      course.catalog_num,
+      course.instructor,
+      course.enroll_num,
+    ],
+    queryFn: async () => {
+      try {
+        const response = await fetch(
+          `https://my.ucsc.edu/PSIGW/RESTListeningConnector/PSFT_CSPRD/SCX_CLASS_LIST.v1/2252?subject=${course.subject}&catalog_nbr=${course.catalog_num}`
+        );
+        const data = await response.json();
+
+        if (!data.classes?.length)
+          return { enrollment: course.class_count, waitlist: null };
+
+        const matchingClass = data.classes.find((classInfo: any) => {
+          return String(classInfo.class_nbr) === String(course.enroll_num);
+        });
+
+        if (matchingClass) {
+          return {
+            enrollment: `${matchingClass.enrl_total}/${matchingClass.enrl_capacity}`,
+            waitlist: parseInt(matchingClass.waitlist_total),
+          };
+        }
+
+        return { enrollment: course.class_count, waitlist: null };
+      } catch (error) {
+        console.error(`Error fetching enrollment:`, error);
+        return { enrollment: course.class_count, waitlist: null };
+      }
+    },
+    staleTime: 5 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
+    refetchOnWindowFocus: false,
+  });
+  const handleRefreshEnrollment = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    enrollmentQuery.refetch();
+  };
+
   const theme = useTheme();
   const isSmall = useMediaQuery(theme.breakpoints.down("sm"));
 
@@ -309,6 +356,8 @@ export const CourseDetailsPanel: React.FC<CourseDetailsProps> = ({
       <Box
         sx={{
           p: { xs: 1.5, sm: 2 },
+          borderLeft: 1,
+
           borderBottom: 1,
           borderColor: "divider",
           backgroundColor: "background.paper",
@@ -455,47 +504,95 @@ export const CourseDetailsPanel: React.FC<CourseDetailsProps> = ({
                     value={course.instructor}
                     icon={<PersonIcon />}
                   />
+                  <Box
+                    sx={{
+                      p: 0,
+                      m: 0,
+                      display: "flex",
+                      flexDirection: "row",
+                      justifyContent: "space-between",
+                    }}
+                  >
+                    <Box
+                      sx={{
+                        display: "flex",
+                        flexDirection: "row",
+                        alignItems: "flex-start",
+                        gap: 1,
+                        boxSizing: "border-box",
+                      }}
+                    >
+                      <DetailItem
+                        label="Enrolled Students"
+                        value={
+                          enrollmentQuery.isLoading
+                            ? course.class_count
+                            : enrollmentQuery.data?.enrollment
+                        }
+                        icon={<PeopleIcon />}
+                      />
+                      <Tooltip title="Refresh Enrollment">
+                        <IconButton
+                          size="small"
+                          onClick={handleRefreshEnrollment}
+                          sx={{
+                            color: "primary.main",
+                            animation: enrollmentQuery.isLoading
+                              ? "spin 1s linear infinite"
+                              : "none",
+                          }}
+                        >
+                          <RefreshIcon
+                            sx={{
+                              fontSize: "1rem",
+                              "@keyframes spin": {
+                                "0%": { transform: "rotate(0deg)" },
+                                "100%": { transform: "rotate(360deg)" },
+                              },
+                            }}
+                          />
+                        </IconButton>
+                      </Tooltip>
+                    </Box>
+
+                    {!enrollmentQuery.isLoading &&
+                      enrollmentQuery.data?.waitlist !== null && (
+                        <DetailItem
+                          label="Waitlist"
+                          value={enrollmentQuery?.data?.waitlist}
+                          icon={
+                            <StatusIcon status={ClassStatusEnum.WAITLIST} />
+                          }
+                        />
+                      )}
+                    <Divider />
+                  </Box>
                   <DetailItem
                     label="Meeting Times"
                     value={course.schedule}
                     icon={<ScheduleIcon />}
                   />
-                  {course.location &&
-                    course.location !== "Online" &&
-                    course.location !== "Remote Instruction" && (
-                      <Box>
-                        <DetailItem
-                          label="Location"
-                          value={course.location.split(":")[1]?.trim()}
-                          icon={<LocationIcon />}
+
+                  <Box>
+                    <DetailItem
+                      label="Location"
+                      value={course.location.split(":")[1]?.trim()}
+                      icon={<LocationIcon />}
+                    />
+                    {isValidLocation(course.location.split(":")[1]?.trim()) && (
+                      <Box sx={{ mt: 2 }}>
+                        <LocationMap
+                          location={course.location.split(":")[1]?.trim()}
                         />
-                        <Box sx={{ mt: 2 }}>
-                          <LocationMap
-                            location={course.location.split(":")[1]?.trim()}
-                          />
-                        </Box>
                       </Box>
                     )}
+                  </Box>
                   <DetailItem
                     label="Class Type"
                     value={course.class_type}
                     icon={<ClassIcon />}
                   />
-                  {course.gpa && (
-                    <DetailItem
-                      label="Average GPA"
-                      value={
-                        course.gpa.toFixed(2) +
-                        ` (${getLetterGrade(course.gpa)})`
-                      }
-                      icon={<GradeIcon />}
-                    />
-                  )}
-                  <DetailItem
-                    label="Enrolled Students"
-                    value={course.class_count}
-                    icon={<PeopleIcon />}
-                  />
+
                   <DetailItem
                     label="Grading Type"
                     value={course.grading}

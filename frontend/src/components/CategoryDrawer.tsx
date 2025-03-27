@@ -21,6 +21,7 @@ import {
   COLORS,
 } from "../Constants";
 import { ArrowForward } from "@mui/icons-material";
+import { useNavigate } from "react-router-dom";
 
 const StyledListItem = styled(ListItem)(({ theme }) => ({
   borderRadius: "8px",
@@ -93,29 +94,19 @@ const HoverTrigger = styled(Box)(({ theme }) => ({
 
 const StyledList = styled(List)(({ theme }) => ({
   padding: theme.spacing(1, 0),
+
   flex: 1,
   overflowY: "auto",
   overflowX: "hidden",
-  "&::-webkit-scrollbar": {
-    width: "7px",
-  },
-  "&::-webkit-scrollbar-track": {
-    background: "transparent",
-  },
-  "&::-webkit-scrollbar-thumb": {
-    background: theme.palette.grey[400],
-    borderRadius: "4px",
-  },
-  "&::-webkit-scrollbar-thumb:hover": {
-    background: theme.palette.grey[500],
-  },
+
 }));
 
 const CategoryItem = memo(
   ({ category, isSelected, onSelect }: CategoryItemProps) => {
+    const navigate = useNavigate();
     const handleClick = useCallback(() => {
       onSelect(category.id);
-    }, [category.id, onSelect]);
+    }, [category.id, onSelect, navigate]);
 
     const theme = useTheme();
     const isSmallScreen = useMediaQuery(theme.breakpoints.down("sm"));
@@ -222,7 +213,6 @@ const CategoryDrawer = ({
   }, [isCategoryDrawer, setIsOpen]);
 
   const isTemporary = !isCategoriesVisible || isCategoryDrawer;
-  const variant = isTemporary ? "temporary" : "persistent";
 
   React.useEffect(() => {
     return () => {
@@ -241,12 +231,12 @@ const CategoryDrawer = ({
         />
       )}
       <Drawer
-        variant={variant}
+        variant={isTemporary ? "temporary" : "persistent"}
         anchor="left"
-        open={
+        open={Boolean(
           (isOpen || isCategoriesVisible) &&
-          (!isDistributionDrawer || !activePanel)
-        }
+            (!isDistributionDrawer || !activePanel)
+        )}
         onClose={handleClose}
         SlideProps={{
           onMouseEnter: handleMouseEnter,
@@ -254,11 +244,18 @@ const CategoryDrawer = ({
         }}
         sx={{
           width:
-            isOpen || isCategoriesVisible ? (isCategoryDrawer ? 240 : 300) : 0,
+            isOpen || isCategoriesVisible
+              ? isCategoryDrawer
+                ? "240px"
+                : "300px"
+              : 0,
+
+          transition: "width 0.3s",
           flexShrink: 0,
+
           "& .MuiDrawer-paper": {
             marginTop: "64px",
-            width: isCategoryDrawer ? 240 : 300,
+            width: isCategoryDrawer ? "240px" : "300px",
             height: "calc(100dvh - 64px)",
             boxSizing: "border-box",
             borderTopRightRadius: !isTemporary ? 0 : "8px",
