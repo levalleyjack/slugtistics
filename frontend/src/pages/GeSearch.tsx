@@ -124,20 +124,34 @@ const GeSearch: React.FC = () => {
   const isSmallScreen = useMediaQuery(theme.breakpoints.down("sm"));
   const [headerVisible, setHeaderVisible] = useState(true);
   const lastScrollPosition = useRef(0);
+  const accumulatedDelta = useRef(0);
+  const scrollDirectionRef = useRef<"up" | "down" | null>(null);
+  
   const handleScrollPositionChange = (position: number) => {
-    const scrollingUp = lastScrollPosition.current - position > -5;
-    const scrolledPastThreshold = position > 5;
-    const scrolledUpEnough = lastScrollPosition.current - position > 25;
-    if (!scrolledPastThreshold) {
-      setHeaderVisible(true);
-    } else if (scrollingUp && scrolledPastThreshold && scrolledUpEnough) {
-      setHeaderVisible(true);
-    } else if (!scrollingUp && scrolledPastThreshold) {
-      setHeaderVisible(false);
+    const delta = position - lastScrollPosition.current;
+    const newDirection = delta > 0 ? "down" : delta < 0 ? "up" : null;
+  
+    if (newDirection !== scrollDirectionRef.current) {
+      accumulatedDelta.current = 0;
+      scrollDirectionRef.current = newDirection;
     }
-
+  
+    accumulatedDelta.current += Math.abs(delta);
+  
+    if (position === 0) {
+      setHeaderVisible(true);
+      accumulatedDelta.current = 0;
+    } else if (scrollDirectionRef.current === "up" && accumulatedDelta.current > 120) {//scrolls up an entire course
+      setHeaderVisible(true);
+      accumulatedDelta.current = 0; 
+    } else if (scrollDirectionRef.current === "down" && accumulatedDelta.current > 5 && position > 0) {
+      setHeaderVisible(false);
+      accumulatedDelta.current = 0; 
+    }
+  
     lastScrollPosition.current = position;
   };
+  
 
   const [search, setSearch] = useState("");
   const [panelData, setPanelData] = useState<PanelData | null>(null);
@@ -147,12 +161,8 @@ const GeSearch: React.FC = () => {
 
   const [isOpen, setIsOpen] = useState(false);
   const [selectedCourse, setSelectedCourse] = useState<string>("");
-  const isAllExpanded = useRef(false);
 
   const [sortBy, setSortBy] = useSessionStorage("sortBy", "DEFAULT");
-  const location = useLocation();
-  const navigate = useNavigate();
-  const queryParams = new URLSearchParams(location.search);
   const [selectedGE, setSelectedGE] = useGEState("AnyGE");
 
   const [selectedClassTypes, setSelectedClassTypes] = useSessionStorage<
