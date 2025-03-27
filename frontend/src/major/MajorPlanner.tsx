@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import {
   Box,
@@ -51,6 +51,7 @@ interface CourseData {
 }
 
 interface RecommendationsResponse {
+  equiv_classes: string[];
   recommended_classes: string[];
   success: boolean;
 }
@@ -60,13 +61,15 @@ const MajorPlanner = ({ selectedMajor, onBack }: MajorPlannerProps) => {
     new Set()
   );
   const [selectedSection, setSelectedSection] = useState<
-    "Core" | "Capstone" | "DC" | "Electives"
+    "Core" | "Capstone" | "DC" | "Electives" | "All"
   >("Core");
   const [classesInput, setClassesInput] = useState<string>("");
   const [recommendedCourses, setRecommendedCourses] = useState<string[]>([]);
   const [isProcessing, setIsProcessing] = useState<boolean>(false);
   const [classesToRecommend, setClassesToRecommend] = useState<string[]>([]);
+  const [allCourses, setAllCourses] = useState<string[]>([]);
 
+  // Get the course data
   const { data: courseData, isLoading } = useQuery<CourseData>({
     queryKey: ["course-requirements"],
     queryFn: async () => {
@@ -80,7 +83,7 @@ const MajorPlanner = ({ selectedMajor, onBack }: MajorPlannerProps) => {
     },
   });
 
-  // Calls get recommendations, usequery to constantly ipdate
+  // Calls get recommendations, usequery to constantly update
   const {
     data: recommendationsData,
     isLoading: isLoadingRecommendations,
@@ -92,20 +95,21 @@ const MajorPlanner = ({ selectedMajor, onBack }: MajorPlannerProps) => {
     enabled: classesToRecommend.length > 0,
   });
 
-  //check if data is new and update
-  if (
-    recommendationsData?.recommended_classes &&
-    recommendationsData.recommended_classes.length > 0
-  ) {
-    if (
-      recommendedCourses.length === 0 ||
-      JSON.stringify(recommendationsData.recommended_classes) !==
-        JSON.stringify(recommendedCourses)
-    ) {
-      setRecommendedCourses(recommendationsData.recommended_classes);
-      setCompletedCourses(new Set(recommendationsData.recommended_classes))
+  // Use useEffect to handle recommendationsData changes
+  useEffect(() => {
+    if (recommendationsData) {
+      // Update the completed courses with equiv_classes
+      if (recommendationsData.equiv_classes && recommendationsData.equiv_classes.length > 0) {
+        setCompletedCourses(new Set(recommendationsData.equiv_classes));
+      }
+      
+      // Update recommended courses
+      if (recommendationsData.recommended_classes && recommendationsData.recommended_classes.length > 0 &&
+        (recommendedCourses.length === 0 || JSON.stringify(recommendationsData.recommended_classes) !== JSON.stringify(recommendedCourses))) {
+        setRecommendedCourses(recommendationsData.recommended_classes);
+      }
     }
-  }
+  }, [recommendationsData]); // Only run when recommendationsData changes
 
   if (error) {
     console.error("Error fetching recommendations:", error);
@@ -126,7 +130,10 @@ const MajorPlanner = ({ selectedMajor, onBack }: MajorPlannerProps) => {
     if (!response.ok) {
       throw new Error("Failed to get recommendations");
     }
-    return response.json();
+    const data = await response.json();
+
+    console.log(data);
+    return data;
     
   };
 
@@ -135,8 +142,9 @@ const MajorPlanner = ({ selectedMajor, onBack }: MajorPlannerProps) => {
     const classes = classesInput
       .split(",")
       .map((c) => c.trim())
-      .filter((c) => c.length > 0);
-    if (classes.length > 0) {
+      .filter((c) => c.length > 0); // Add this filter to prevent empty inputs
+      
+    if (classes.length > 0) { // Only set if there are actual classes
       setClassesToRecommend(classes);
       refetchRecommendations();
     }
@@ -154,7 +162,8 @@ const MajorPlanner = ({ selectedMajor, onBack }: MajorPlannerProps) => {
       return newSet;
     });
   };
-
+  // List of all classes 
+  
   const renderCourseSection = (
     title: string,
     courseGroups: Array<{ class: string[] }> = []
@@ -434,6 +443,7 @@ const MajorPlanner = ({ selectedMajor, onBack }: MajorPlannerProps) => {
       <Box sx={{ padding: 2 }}>
         <Grid container spacing={1}>
           {[
+            { label: "All", value: "All" },
             { label: "Core", value: "Core" },
             { label: "Capstone", value: "Capstone" },
             { label: "DC", value: "DC" },
@@ -454,18 +464,11 @@ const MajorPlanner = ({ selectedMajor, onBack }: MajorPlannerProps) => {
 
       {courseData && (
         <>
-          {selectedSection === "Core" &&
-            renderCourseSection("Core Courses", courseData.requirements.core)}
-          {selectedSection === "Capstone" &&
-            renderCourseSection(
-              "Capstone Courses",
-              courseData.requirements.capstone
-            )}
-          {selectedSection === "DC" &&
-            renderCourseSection(
-              "Disciplinary Communication",
-              courseData.requirements.dc
-            )}
+          {selectedSection === "All" && (renderCourseSection("All Courses", 
+            [...courseData.requirements.core, ...courseData.requirements.capstone, ...courseData.requirements.dc]))}
+          {selectedSection === "Core" && renderCourseSection("Core Courses", courseData.requirements.core)}
+          {selectedSection === "Capstone" && renderCourseSection("Capstone Courses", courseData.requirements.capstone)}
+          {selectedSection === "DC" && renderCourseSection("Disciplinary Communication", courseData.requirements.dc)}
           {selectedSection === "Electives" && renderElectivesSection()}
         </>
       )}

@@ -30,7 +30,7 @@ courses_bp = Blueprint("courses", __name__)
 #         raise
 
 
-prereq_dict = {}
+prereq_dict = {"CSE 101": ["CSE 20", "CSE 30"]}
 def init_prereq_dict(app):
     "make prereq dict"
     global prereq_dict
@@ -313,8 +313,10 @@ def cleanup_request(exception=None):
 # FIll out what classes have been taken
 @courses_bp.route("/major_recommendations", methods=["GET"])
 def major_recommendations():
-    # Get classes 
+    # Classes that are passed along
     classes_str = request.args.get('classes', '')
+
+    # If no arguments return error
     if not classes_str:
         return jsonify({
             "error": "No classes provided in request",
@@ -329,17 +331,35 @@ def major_recommendations():
         "CSE 20": [],
         "CSE 30": [],
         "MATH 19A": ["MATH 20A"],
-        "MATH 19B": ["MATH 20B"]
+        "MATH 19B": ["MATH 20B"],
+        "AM 30": [],
+        "CSE 16": [],
+        "CSE 12": []
     }
-    
-    result = set()
+
+    major_prerequsites = {
+        "CSE 30": ["CSE 20"],
+        "CSE 13": ["CSE 16", "CSE 12"],
+        "CSE 101": ["CSE 13", "CSE 30"],
+    }
+
+    equiv_classes = set()
     for c in classes_taken:
         if c in needed_classes:
-            result.add(c)
+            equiv_classes.add(c)
             for next_class in needed_classes.get(c, []):
-                result.add(next_class)
+                equiv_classes.add(next_class)
     
+    #result is list of all classes taken and equivalent classes
+    recommended_classes = set()
+    for item,value in major_prerequsites.items():
+        if set(value).issubset(equiv_classes) and item not in equiv_classes:
+            recommended_classes.add(item)
+    
+
+
     return jsonify({
-        "recommended_classes": list(result),
+        "equiv_classes": list(equiv_classes),
+        "recommended_classes": list(recommended_classes),
         "success": True
     })
