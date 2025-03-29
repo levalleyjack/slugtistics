@@ -3,10 +3,16 @@ from typing import Dict, List
 from models.data_models import CourseModel
 import chromadb
 import google.generativeai as genai
+from dotenv import load_dotenv
+import os
+load_dotenv()
+
 
 class CourseRecommender:
     def __init__(self, courses: List[CourseModel]):
-        genai.configure(api_key="AIzaSyDF8TCY5rLM8Vuz5HGJsFz13pPb3EGxy_4")
+        # Load environment variables from .env file
+        api_key = os.getenv("API_KEY")
+        genai.configure(api_key)
         self.model = genai.GenerativeModel('gemini-2.0-flash')
 
 
