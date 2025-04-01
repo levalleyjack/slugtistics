@@ -125,7 +125,7 @@ Distributed under the MIT License. See `LICENSE.txt` for more information.
 
 <!-- CONTACT -->
 ## Contact
-
+Send me a message @eggw on discord!
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
