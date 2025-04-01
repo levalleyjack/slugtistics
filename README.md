@@ -4,13 +4,18 @@
 <!-- hiii -->
 
 <!-- PROJECT LOGO -->
+
 <br />
 <div align="center">
 
 
   <h1 align="center">Slugtistics</h1>
   <figure>
-  <img src="https://raw.githubusercontent.com/levalleyjack/slugtistics/c00ede71281f100920f344c2655e8298110f26fb/frontend/public/logoBackground.svg" alt="Overview" width="300px"/>
+  <!-- <img src="https://raw.githubusercontent.com/levalleyjack/slugtistics/c00ede71281f100920f344c2655e8298110f26fb/frontend/public/logoBackground.svg" alt="Overview" width="300px"/> -->
+  <!--<img src="https://github.com/user-attachments/assets/e249e4de-5749-4515-8a9e-5cf19f69084a">-->
+  <img src="https://github.com/user-attachments/assets/2dcefaf9-1556-4e09-8377-226226af45d6">
+
+
 </figure>
 
   <p align="center">
@@ -32,7 +37,7 @@
 Slugtistics is an application designed to provide students and educators with valuable insights into class data, grade distributions,
 and instructor information. This webpage aims to assist students in making informed decisions about their course selections to help
 organize their courseloads and maximize their success. Slugtistics is a free and open source project that is not affiliated with the
-University of California, Santa Cruz. Slugtistics is a project created by a UCSC student for UCSC students.
+University of California, Santa Cruz. Slugtistics is a project created by UCSC students for UCSC students.
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
@@ -40,8 +45,11 @@ University of California, Santa Cruz. Slugtistics is a project created by a UCSC
 
 ### Built With
 
-
-* [![React][React.js]][React-url]
+![React](https://img.shields.io/badge/React-20232A?style=for-the-badge&logo=react&logoColor=61DAFB)
+![image](https://img.shields.io/badge/Express%20js-000000?style=for-the-badge&logo=express&logoColor=white)
+![image](https://img.shields.io/badge/TypeScript-007ACC?style=for-the-badge&logo=typescript&logoColor=white)
+![image](https://img.shields.io/badge/Flask-000000?style=for-the-badge&logo=flask&logoColor=white)
+![image](https://img.shields.io/badge/Amazon_AWS-FF9900?style=for-the-badge&logo=amazonaws&logoColor=white)
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
@@ -87,25 +95,6 @@ University of California, Santa Cruz. Slugtistics is a project created by a UCSC
    http://localhost:5173
    ```
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
-
-
-
-<!-- ROADMAP -->
-## Roadmap
-
-- [x] Add search capabilities
-- [x] Deploy it on AWS
-- [x] Add a button to change values to percentages
-- [X] fix the UI (it looks terrible right now)
-- [x] write a python script to merge all of the quarter spreadsheets together
-- [x] get the term button to work
-- [ ] Stop the flickering when having selected an instructor and changing the class
-- [ ] Add "Best Bet" functionality
-
-
-<p align="right">(<a href="#readme-top">back to top</a>)</p>
-
-
 
 <!-- CONTRIBUTING -->
 ## Contributing
