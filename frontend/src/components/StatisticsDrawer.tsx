@@ -51,8 +51,6 @@ const StatisticsContent = styled(Box)(({ theme }) => ({
   overflowY: "auto",
 }));
 
-
-
 const StatisticsDrawer = ({
   isOpen,
   isCategoriesVisible,
@@ -97,11 +95,14 @@ const StatisticsDrawer = ({
 
   // Calculate statistics
   const totalCourses = filteredCourses?.length || 0;
+  const coursesWithGpa = filteredCourses?.filter(
+    (course) => course?.gpa != null
+  );
   const averageGPA =
     filteredCourses?.reduce(
       (sum, course) => sum + (course.gpa ? course.gpa : 0),
       0
-    ) / totalCourses;
+    ) / coursesWithGpa?.length;
   const openSections =
     filteredCourses?.filter((course) => course.class_status === "Open")
       .length || 0;
@@ -146,8 +147,7 @@ const StatisticsDrawer = ({
             },
             transition: "background-color 200ms",
             display: isMediumScreen ? "none" : "block",
-            zIndex:100,
-
+            zIndex: 100,
           }}
           onMouseEnter={handleMouseEnter}
         />
@@ -155,8 +155,10 @@ const StatisticsDrawer = ({
       <Drawer
         variant={variant}
         anchor="left"
-        open={(isOpen || isCategoriesVisible) && (!isDistributionDrawer || !activePanel)}
-
+        open={
+          (isOpen || isCategoriesVisible) &&
+          (!isDistributionDrawer || !activePanel)
+        }
         onClose={handleClose}
         SlideProps={{
           onMouseEnter: handleMouseEnter,
