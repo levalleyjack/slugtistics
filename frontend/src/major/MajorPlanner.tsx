@@ -68,6 +68,7 @@ const MajorPlanner = ({ selectedMajor, onBack }: MajorPlannerProps) => {
   const [isProcessing, setIsProcessing] = useState<boolean>(false);
   const [classesToRecommend, setClassesToRecommend] = useState<string[]>([]);
   const [allCourses, setAllCourses] = useState<string[]>([]);
+  const [transcript, setTranscipt] = useState<File | null>(null);
 
   // Get the course data
   const { data: courseData, isLoading } = useQuery<CourseData>({
@@ -164,6 +165,13 @@ const MajorPlanner = ({ selectedMajor, onBack }: MajorPlannerProps) => {
   };
   // List of all classes 
   
+  //Handles uploading a file
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files) {
+      setTranscipt(e.target.files[0]);
+    }
+  };
+
   const renderCourseSection = (
     title: string,
     courseGroups: Array<{ class: string[] }> = []
@@ -380,11 +388,17 @@ const MajorPlanner = ({ selectedMajor, onBack }: MajorPlannerProps) => {
                     </>
                   ) : (
                     <>
-                      <Typography variant="button" sx={{ mr: 1 }}>
-                        Submit & Get Recommendations
-                      </Typography>
-                      <CheckCircleIcon />
+                      <div>
+                        <Typography variant="button" sx={{ mr: 1 }}>
+                          Submit & Get Recommendations
+                        </Typography>
+                        <CheckCircleIcon />
+                      </div>
+                      <div>
+                        <input id="file" type="file" onChange={handleFileChange} />
+                      </div>
                     </>
+                    
                   )}
                 </IconButton>
               </Tooltip>
