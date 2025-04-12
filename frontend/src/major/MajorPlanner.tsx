@@ -20,6 +20,7 @@ import {
   School as SchoolIcon,
   ArrowBack as ArrowBackIcon,
 } from "@mui/icons-material";
+import { Form } from "react-router-dom";
 
 interface MajorPlannerProps {
   selectedMajor: string;
@@ -166,11 +167,17 @@ const MajorPlanner = ({ selectedMajor, onBack }: MajorPlannerProps) => {
   // List of all classes 
   
   //Handles uploading a file
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files) {
-      setTranscipt(e.target.files[0]);
+
+  function handleFileChange(event: React.ChangeEvent<HTMLInputElement>) {
+    if (event.target.files) {
+      setTranscipt(event.target.files[0]);
     }
-  };
+  }
+
+  const handleFileUpload = async () => {
+    // event.preventDefault();
+    console.log("uploaded a file!!");
+  }
 
   const renderCourseSection = (
     title: string,
@@ -388,21 +395,25 @@ const MajorPlanner = ({ selectedMajor, onBack }: MajorPlannerProps) => {
                     </>
                   ) : (
                     <>
-                      <div>
+
                         <Typography variant="button" sx={{ mr: 1 }}>
                           Submit & Get Recommendations
                         </Typography>
                         <CheckCircleIcon />
-                      </div>
-                      <div>
-                        <input id="file" type="file" onChange={handleFileChange} />
-                      </div>
+
                     </>
                     
                   )}
+                  
                 </IconButton>
               </Tooltip>
             </Box>
+
+            
+            <input type="file" onChange={handleFileChange} />
+            
+            {transcript && (<button onClick={handleFileUpload} className="submit">Submit</button>)}
+            
           </Box>
         </Box>
 
