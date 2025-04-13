@@ -61,9 +61,7 @@ const MajorPlanner = ({ selectedMajor, onBack }: MajorPlannerProps) => {
   const [completedCourses, setCompletedCourses] = useState<Set<string>>(
     new Set()
   );
-  const [selectedSection, setSelectedSection] = useState<
-    "Core" | "Capstone" | "DC" | "Electives" | "All"
-  >("Core");
+  const [selectedSection, setSelectedSection] = useState<"Core" | "Capstone" | "DC" | "Electives" | "All">("Core");
   const [classesInput, setClassesInput] = useState<string>("");
   const [recommendedCourses, setRecommendedCourses] = useState<string[]>([]);
   const [isProcessing, setIsProcessing] = useState<boolean>(false);
@@ -118,16 +116,9 @@ const MajorPlanner = ({ selectedMajor, onBack }: MajorPlannerProps) => {
   }
 
   // Fetch recommendations with GET Reuqest
-  const getRecommendations = async (
-    classes: string[]
-  ): Promise<RecommendationsResponse> => {
+  const getRecommendations = async (classes: string[]): Promise<RecommendationsResponse> => {
     const classesParam = classes.join(",");
-    const response = await fetch(
-      `http://127.0.0.1:5000/major_recommendations?classes=${encodeURIComponent(
-        classesParam
-      )}`,
-      { method: "GET" }
-    );
+    const response = await fetch(`http://127.0.0.1:5000/major_recommendations?classes=${encodeURIComponent(classesParam)}`,{ method: "GET" });
 
     if (!response.ok) {
       throw new Error("Failed to get recommendations");
@@ -175,8 +166,24 @@ const MajorPlanner = ({ selectedMajor, onBack }: MajorPlannerProps) => {
   }
 
   const handleFileUpload = async () => {
-    // event.preventDefault();
+    //event.preventDefault();
+    if (!transcript) return;
+    
     console.log("uploaded a file!!");
+
+    const formData = new FormData();
+    formData.append("transcript", transcript);
+    console.log(formData);
+    const response = await fetch(`http://127.0.0.1:5000/major_recommendations/parse_transcript`,{ method: "PUT", body: formData});
+
+    if (!response.ok) {
+      throw new Error("Failed to upload transcript");
+    }
+
+    const data = await response.json();
+    console.log(data);
+ 
+    return data;
   }
 
   const renderCourseSection = (
@@ -412,7 +419,7 @@ const MajorPlanner = ({ selectedMajor, onBack }: MajorPlannerProps) => {
             
             <input type="file" onChange={handleFileChange} />
             
-            {transcript && (<button onClick={handleFileUpload} className="submit">Submit</button>)}
+            {transcript && (<button onClick={() => handleFileUpload()} className="submit">Submit</button>)}
             
           </Box>
         </Box>

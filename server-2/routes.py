@@ -4,11 +4,15 @@ from contextlib import contextmanager
 from sqlalchemy import func, case
 from tenacity import retry, stop_after_attempt, wait_exponential
 import logging
+import re
 from scraping.ratings import get_detailed_professor_info
 from models.data_models import CourseModel, LastUpdateModel, VisitorModel, db
 from config import app
-from helper_functions import get_majors
+from helper_functions import get_majors, compute_recommendations
 from chatbot.course_recommender import CourseRecommender
+from PyPDF2 import PdfReader
+
+
 logger = logging.getLogger(__name__)
 courses_bp = Blueprint("courses", __name__)
 #chatbot, ignore
@@ -313,53 +317,39 @@ def cleanup_request(exception=None):
 # FIll out what classes have been taken
 @courses_bp.route("/major_recommendations", methods=["GET"])
 def major_recommendations():
-    # Classes that are passed along
     classes_str = request.args.get('classes', '')
 
-    # If no arguments return error
     if not classes_str:
         return jsonify({
             "error": "No classes provided in request",
             "success": False
         }), 400
-    
-    # Parse string for classes
+
     classes_taken = [c.strip() for c in classes_str.split(',')]
-    
-    # replace with mongodb fetching
-    needed_classes = {
-        "CSE 20": [],
-        "CSE 30": [],
-        "MATH 19A": ["MATH 20A"],
-        "MATH 19B": ["MATH 20B"],
-        "AM 30": [],
-        "CSE 16": [],
-        "CSE 12": []
-    }
-
-    major_prerequsites = {
-        "CSE 30": ["CSE 20"],
-        "CSE 13": ["CSE 16", "CSE 12"],
-        "CSE 101": ["CSE 13", "CSE 30"],
-    }
-
-    equiv_classes = set()
-    for c in classes_taken:
-        if c in needed_classes:
-            equiv_classes.add(c)
-            for next_class in needed_classes.get(c, []):
-                equiv_classes.add(next_class)
-    
-    #result is list of all classes taken and equivalent classes
-    recommended_classes = set()
-    for item,value in major_prerequsites.items():
-        if set(value).issubset(equiv_classes) and item not in equiv_classes:
-            recommended_classes.add(item)
-    
-
+    equiv, recs = compute_recommendations(classes_taken)
 
     return jsonify({
-        "equiv_classes": list(equiv_classes),
-        "recommended_classes": list(recommended_classes),
+        "equiv_classes": equiv,
+        "recommended_classes": recs,
+        "success": True
+    })
+
+@courses_bp.route("/major_recommendations/parse_transcript", methods=["PUT"])
+def parse_transcript():
+    if 'transcript' not in request.files:
+        return {"error": "No transcript file provided"}, 400
+
+    transcript = request.files['transcript']
+    reader = PdfReader(transcript)
+    text = "".join(page.extract_text() or "" for page in reader.pages)
+
+    courses = re.findall(r'[A-Z]{2,4} \d{2,3}[A-Z]*', text)
+    equiv, recs = compute_recommendations(courses)
+
+    return jsonify({
+        "parsed_transcript": text,
+        "courses": courses,
+        "equiv_classes": equiv,
+        "recommended_classes": recs,
         "success": True
     })

@@ -339,3 +339,34 @@ def parse_prerequisites(prereq_text):
     prereq_list.extend(concurrent_reqs)
     
     return prereq_list    
+
+def compute_recommendations(classes_taken):
+    needed_classes = {
+        "CSE 20": [],
+        "CSE 30": [],
+        "MATH 19A": ["MATH 20A"],
+        "MATH 19B": ["MATH 20B"],
+        "AM 30": [],
+        "CSE 16": [],
+        "CSE 12": []
+    }
+
+    major_prerequsites = {
+        "CSE 30": ["CSE 20"],
+        "CSE 13": ["CSE 16", "CSE 12"],
+        "CSE 101": ["CSE 13", "CSE 30"],
+    }
+
+    equiv_classes = set()
+    for c in classes_taken:
+        if c in needed_classes:
+            equiv_classes.add(c)
+            for next_class in needed_classes.get(c, []):
+                equiv_classes.add(next_class)
+
+    recommended_classes = set()
+    for item, value in major_prerequsites.items():
+        if set(value).issubset(equiv_classes) and item not in equiv_classes:
+            recommended_classes.add(item)
+
+    return list(equiv_classes), list(recommended_classes)
