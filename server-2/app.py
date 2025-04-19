@@ -354,9 +354,9 @@ def init_app():
         #comment out store_courses_in_db() if you didn't change any
         #of the scraping part and you alr ran once
         
-        # store_courses_in_db()
+        #store_courses_in_db()
         init_prereq_dict(app)
-        # update_course_statuses() METHOD!!!
+        #update_course_statuses() METHOD!!!
         init_scheduler()
         logger.info("Application initialized successfully")
     except Exception as e:

@@ -21,6 +21,9 @@ import {
   ArrowBack as ArrowBackIcon,
 } from "@mui/icons-material";
 import { Form } from "react-router-dom";
+import { Button } from "@mui/material";
+import UploadIcon from "@mui/icons-material/Upload";
+
 
 interface MajorPlannerProps {
   selectedMajor: string;
@@ -166,25 +169,31 @@ const MajorPlanner = ({ selectedMajor, onBack }: MajorPlannerProps) => {
   }
 
   const handleFileUpload = async () => {
-    //event.preventDefault();
+      //event.preventDefault();
     if (!transcript) return;
-    
-    console.log("uploaded a file!!");
+      console.log("uploaded a file!!");
+  
+      const formData = new FormData();
+      formData.append("transcript", transcript);
+      console.log(formData);
+      const response = await fetch(
+        `http://127.0.0.1:5000/major_recommendations/parse_transcript`,
+        { method: "PUT", body: formData }
+      );
 
-    const formData = new FormData();
-    formData.append("transcript", transcript);
-    console.log(formData);
-    const response = await fetch(`http://127.0.0.1:5000/major_recommendations/parse_transcript`,{ method: "PUT", body: formData});
+      if (!response.ok) {
+        throw new Error("Failed to upload transcript");
+      }
 
-    if (!response.ok) {
-      throw new Error("Failed to upload transcript");
-    }
+      const data = await response.json();
+      console.log(data);
 
-    const data = await response.json();
-    console.log(data);
- 
-    return data;
+      const parsed = Array.isArray(data.courses) ? data.courses : [];
+      setClassesInput(parsed.join(", "));
+
+      return data;
   }
+    
 
   const renderCourseSection = (
     title: string,
@@ -416,10 +425,30 @@ const MajorPlanner = ({ selectedMajor, onBack }: MajorPlannerProps) => {
               </Tooltip>
             </Box>
 
-            
-            <input type="file" onChange={handleFileChange} />
-            
-            {transcript && (<button onClick={() => handleFileUpload()} className="submit">Submit</button>)}
+            <Box sx={{ display: "flex", alignItems: "center", gap: 2, mt: 2 }}>
+              {/* Choose file */}
+              <Button variant="outlined" component="label">
+                Choose File
+                <input
+                  hidden
+                  accept="application/pdf"
+                  type="file"
+                  onChange={handleFileChange}
+                />
+              </Button>
+
+              {/* Upload button */}
+              <Button
+                variant="contained"
+                color="primary"
+                onClick={handleFileUpload}
+                startIcon={<UploadIcon />}
+                disabled={!transcript}
+              >
+                Upload Transcript
+              </Button>
+            </Box>
+
             
           </Box>
         </Box>
