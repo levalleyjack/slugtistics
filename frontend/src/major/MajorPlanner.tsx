@@ -121,7 +121,12 @@ const MajorPlanner = ({ selectedMajor, onBack }: MajorPlannerProps) => {
   // Fetch recommendations with GET Reuqest
   const getRecommendations = async (classes: string[]): Promise<RecommendationsResponse> => {
     const classesParam = classes.join(",");
-    const response = await fetch(`http://127.0.0.1:5000/major_recommendations?classes=${encodeURIComponent(classesParam)}`,{ method: "GET" });
+    const response = await fetch(
+      `http://127.0.0.1:5000/major_recommendations?` +
+      `classes=${encodeURIComponent(classesParam)}` +
+      `&major=${encodeURIComponent(selectedMajor)}`,
+      { method: "GET" }
+    );
 
     if (!response.ok) {
       throw new Error("Failed to get recommendations");

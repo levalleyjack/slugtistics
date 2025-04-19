@@ -318,6 +318,7 @@ def cleanup_request(exception=None):
 @courses_bp.route("/major_recommendations", methods=["GET"])
 def major_recommendations():
     classes_str = request.args.get('classes', '')
+    major = request.args.get('major', '') or "Computer Science B.S."  # default if you like
 
     if not classes_str:
         return jsonify({
@@ -326,7 +327,7 @@ def major_recommendations():
         }), 400
 
     classes_taken = [c.strip() for c in classes_str.split(',')]
-    equiv, recs = compute_recommendations(classes_taken)
+    equiv, recs = compute_recommendations(classes_taken, major)
 
     return jsonify({
         "equiv_classes": equiv,
@@ -344,7 +345,9 @@ def parse_transcript():
     text = "".join(page.extract_text() or "" for page in reader.pages)
 
     courses = re.findall(r'[A-Z]{2,4} \d{2,3}[A-Z]*', text)
-    equiv, recs = compute_recommendations(courses)
+    # grab the major (fall back to your default if you like)
+    major = request.args.get('major', 'Computer Science B.S.')
+    equiv, recs = compute_recommendations(courses, major)
 
     return jsonify({
         "parsed_transcript": text,
