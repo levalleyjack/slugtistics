@@ -356,7 +356,7 @@ def init_app():
         
         store_courses_in_db()
         init_prereq_dict(app)
-        #update_course_statuses() METHOD!!!
+        update_course_statuses() #METHOD!!!
         init_scheduler()
         logger.info("Application initialized successfully")
     except Exception as e:
