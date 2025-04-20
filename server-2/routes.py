@@ -4,11 +4,15 @@ from contextlib import contextmanager
 from sqlalchemy import func, case
 from tenacity import retry, stop_after_attempt, wait_exponential
 import logging
+import re
 from scraping.ratings import get_detailed_professor_info
 from models.data_models import CourseModel, LastUpdateModel, VisitorModel, db
 from config import app
-from helper_functions import get_majors
+from helper_functions import get_majors, compute_recommendations
 from chatbot.course_recommender import CourseRecommender
+from PyPDF2 import PdfReader
+
+
 logger = logging.getLogger(__name__)
 courses_bp = Blueprint("courses", __name__)
 #chatbot, ignore
@@ -30,7 +34,7 @@ courses_bp = Blueprint("courses", __name__)
 #         raise
 
 
-prereq_dict = {}
+prereq_dict = {"CSE 101": ["CSE 20", "CSE 30"]}
 def init_prereq_dict(app):
     "make prereq dict"
     global prereq_dict
@@ -309,3 +313,46 @@ def cleanup_request(exception=None):
         db.session.remove()
     if exception:
         logger.error(f"Exception during request teardown: {str(exception)}")
+
+# FIll out what classes have been taken
+@courses_bp.route("/major_recommendations", methods=["GET"])
+def major_recommendations():
+    classes_str = request.args.get('classes', '')
+    major = request.args.get('major', '') or "Computer Science B.S."  # default if you like
+
+    if not classes_str:
+        return jsonify({
+            "error": "No classes provided in request",
+            "success": False
+        }), 400
+
+    classes_taken = [c.strip() for c in classes_str.split(',')]
+    equiv, recs = compute_recommendations(classes_taken, major)
+
+    return jsonify({
+        "equiv_classes": equiv,
+        "recommended_classes": recs,
+        "success": True
+    })
+
+@courses_bp.route("/major_recommendations/parse_transcript", methods=["PUT"])
+def parse_transcript():
+    if 'transcript' not in request.files:
+        return {"error": "No transcript file provided"}, 400
+
+    transcript = request.files['transcript']
+    reader = PdfReader(transcript)
+    text = "".join(page.extract_text() or "" for page in reader.pages)
+
+    courses = re.findall(r'[A-Z]{2,4} \d{2,3}[A-Z]*', text)
+    # grab the major (fall back to your default if you like)
+    major = request.args.get('major', 'Computer Science B.S.')
+    equiv, recs = compute_recommendations(courses, major)
+
+    return jsonify({
+        "parsed_transcript": text,
+        "courses": courses,
+        "equiv_classes": equiv,
+        "recommended_classes": recs,
+        "success": True
+    })

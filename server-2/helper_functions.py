@@ -7,6 +7,8 @@ from click import File
 import pdfplumber
 import requests
 import json
+import requests
+
 quarter = 2252
 
 
@@ -263,7 +265,6 @@ def get_majors():
         cs_bs_data = json.load(file)
 
     majors_data = {
-
         cs_bs_data["program"]["name"]: cs_bs_data
     }
     return majors_data
@@ -339,3 +340,26 @@ def parse_prerequisites(prereq_text):
     prereq_list.extend(concurrent_reqs)
     
     return prereq_list    
+
+def compute_recommendations(classes_taken: List[str], major: str):
+    # Fetch JSON
+    resp = requests.get(f"http://127.0.0.1:5000/major_courses/{major}")
+    resp.raise_for_status()
+    data = resp.json()
+
+    needed_classes = data.get("needed_classes", {})
+    major_prerequsites = data.get("major_prerequisites", {})
+
+    equiv_classes = set()
+    for c in classes_taken:
+        if c in needed_classes:
+            equiv_classes.add(c)
+            for next_class in needed_classes.get(c, []):
+                equiv_classes.add(next_class)
+
+    recommended_classes = set()
+    for item, value in major_prerequsites.items():
+        if set(value).issubset(equiv_classes) and item not in equiv_classes:
+            recommended_classes.add(item)
+
+    return list(equiv_classes), list(recommended_classes)

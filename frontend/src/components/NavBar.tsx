@@ -77,14 +77,14 @@ const NavBar = () => {
           )}
            
         </div>
-         {/* <NavLink
+         <NavLink
           to="/major"
           className={({ isActive }) =>
             isActive ? "navbar-link navbar-link-active" : "navbar-link"
           }
         >
           <h2>Major Search</h2>
-        </NavLink>  */}
+        </NavLink> 
         </div>
       <div className="navbar-right">
         <NavLink
