@@ -1,25 +1,14 @@
 import React, { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import {
-  Box,
-  Card,
-  CardContent,
-  Typography,
-  TextField,
-  Grid,
-  Chip,
-  styled,
-  CircularProgress,
-  Paper,
-} from "@mui/material";
-import {
-  School as SchoolIcon,
-  Science as ScienceIcon,
-  Brush as BrushIcon,
-} from "@mui/icons-material";
-import MajorPlanner from "./MajorPlanner";
+import { Search, School, FlaskConical, Palette, Info } from "lucide-react";
+import { Card, CardContent } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
+import { MajorPlanner } from "./MajorPlanner";
+import { local } from "../pages/GetGEData";
 
-// Type definition for Major
 interface Major {
   name: string;
 }
@@ -27,14 +16,13 @@ interface Major {
 const MajorSearch: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedMajor, setSelectedMajor] = useState<Major | null>(null);
+  const [categoryFilter, setCategoryFilter] = useState<string | null>(null);
 
   const { data: majors, isLoading } = useQuery<Major[]>({
     queryKey: ["majors"],
     queryFn: async () => {
-      const response = await fetch("http://127.0.0.1:5000/all_majors");
-      if (!response.ok) {
-        throw new Error("Failed to fetch majors");
-      }
+      const response = await fetch(`${local}/all_majors`);
+      if (!response.ok) throw new Error("Failed to fetch majors");
       return response.json();
     },
   });
@@ -46,46 +34,46 @@ const MajorSearch: React.FC = () => {
     return "Degree";
   };
 
-  // Helper function to categorize major
   const getMajorCategory = (majorName: string) => {
     if (
       majorName.match(
         /Biology|Chemistry|Physics|Science|Engineering|Mathematics|Computer|Technology/i
       )
-    ) {
+    )
       return "STEM";
-    }
-    if (majorName.match(/Art|Music|Theater|Design|Creative|Film|Visual/i)) {
+    if (majorName.match(/Art|Music|Theater|Design|Creative|Film|Visual/i))
       return "Arts";
-    }
-    return "Humanities & Social Sciences";
+    return "Humanities";
   };
 
-  // Helper function to get icon based on category
   const getMajorIcon = (category: string) => {
     switch (category) {
       case "STEM":
-        return <ScienceIcon />;
+        return <FlaskConical className="h-4 w-4" />;
       case "Arts":
-        return <BrushIcon />;
+        return <Palette className="h-4 w-4" />;
       default:
-        return <SchoolIcon />;
+        return <School className="h-4 w-4" />;
     }
   };
 
-  // Filter majors based on search term
-  const filteredMajors = majors?.filter((major) =>
-    major.name.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredMajors = majors?.filter((major) => {
+    const matchesSearch = major.name
+      .toLowerCase()
+      .includes(searchTerm.toLowerCase());
+    const matchesCategory = categoryFilter
+      ? getMajorCategory(major.name) === categoryFilter
+      : true;
+    return matchesSearch && matchesCategory;
+  });
 
-  // Loading state
-  if (isLoading) {
-    return (
-      <Box sx={{ display: "flex", justifyContent: "center", mt: 4 }}>
-        <CircularProgress />
-      </Box>
-    );
-  }
+  const categoryCounts =
+    majors?.reduce((acc, major) => {
+      const category = getMajorCategory(major.name);
+      acc[category] = (acc[category] || 0) + 1;
+      return acc;
+    }, {} as Record<string, number>) || {};
+
   if (selectedMajor) {
     return (
       <MajorPlanner
@@ -96,145 +84,102 @@ const MajorSearch: React.FC = () => {
   }
 
   return (
-    <MainContainer>
-      <SearchContainer elevation={0}>
-        <Typography variant="h4" component="h1" gutterBottom sx={{ pt: 3 }}>
-          UCSC Majors and Programs
-        </Typography>
-        <TextField
-          fullWidth
-          variant="outlined"
-          placeholder="Search majors..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          sx={{ mb: 2 }}
-        />
-      </SearchContainer>
+    <div className="flex flex-col h-[calc(100dvh-64px)] overflow-hidden max-w-7xl mx-auto">
+      <div className="sticky top-0 z-10 bg-background px-6 py-4 border-b border-border">
+        <div className="mb-4">
+          <h1 className="text-2xl font-bold mb-1">UCSC Majors and Programs</h1>
+          <p className="text-muted-foreground">
+            Find your perfect major and plan your academic journey
+          </p>
+        </div>
 
-      <ScrollContainer>
-        <Grid container spacing={2} sx={{ p: 2 }}>
-          {filteredMajors?.map((major) => {
-            const category = getMajorCategory(major.name);
-            const degreeType = getDegreeType(major.name);
-            const majorName = major.name.replace(` ${degreeType}`, "");
+        <div className="relative mb-4">
+          <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+          <Input
+            className="pl-10"
+            placeholder="Search majors by name or keywords..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
+        </div>
 
-            return (
-              <Grid item xs={12} sm={6} md={4} key={major.name}>
-                <StyledCard
+        <div className="flex flex-wrap items-center gap-2 overflow-x-auto pb-2">
+          <Badge
+            variant={categoryFilter === null ? "default" : "outline"}
+            className="cursor-pointer"
+            onClick={() => setCategoryFilter(null)}
+          >
+            All ({majors?.length || 0})
+          </Badge>
+          {Object.entries(categoryCounts).map(([category, count]) => (
+            <Badge
+              key={category}
+              variant={categoryFilter === category ? "default" : "outline"}
+              className="cursor-pointer"
+              onClick={() =>
+                setCategoryFilter(category === categoryFilter ? null : category)
+              }
+            >
+              {category} ({count})
+            </Badge>
+          ))}
+        </div>
+      </div>
+
+      <div className="flex-grow overflow-auto">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 p-4">
+          {isLoading ? (
+            Array(12)
+              .fill(0)
+              .map((_, i) => (
+                <div key={i} className="space-y-2 animate-pulse">
+                  <div className="h-1 bg-muted rounded" />
+                  <Skeleton className="h-4 w-1/3" />
+                  <Skeleton className="h-6 w-full rounded" />
+                </div>
+              ))
+          ) : filteredMajors?.length === 0 ? (
+            <div className="col-span-full text-center py-12">
+              <Info className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+              <h3 className="text-lg font-medium">No majors found</h3>
+              <p className="text-muted-foreground">
+                Try adjusting your search or filters
+              </p>
+            </div>
+          ) : (
+            filteredMajors?.map((major) => {
+              const category = getMajorCategory(major.name);
+              const degreeType = getDegreeType(major.name);
+              const majorName = major.name.replace(` ${degreeType}`, "");
+
+              return (
+                <Card
+                  key={major.name}
+                  className="group cursor-pointer transition-all duration-200 border border-muted hover:border-primary bg-card hover:bg-accent/30"
                   onClick={() => setSelectedMajor(major)}
-                  sx={{ cursor: "pointer" }}
                 >
-                  <CardContent>
-                    <Box
-                      sx={{ display: "flex", flexDirection: "column", gap: 1 }}
-                    >
-                      <Box sx={{ display: "flex", gap: 1 }}>
-                        <CategoryChip
-                          icon={getMajorIcon(category)}
-                          label={category}
-                          size="small"
-                          category={category}
-                        />
-                        <DegreeChip label={degreeType} size="small" />
-                      </Box>
-                      <Typography
-                        variant="h6"
-                        sx={{
-                          fontSize: "1.1rem",
-                          lineHeight: 1.3,
-                          minHeight: "2.6rem",
-                          display: "-webkit-box",
-                          WebkitLineClamp: 2,
-                          WebkitBoxOrient: "vertical",
-                          overflow: "hidden",
-                          textOverflow: "ellipsis",
-                        }}
-                      >
-                        {majorName}
-                      </Typography>
-                    </Box>
+                  <CardContent className="p-4 space-y-2">
+                    <div className="flex items-center justify-between text-xs">
+                      <Badge className="flex items-center gap-1">
+                        {getMajorIcon(category)}
+                        <span>{category}</span>
+                      </Badge>
+                      <Badge variant="outline" className="font-mono">
+                        {degreeType}
+                      </Badge>
+                    </div>
+                    <h3 className="text-sm font-semibold leading-tight group-hover:text-primary">
+                      {majorName}
+                    </h3>
                   </CardContent>
-                </StyledCard>
-              </Grid>
-            );
-          })}
-        </Grid>
-      </ScrollContainer>
-    </MainContainer>
+                </Card>
+              );
+            })
+          )}
+        </div>
+      </div>
+    </div>
   );
 };
-
-const MainContainer = styled(Box)({
-  height: "calc(100dvh - 64px)",
-  display: "flex",
-  flexDirection: "column",
-  overflow: "hidden",
-});
-
-const SearchContainer = styled(Paper)({
-  position: "sticky",
-  top: 0,
-  zIndex: 1,
-  backgroundColor: "#fff",
-  padding: "0 24px",
-});
-
-const ScrollContainer = styled(Box)({
-  flexGrow: 1,
-  overflow: "auto",
-});
-
-const StyledCard = styled(Card)(({ theme }) => ({
-  height: "100%",
-  border: `1px solid ${theme.palette.divider}`,
-  borderRadius: "12px",
-  transition: "all 0.2s ease-in-out",
-  "&:hover": {
-    boxShadow: theme.shadows[4],
-    borderColor: theme.palette.primary.light,
-    "& .MuiChip-root": {
-      transform: "translateY(-1px)",
-    },
-  },
-}));
-
-interface CategoryChipProps {
-  category: string;
-}
-
-const CategoryChip = styled(Chip)<CategoryChipProps>(({ theme, category }) => {
-  const getGradient = (cat: string) => {
-    switch (cat) {
-      case "STEM":
-        return `linear-gradient(135deg, ${theme.palette.primary.dark} 0%, ${theme.palette.primary.light} 100%)`;
-      case "Arts":
-        return `linear-gradient(135deg, ${theme.palette.secondary.dark} 0%, ${theme.palette.secondary.light} 100%)`;
-      default:
-        return `linear-gradient(135deg, ${theme.palette.success.dark} 0%, ${theme.palette.success.light} 100%)`;
-    }
-  };
-
-  return {
-    borderRadius: "8px",
-    background: getGradient(category),
-    color: theme.palette.common.white,
-    fontWeight: 600,
-    height: "28px",
-    transition: "all 0.2s ease-in-out",
-    "& .MuiChip-icon": {
-      color: theme.palette.common.white,
-    },
-  };
-});
-
-const DegreeChip = styled(Chip)(({ theme }) => ({
-  borderRadius: "8px",
-  background: theme.palette.grey[100],
-  border: `1px solid ${theme.palette.grey[300]}`,
-  color: theme.palette.grey[800],
-  fontWeight: 600,
-  height: "28px",
-  transition: "all 0.2s ease-in-out",
-}));
 
 export default MajorSearch;

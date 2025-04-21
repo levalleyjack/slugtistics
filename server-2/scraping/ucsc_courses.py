@@ -84,11 +84,6 @@ def create_session():
     return session
 
 
-def get_current_term(soup):
-    term_dropdown = soup.find("select", {"id": "term_dropdown"})
-    selected_term = term_dropdown.find("option", selected=True)
-    return selected_term["value"]
-
 
 def parse_course_panel(panel):
     link_element = panel.find("a")
@@ -287,7 +282,7 @@ def scrape_all_courses():
 
         data = {
             "action": "results",
-            "binds[:term]": get_current_term(soup),
+            "binds[:term]": 2252,
             "binds[:reg_status]": "all",
             "binds[:subject]": "",
             "binds[:ge]": "",
@@ -354,7 +349,7 @@ def scrape_count():
 
         data = {
             "action": "results",
-            "binds[:term]": get_current_term(soup),
+            "binds[:term]": 2252,
             "binds[:reg_status]": "all",
             "binds[:subject]": "",
             "binds[:ge]": "",

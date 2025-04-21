@@ -1,56 +1,70 @@
-import { useEffect, useState } from "react";
-import { useQuery, useMutation } from "@tanstack/react-query";
+import { useEffect, useState, useRef } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
-  Box,
-  Card,
-  CardContent,
-  Typography,
-  Container,
-  Grid,
-  Chip,
-  styled,
-  CircularProgress,
-  Paper,
-  IconButton,
-  Tooltip,
-} from "@mui/material";
-import {
-  Add as AddIcon,
-  CheckCircle as CheckCircleIcon,
-  School as SchoolIcon,
-  ArrowBack as ArrowBackIcon,
-} from "@mui/icons-material";
-import { Form } from "react-router-dom";
-import { Button } from "@mui/material";
-import UploadIcon from "@mui/icons-material/Upload";
+  ArrowLeft,
+  CheckCircle,
+  UploadCloud,
+  Plus,
+  X,
+  ChevronDown,
+  Menu,
+} from "lucide-react";
+import { local } from "../pages/GetGEData";
+import { Notification } from "@/components/Notification";
+import { motion, AnimatePresence } from "framer-motion";
+import { Tooltip } from "@mui/material";
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 
+const pulseClass =
+  "transition-transform hover:scale-[1.02] active:scale-[0.98]";
 
 interface MajorPlannerProps {
   selectedMajor: string;
   onBack: () => void;
 }
 
+const containerVariants = {
+  hidden: { opacity: 0 },
+  show: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.02,
+    },
+  },
+};
+
+const cardVariants = {
+  hidden: { opacity: 0, y: 20 },
+  show: { opacity: 1, y: 0 },
+};
+
+const headerVariants = {
+  hidden: { y: -100, opacity: 0 },
+  visible: {
+    y: 0,
+    opacity: 1,
+    transition: { type: "spring", stiffness: 300, damping: 30 },
+  },
+};
+
 interface CourseData {
-  program: {
-    name: string;
-    admissionYear: string;
-  };
+  program: { name: string; admissionYear: string };
   requirements: {
     core: Array<{ class: string[] }>;
     capstone: Array<{ class: string[] }>;
     dc: Array<{ class: string[] }>;
   };
   electives: {
-    required: {
-      math: number;
-      upperDivision: number;
-    };
-    categories: {
-      [key: string]: {
-        name: string;
-        courses: Array<{ class: string[] }>;
-      };
-    };
+    required: { math: number; upperDivision: number };
+    categories: Record<
+      string,
+      { name: string; courses: Array<{ class: string[] }> }
+    >;
   };
 }
 
@@ -60,550 +74,630 @@ interface RecommendationsResponse {
   success: boolean;
 }
 
-const MajorPlanner = ({ selectedMajor, onBack }: MajorPlannerProps) => {
+export const MajorPlanner = ({ selectedMajor, onBack }: MajorPlannerProps) => {
   const [completedCourses, setCompletedCourses] = useState<Set<string>>(
     new Set()
   );
-  const [selectedSection, setSelectedSection] = useState<"Core" | "Capstone" | "DC" | "Electives" | "All">("Core");
-  const [classesInput, setClassesInput] = useState<string>("");
+  const [classesInputList, setClassesInputList] = useState<string[]>([]);
   const [recommendedCourses, setRecommendedCourses] = useState<string[]>([]);
-  const [isProcessing, setIsProcessing] = useState<boolean>(false);
   const [classesToRecommend, setClassesToRecommend] = useState<string[]>([]);
-  const [allCourses, setAllCourses] = useState<string[]>([]);
-  const [transcript, setTranscipt] = useState<File | null>(null);
+  const [transcript, setTranscript] = useState<File | null>(null);
+  const [selectedSection, setSelectedSection] = useState("All");
+  const [newClassInput, setNewClassInput] = useState("");
+  const [isDragging, setIsDragging] = useState(false);
+  const [needsRecommendationRefresh, setNeedsRecommendationRefresh] =
+    useState(false);
+  const [showFixedHeader, setShowFixedHeader] = useState(false);
+  const [isSheetOpen, setIsSheetOpen] = useState(false);
+  const [isMobileView, setIsMobileView] = useState(false);
 
-  // Get the course data
+  // Ref for the intersection observer target (where the header should start showing)
+  const coursesSectionRef = useRef<HTMLDivElement>(null);
+  const headerRef = useRef(null);
+  const mainContainerRef = useRef(null);
+
+  const [notification, setNotification] = useState<{
+    message: string;
+    type: "success" | "info" | "warning" | "error";
+    isOpen: boolean;
+  }>({
+    message: "",
+    type: "info",
+    isOpen: false,
+  });
+
+  const triggerNotification = (
+    type: "success" | "info" | "warning" | "error",
+    message: string
+  ) => {
+    setNotification({ type, message, isOpen: true });
+  };
+
+  // Check if we're in mobile view
+  useEffect(() => {
+    const checkIfMobile = () => {
+      setIsMobileView(window.innerWidth < 768);
+    };
+
+    // Initial check
+    checkIfMobile();
+
+    // Add event listener
+    window.addEventListener("resize", checkIfMobile);
+
+    // Cleanup
+    return () => window.removeEventListener("resize", checkIfMobile);
+  }, []);
+
   const { data: courseData, isLoading } = useQuery<CourseData>({
-    queryKey: ["course-requirements"],
+    queryKey: ["course-requirements", selectedMajor],
     queryFn: async () => {
-      const response = await fetch(
-        `http://127.0.0.1:5000/major_courses/${selectedMajor}`
-      );
-      if (!response.ok) {
-        throw new Error("Failed to fetch course requirements");
-      }
+      const response = await fetch(`${local}/major_courses/${selectedMajor}`);
+      if (!response.ok) throw new Error("Failed to fetch course requirements");
       return response.json();
     },
   });
 
-  // Calls get recommendations, usequery to constantly update
   const {
     data: recommendationsData,
-    isLoading: isLoadingRecommendations,
     refetch: refetchRecommendations,
-    error,
-  } = useQuery<RecommendationsResponse, Error>({
+    isLoading: isLoadingRecommendations,
+  } = useQuery<RecommendationsResponse>({
     queryKey: ["recommendations", classesToRecommend],
-    queryFn: () => getRecommendations(classesToRecommend),
+    queryFn: async () => {
+      const response = await fetch(`
+        ${local}/major_recommendations?classes=${encodeURIComponent(
+        classesToRecommend.join(",")
+      )}&major=${encodeURIComponent(selectedMajor)}`);
+      if (!response.ok) throw new Error("Failed to fetch recommendations");
+      return response.json();
+    },
     enabled: classesToRecommend.length > 0,
   });
 
-  // Use useEffect to handle recommendationsData changes
+  const allAvailableCourses = courseData
+    ? [
+        ...courseData.requirements.core.flatMap((g) => g.class),
+        ...courseData.requirements.capstone.flatMap((g) => g.class),
+        ...courseData.requirements.dc.flatMap((g) => g.class),
+        ...Object.values(courseData.electives.categories).flatMap((cat) =>
+          cat.courses.flatMap((g) => g.class)
+        ),
+      ]
+    : [];
+
   useEffect(() => {
     if (recommendationsData) {
-      // Update the completed courses with equiv_classes
-      if (recommendationsData.equiv_classes && recommendationsData.equiv_classes.length > 0) {
-        setCompletedCourses(new Set(recommendationsData.equiv_classes));
-      }
-      
-      // Update recommended courses
-      if (recommendationsData.recommended_classes && recommendationsData.recommended_classes.length > 0 &&
-        (recommendedCourses.length === 0 || JSON.stringify(recommendationsData.recommended_classes) !== JSON.stringify(recommendedCourses))) {
-        setRecommendedCourses(recommendationsData.recommended_classes);
-      }
+      setCompletedCourses(new Set(recommendationsData.equiv_classes || []));
+      setRecommendedCourses(recommendationsData.recommended_classes || []);
     }
-  }, [recommendationsData]); // Only run when recommendationsData changes
+  }, [recommendationsData]);
 
-  if (error) {
-    console.error("Error fetching recommendations:", error);
-  }
-
-  // Fetch recommendations with GET Reuqest
-  const getRecommendations = async (classes: string[]): Promise<RecommendationsResponse> => {
-    const classesParam = classes.join(",");
-    const response = await fetch(
-      `http://127.0.0.1:5000/major_recommendations?` +
-      `classes=${encodeURIComponent(classesParam)}` +
-      `&major=${encodeURIComponent(selectedMajor)}`,
-      { method: "GET" }
-    );
-
-    if (!response.ok) {
-      throw new Error("Failed to get recommendations");
+  // Use scroll position instead of IntersectionObserver for better reliability
+  useEffect(() => {
+    if (isMobileView) {
+      setShowFixedHeader(false);
+      return;
     }
-    const data = await response.json();
 
-    console.log(data);
-    return data;
-    
-  };
+    const handleScroll = () => {
+      if (!coursesSectionRef.current) return;
 
-  // Process the classes input and get recommendations
+      const rect = coursesSectionRef.current.getBoundingClientRect();
+      // Show header when the courses section is scrolled above the viewport
+      setShowFixedHeader(rect.top <= 0);
+    };
+
+    // Set initial state
+    handleScroll();
+
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, [isMobileView, courseData]);
+
   const processClassesInput = () => {
-    const classes = classesInput
-      .split(",")
-      .map((c) => c.trim())
-      .filter((c) => c.length > 0); // Add this filter to prevent empty inputs
-      
-    if (classes.length > 0) { // Only set if there are actual classes
-      setClassesToRecommend(classes);
+    if (classesInputList.length) {
+      setClassesToRecommend(classesInputList);
       refetchRecommendations();
     }
   };
 
-  // Update the completed courses set
   const toggleCourseCompletion = (course: string) => {
     setCompletedCourses((prev) => {
       const newSet = new Set(prev);
-      if (newSet.has(course)) {
-        newSet.delete(course);
-      } else {
-        newSet.add(course);
-      }
+      newSet.has(course) ? newSet.delete(course) : newSet.add(course);
       return newSet;
     });
   };
-  // List of all classes 
-  
-  //Handles uploading a file
 
-  function handleFileChange(event: React.ChangeEvent<HTMLInputElement>) {
-    if (event.target.files) {
-      setTranscipt(event.target.files[0]);
+  const addNewClass = () => {
+    const cleanInput = newClassInput.trim().toUpperCase();
+    if (cleanInput && !classesInputList.includes(cleanInput)) {
+      setClassesInputList((prev) => [...prev, cleanInput]);
+      setNeedsRecommendationRefresh(true);
+      const matchedCourse = allAvailableCourses.find(
+        (c) => c.toLowerCase() === cleanInput.toLowerCase()
+      );
+      if (matchedCourse) {
+        setCompletedCourses((prev) => new Set(prev).add(matchedCourse));
+      }
+      setNewClassInput("");
     }
-  }
+  };
+
+  const removeClass = (course: string) => {
+    setClassesInputList((prev) => prev.filter((c) => c !== course));
+    setCompletedCourses((prev) => {
+      const newSet = new Set(prev);
+      newSet.delete(course.toUpperCase());
+      return newSet;
+    });
+    setNeedsRecommendationRefresh(true);
+  };
 
   const handleFileUpload = async () => {
-      //event.preventDefault();
     if (!transcript) return;
-      console.log("uploaded a file!!");
-  
-      const formData = new FormData();
-      formData.append("transcript", transcript);
-      console.log(formData);
+    if (transcript.size > 5 * 1024 * 1024) {
+      triggerNotification("error", "File size exceeds 5MB limit");
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append("transcript", transcript);
+
+    try {
       const response = await fetch(
-        `http://127.0.0.1:5000/major_recommendations/parse_transcript`,
-        { method: "PUT", body: formData }
+        `${local}/major_recommendations/parse_transcript`,
+        {
+          method: "PUT",
+          body: formData,
+        }
       );
 
-      if (!response.ok) {
-        throw new Error("Failed to upload transcript");
-      }
+      if (!response.ok) throw new Error("Upload failed");
 
       const data = await response.json();
-      console.log(data);
-
-      const parsed = Array.isArray(data.courses) ? data.courses : [];
-      setClassesInput(parsed.join(", "));
-
-      return data;
-  }
-    
-
-  const renderCourseSection = (
-    title: string,
-    courseGroups: Array<{ class: string[] }> = []
-  ) => {
-    const allCourses = courseGroups.flatMap((group) => group.class);
-
-    return (
-      <Box sx={{ mb: 4 }}>
-        <SectionTitle variant="h5" gutterBottom>
-          {title}
-          <CourseCount>
-            {completedCourses.size}/{allCourses.length} Completed
-          </CourseCount>
-        </SectionTitle>
-        <Grid container spacing={2}>
-          {courseGroups.map((group, groupIndex) =>
-            group.class.map((course) => {
-              const isCompleted = completedCourses.has(course);
-              return (
-                <Grid
-                  item
-                  xs={12}
-                  sm={6}
-                  md={3}
-                  key={`${course}-${groupIndex}`}
-                >
-                  <CourseCard
-                    elevation={2}
-                    completed={isCompleted}
-                    onClick={() => toggleCourseCompletion(course)}
-                  >
-                    <CourseCardContent>
-                      <Box
-                        sx={{
-                          display: "flex",
-                          justifyContent: "space-between",
-                          alignItems: "center",
-                        }}
-                      >
-                        <Typography variant="h6" component="div">
-                          {course}
-                        </Typography>
-                        <Tooltip
-                          title={
-                            isCompleted
-                              ? "Mark as Incomplete"
-                              : "Mark as Complete"
-                          }
-                        >
-                          <IconButton
-                            size="small"
-                            color={isCompleted ? "success" : "default"}
-                          >
-                            {isCompleted ? <CheckCircleIcon /> : <AddIcon />}
-                          </IconButton>
-                        </Tooltip>
-                      </Box>
-                    </CourseCardContent>
-                  </CourseCard>
-                </Grid>
-              );
-            })
-          )}
-        </Grid>
-      </Box>
-    );
+      if (Array.isArray(data.courses)) {
+        setClassesInputList(data.courses);
+        setClassesToRecommend(data.courses);
+        setNeedsRecommendationRefresh(false);
+        refetchRecommendations();
+        triggerNotification("success", "Transcript uploaded successfully");
+      }
+    } catch (err) {
+      triggerNotification("error", "Failed to upload transcript");
+    }
   };
 
-  const renderElectivesSection = () => {
-    if (!courseData?.electives) return null;
+  const renderCourses = (courses: string[]) => (
+    <motion.div
+      variants={containerVariants}
+      initial="hidden"
+      animate="show"
+      className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3"
+    >
+      {courses.map((course) => (
+        <motion.div variants={cardVariants} className="w-full">
+          <Card
+            className={`cursor-pointer transition-all duration-300 hover:scale-[1.02] active:scale-[0.98] hover:shadow-lg ${
+              completedCourses.has(course)
+                ? "bg-emerald-100 border-emerald-400"
+                : recommendedCourses.includes(course)
+                ? "bg-yellow-100 border-yellow-400"
+                : "border-muted"
+            }`}
+            onClick={() => toggleCourseCompletion(course)}
+          >
+            <CardContent className="flex items-center justify-between p-4">
+              <span className="font-medium">{course}</span>
+              {completedCourses.has(course) ? (
+                <CheckCircle className="h-5 w-5 text-emerald-600" />
+              ) : (
+                <Plus className="h-5 w-5 text-muted-foreground" />
+              )}
+            </CardContent>
+          </Card>
+        </motion.div>
+      ))}
+    </motion.div>
+  );
 
-    return (
-      <Box sx={{ mb: 4 }}>
-        <SectionTitle variant="h5" gutterBottom>
-          Electives
-          <CourseCount>
-            Requirements:
-            {courseData.electives.required.math} Math,
-            {courseData.electives.required.upperDivision} Upper Division
-          </CourseCount>
-        </SectionTitle>
-        {Object.entries(courseData.electives.categories).map(
-          ([key, category]) => (
-            <Box key={key} sx={{ mb: 3 }}>
-              <Typography variant="h6" gutterBottom>
-                {category.name}
-              </Typography>
-              <Grid container spacing={2}>
-                {category.courses.map((courseGroup) =>
-                  courseGroup.class.map((course) => {
-                    const isCompleted = completedCourses.has(course);
-                    return (
-                      <Grid item xs={12} sm={6} md={3} key={course}>
-                        <CourseCard
-                          elevation={2}
-                          completed={isCompleted}
-                          onClick={() => toggleCourseCompletion(course)}
-                        >
-                          <CourseCardContent>
-                            <Box
-                              sx={{
-                                display: "flex",
-                                justifyContent: "space-between",
-                                alignItems: "center",
-                              }}
-                            >
-                              <Typography variant="h6" component="div">
-                                {course}
-                              </Typography>
-                              <Tooltip
-                                title={
-                                  isCompleted
-                                    ? "Mark as Incomplete"
-                                    : "Mark as Complete"
-                                }
-                              >
-                                <IconButton
-                                  size="small"
-                                  color={isCompleted ? "success" : "default"}
-                                >
-                                  {isCompleted ? (
-                                    <CheckCircleIcon />
-                                  ) : (
-                                    <AddIcon />
-                                  )}
-                                </IconButton>
-                              </Tooltip>
-                            </Box>
-                          </CourseCardContent>
-                        </CourseCard>
-                      </Grid>
-                    );
-                  })
+  // Mobile nav section selector
+  const MobileNavSelector = () => (
+    <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
+      <SheetTrigger asChild>
+        <Button variant="outline" size="icon" className="md:hidden">
+          <Menu className="h-5 w-5" />
+        </Button>
+      </SheetTrigger>
+      <SheetContent side="left" className="w-72">
+        <div className="mt-6 space-y-1">
+          {["All", "Core", "Capstone", "DC", "Electives"].map((section) => (
+            <div
+              className={`px-4 py-3 rounded-md cursor-pointer ${
+                selectedSection === section
+                  ? "bg-primary text-white"
+                  : "hover:bg-gray-100"
+              }`}
+              onClick={() => {
+                setSelectedSection(section);
+                setIsSheetOpen(false);
+              }}
+            >
+              {section}
+            </div>
+          ))}
+        </div>
+      </SheetContent>
+    </Sheet>
+  );
+
+  // Fixed header that shows when scrolling down - only on desktop
+  const FixedHeader = () => (
+    <AnimatePresence>
+      {showFixedHeader && !isMobileView && (
+        <motion.div
+          ref={headerRef}
+          variants={headerVariants}
+          initial="hidden"
+          animate="visible"
+          exit="hidden"
+          className="fixed top-16 left-0 right-0 z-50 bg-white/95 backdrop-blur-sm border-b border-gray-200 shadow-sm hidden md:block"
+        >
+          <div className="max-w-7xl mx-auto px-3 sm:px-6 py-3 flex items-center justify-between">
+            <div className="flex items-center gap-2 sm:gap-4">
+              <h3 className="font-semibold text-sm sm:text-base truncate max-w-[140px] sm:max-w-full">
+                {courseData?.program.name}
+              </h3>
+              <div className="flex items-center space-x-1 text-xs sm:text-sm">
+                <Badge variant="outline" className="bg-emerald-50">
+                  {completedCourses.size} / {allAvailableCourses.length}{" "}
+                  completed
+                </Badge>
+                {recommendedCourses.length > 0 && (
+                  <Badge variant="outline" className="bg-yellow-50">
+                    {recommendedCourses.length} recommended
+                  </Badge>
                 )}
-              </Grid>
-            </Box>
-          )
-        )}
-      </Box>
-    );
-  };
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <div className="flex border border-gray-200 rounded-md">
+                {["All", "Core", "Capstone", "DC", "Electives"].map(
+                  (section) => (
+                    <button
+                      className={`cursor-pointer px-2 sm:px-3 py-1.5 text-xs sm:text-sm ${
+                        selectedSection === section
+                          ? "bg-primary text-white"
+                          : "text-gray-700 hover:bg-gray-100"
+                      } ${section === "All" ? "rounded-l-md" : ""} ${
+                        section === "Electives" ? "rounded-r-md" : ""
+                      }`}
+                      onClick={() => setSelectedSection(section)}
+                    >
+                      {section}
+                    </button>
+                  )
+                )}
+              </div>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => {
+                  window.scrollTo({ top: 0, behavior: "smooth" });
+                }}
+                className="cursor-pointer"
+              >
+                <ChevronDown className="h-4 w-4 rotate-180" />
+              </Button>
+            </div>
+          </div>
+        </motion.div>
+      )}
+    </AnimatePresence>
+  );
 
   if (isLoading) {
     return (
-      <Box sx={{ display: "flex", justifyContent: "center", mt: 4 }}>
-        <CircularProgress />
-      </Box>
+      <div className="p-3 sm:p-6 max-w-7xl mx-auto">
+        <Skeleton className="h-8 w-40 sm:w-64 mb-4" />
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
+          {Array(9)
+            .fill(0)
+            .map((_, i) => (
+              <Skeleton className="h-24 rounded-lg" />
+            ))}
+        </div>
+      </div>
     );
   }
 
   return (
-    <Container maxWidth="lg" sx={{ py: 4 }}>
-      <Box sx={{ display: "flex", alignItems: "center", mb: 4, gap: 2 }}>
-        <IconButton onClick={onBack} sx={{ p: 1 }}>
-          <ArrowBackIcon />
-        </IconButton>
-        <Typography variant="h4" component="h1">
-          <SchoolIcon sx={{ mr: 1, verticalAlign: "middle" }} />
-          {courseData?.program?.name || "Major"} Requirements
-        </Typography>
-      </Box>
-
-      <ProgressPaper elevation={2}>
-        <Box
-          sx={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            width: "100%",
-          }}
-        >
-          <Typography variant="h6" gutterBottom>
-            Overall Progress
-          </Typography>
-          <Box
-            sx={{
-              display: "flex",
-              flexDirection: "column",
-              width: "500px",
-              gap: 1,
-            }}
-          >
-            <textarea
-              style={{
-                padding: "8px",
-                fontSize: "16px",
-                width: "100%",
-                height: "100px",
-                borderRadius: "4px",
-                border: "1px solid #ccc",
-                resize: "vertical",
-              }}
-              placeholder="Enter classes taken... e.g. (CSE 30, CSE 16, Math 19A, CSE 120...)"
-              value={classesInput}
-              onChange={(e) => setClassesInput(e.target.value)}
-            />
-            <Box sx={{ display: "flex", justifyContent: "flex-end" }}>
-              <Tooltip title="Mark these classes as completed and get recommendations">
-                <IconButton
-                  onClick={processClassesInput}
-                  color="primary"
-                  disabled={isLoadingRecommendations}
-                  sx={{
-                    border: "1px solid",
-                    borderColor: "primary.main",
-                    borderRadius: 1,
-                    px: 2,
-                  }}
-                >
-                  {isLoadingRecommendations ? (
-                    <>
-                      <CircularProgress size={20} sx={{ mr: 1 }} />
-                      <Typography variant="button">Processing...</Typography>
-                    </>
-                  ) : (
-                    <>
-
-                        <Typography variant="button" sx={{ mr: 1 }}>
-                          Submit & Get Recommendations
-                        </Typography>
-                        <CheckCircleIcon />
-
-                    </>
-                    
-                  )}
-                  
-                </IconButton>
-              </Tooltip>
-            </Box>
-
-            <Box sx={{ display: "flex", alignItems: "center", gap: 2, mt: 2 }}>
-              {/* Choose file */}
-              <Button variant="outlined" component="label">
-                Choose File
-                <input
-                  hidden
-                  accept="application/pdf"
-                  type="file"
-                  onChange={handleFileChange}
-                />
-              </Button>
-
-              {/* Upload button */}
-              <Button
-                variant="contained"
-                color="primary"
-                onClick={handleFileUpload}
-                startIcon={<UploadIcon />}
-                disabled={!transcript}
-              >
-                Upload Transcript
-              </Button>
-            </Box>
-
-            
-          </Box>
-        </Box>
-
-        <Box sx={{ display: "flex", gap: 2 }}>
-          <ProgressChip
-            label={`${completedCourses.size} Completed`}
-            icon={<CheckCircleIcon />}
-          />
-          <ProgressChip
-            label={`${
-              (courseData?.requirements?.core?.length || 0) +
-              (courseData?.requirements?.capstone?.length || 0) +
-              (courseData?.requirements?.dc?.length || 0) -
-              completedCourses.size
-            } Remaining`}
-            color="primary"
-          />
-        </Box>
-
-        {isLoadingRecommendations && (
-          <Box sx={{ display: "flex", alignItems: "center", mt: 2 }}>
-            <CircularProgress size={24} sx={{ mr: 1 }} />
-            <Typography>Getting recommendations...</Typography>
-          </Box>
-        )}
-
-        {recommendedCourses.length > 0 && !isLoadingRecommendations && (
-          <Box sx={{ mt: 3 }}>
-            <Typography
-              variant="h6"
-              gutterBottom
-              sx={{ display: "flex", alignItems: "center" }}
-            >
-              <SchoolIcon sx={{ mr: 1 }} />
-              Recommended Next Courses
-            </Typography>
-            <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1 }}>
-              {recommendedCourses.map((course) => (
-                <Chip
-                  key={course}
-                  label={course}
-                  color="secondary"
-                  sx={{ fontWeight: 500 }}
-                  onClick={() => toggleCourseCompletion(course)}
-                />
-              ))}
-            </Box>
-          </Box>
-        )}
-      </ProgressPaper>
-
-      <Box sx={{ padding: 2 }}>
-        <Grid container spacing={1}>
-          {[
-            { label: "All", value: "All" },
-            { label: "Core", value: "Core" },
-            { label: "Capstone", value: "Capstone" },
-            { label: "DC", value: "DC" },
-            { label: "Electives", value: "Electives" },
-          ].map((section) => (
-            <Grid item key={section.value}>
-              <StyledChip
-                label={section.label}
-                onClick={() => setSelectedSection(section.value as any)}
-                color={
-                  selectedSection === section.value ? "primary" : "default"
-                }
-              />
-            </Grid>
-          ))}
-        </Grid>
-      </Box>
-
-      {courseData && (
-        <>
-          {selectedSection === "All" && (renderCourseSection("All Courses", 
-            [...courseData.requirements.core, ...courseData.requirements.capstone, ...courseData.requirements.dc]))}
-          {selectedSection === "Core" && renderCourseSection("Core Courses", courseData.requirements.core)}
-          {selectedSection === "Capstone" && renderCourseSection("Capstone Courses", courseData.requirements.capstone)}
-          {selectedSection === "DC" && renderCourseSection("Disciplinary Communication", courseData.requirements.dc)}
-          {selectedSection === "Electives" && renderElectivesSection()}
-        </>
+    <>
+      {notification.isOpen && (
+        <Notification
+          type={notification.type}
+          message={notification.message}
+          isOpen={notification.isOpen}
+          onClose={() => setNotification({ ...notification, isOpen: false })}
+        />
       )}
-    </Container>
+
+      <FixedHeader />
+
+      <div
+        ref={mainContainerRef}
+        className="flex flex-col max-w-7xl mx-auto px-3 sm:px-6 py-4"
+      >
+        {/* Header */}
+        <div className="flex flex-col gap-2 mb-6">
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <button
+              onClick={onBack}
+              className="flex items-center gap-1 hover:text-primary transition-colors cursor-pointer"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              <span>Back</span>
+            </button>
+          </div>
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <h1 className="text-xl sm:text-3xl font-bold line-clamp-2">
+              {courseData?.program.name} Requirements
+            </h1>
+            <div className="flex space-x-1 text-xs">
+              <Badge variant="outline" className="bg-emerald-50">
+                {completedCourses.size} / {allAvailableCourses.length} completed
+              </Badge>
+              {recommendedCourses.length > 0 && (
+                <Badge variant="outline" className="bg-yellow-50">
+                  {recommendedCourses.length} recommended
+                </Badge>
+              )}
+            </div>
+          </div>
+        </div>
+
+        <div
+          onDragOver={(e) => {
+            e.preventDefault();
+            setIsDragging(true);
+          }}
+          onDragLeave={(e) => {
+            e.preventDefault();
+            setIsDragging(false);
+          }}
+          onDrop={(e) => {
+            e.preventDefault();
+            if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+              setTranscript(e.dataTransfer.files[0]);
+            }
+            setIsDragging(false);
+          }}
+          className={`relative w-full min-h-[150px] sm:min-h-[300px] flex flex-col items-center border-2 border-dashed rounded-lg transition-all duration-300 ease-in-out p-3 sm:p-6 ${
+            classesInputList.length === 0 ? "justify-center" : "items-start"
+          } ${isDragging ? "border-primary bg-muted/30" : "border-muted"}`}
+        >
+          {classesInputList.length === 0 && !transcript ? (
+            <div className="flex flex-col items-center justify-center w-full h-full text-center">
+              <UploadCloud className="h-8 w-8 sm:h-12 sm:w-12 text-muted-foreground" />
+              <h2 className="text-lg sm:text-2xl font-semibold mt-4">
+                No classes yet
+              </h2>
+              <p className="text-sm sm:text-base text-muted-foreground mt-2 mb-4 sm:mb-6">
+                Upload your transcript or manually add classes to get started!
+              </p>
+              <label className="inline-flex items-center px-4 sm:px-6 py-2 sm:py-3 bg-muted rounded-md cursor-pointer hover:bg-muted-foreground/10 transition-colors">
+                <UploadCloud className="h-4 w-4 sm:h-5 sm:w-5 mr-2" />
+                <span className="text-sm sm:text-base truncate max-w-[140px] sm:max-w-full">
+                  {transcript ? (transcript as File).name : "Choose File"}
+                </span>
+                <input
+                  type="file"
+                  accept="application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                  className="hidden"
+                  onChange={(e) =>
+                    e.target.files && setTranscript(e.target.files[0])
+                  }
+                />
+              </label>
+              <p className="text-xs sm:text-sm text-muted-foreground mt-2">
+                or drag and drop your file here
+              </p>
+            </div>
+          ) : (
+            <div className="flex flex-wrap gap-2 w-full">
+              {classesInputList.map((course) => (
+                <Badge
+                  variant="secondary"
+                  className="flex items-center gap-1 cursor-pointer text-xs sm:text-sm"
+                  onClick={() => removeClass(course)}
+                >
+                  {course}
+                  <X className="h-3 w-3 sm:h-4 sm:w-4" />
+                </Badge>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Input Controls */}
+        <div className="space-y-3 sm:space-y-4 mb-4 sm:mb-6 mt-4 sm:mt-6">
+          {/* Add Class Input */}
+          <div className="flex flex-col sm:flex-row gap-2">
+            <Input
+              placeholder="Add a new class"
+              value={newClassInput}
+              onChange={(e) => setNewClassInput(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && addNewClass()}
+              className="flex-grow"
+            />
+            <Button onClick={addNewClass} className="w-full sm:w-auto">
+              Add
+            </Button>
+          </div>
+
+          <div className="flex flex-wrap gap-2 items-center">
+            {/* File Upload Actions */}
+            <div className="flex flex-wrap gap-2 items-center">
+              <label className="inline-flex items-center px-3 sm:px-4 py-2 bg-muted rounded-md cursor-pointer hover:bg-muted-foreground/10 transition-colors text-xs sm:text-sm">
+                <UploadCloud className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
+                <span className="truncate max-w-[80px] sm:max-w-[200px]">
+                  {transcript ? transcript.name : "Choose File"}
+                </span>
+                <input
+                  type="file"
+                  accept="application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                  className="hidden"
+                  onChange={(e) =>
+                    e.target.files && setTranscript(e.target.files[0])
+                  }
+                />
+              </label>
+              <Button
+                onClick={handleFileUpload}
+                disabled={!transcript}
+                variant="default"
+                size="sm"
+                className="cursor-pointer text-xs sm:text-sm"
+              >
+                Upload
+              </Button>
+            </div>
+
+            {/* Divider */}
+            {classesInputList.length > 0 && (
+              <>
+                <div className="hidden sm:block h-8 sm:h-12 w-px bg-muted" />
+
+                {needsRecommendationRefresh ? (
+                  <div className="relative flex flex-col mt-2 sm:mt-0">
+                    <Tooltip
+                      title="You added new classes. Click to refresh."
+                      arrow
+                      placement="top"
+                    >
+                      <span className="inline-block">
+                        <Button
+                          onClick={() => {
+                            processClassesInput();
+                            setNeedsRecommendationRefresh(false);
+                          }}
+                          disabled={isLoadingRecommendations}
+                          variant="secondary"
+                          size="sm"
+                          className="cursor-pointer text-xs sm:text-sm"
+                        >
+                          {isLoadingRecommendations
+                            ? "Processing..."
+                            : "Get Recommendations"}
+                        </Button>
+                      </span>
+                    </Tooltip>
+
+                    <div className="absolute -top-1 -right-1 h-2 w-2 bg-amber-400 rounded-full" />
+                  </div>
+                ) : (
+                  <Button
+                    onClick={() => {
+                      processClassesInput();
+                      setNeedsRecommendationRefresh(false);
+                    }}
+                    disabled={isLoadingRecommendations}
+                    variant="secondary"
+                    size="sm"
+                    className="cursor-pointer text-xs sm:text-sm mt-2 sm:mt-0"
+                  >
+                    {isLoadingRecommendations
+                      ? "Processing..."
+                      : "Get Recommendations"}
+                  </Button>
+                )}
+              </>
+            )}
+          </div>
+        </div>
+
+        {/* Recommended Courses */}
+        {recommendedCourses.length > 0 && (
+          <div className="mb-4 sm:mb-8">
+            <h2 className="text-base sm:text-lg font-semibold mb-2">
+              Recommended Courses
+            </h2>
+            <div className="flex flex-wrap gap-2">
+              {recommendedCourses.map((course) => (
+                <Badge
+                  variant="secondary"
+                  className="cursor-pointer text-xs sm:text-sm"
+                  onClick={() => toggleCourseCompletion(course)}
+                >
+                  {course}
+                </Badge>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Section Tabs - Desktop */}
+        <div
+          ref={coursesSectionRef}
+          className="relative hidden md:flex space-x-4 sm:space-x-6 border-b border-border mb-4 sm:mb-6"
+        >
+          {["All", "Core", "Capstone", "DC", "Electives"].map((section) => (
+            <button
+              className={`relative px-2 sm:px-4 py-2 font-medium transition-colors cursor-pointer text-sm ${
+                selectedSection === section
+                  ? "text-primary"
+                  : "text-muted-foreground hover:text-primary"
+              }`}
+              onClick={() => setSelectedSection(section)}
+            >
+              {section}
+              {selectedSection === section && (
+                <motion.span
+                  layoutId="tab-underline"
+                  className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary rounded-full"
+                  transition={{ type: "spring", stiffness: 500, damping: 30 }}
+                />
+              )}
+            </button>
+          ))}
+        </div>
+
+        {/* Section Tabs - Mobile */}
+        <div className="md:hidden flex justify-between items-center mb-4">
+          <MobileNavSelector />
+          <div className="px-2 py-1 bg-muted/30 rounded-md text-sm">
+            Section: <span className="font-medium">{selectedSection}</span>
+          </div>
+        </div>
+
+        {/* Courses Grid */}
+        {courseData && (
+          <div className="space-y-4 sm:space-y-6">
+            {selectedSection === "All" && renderCourses(allAvailableCourses)}
+            {selectedSection === "Core" &&
+              renderCourses(
+                courseData.requirements.core.flatMap((g) => g.class)
+              )}
+            {selectedSection === "Capstone" &&
+              renderCourses(
+                courseData.requirements.capstone.flatMap((g) => g.class)
+              )}
+            {selectedSection === "DC" &&
+              renderCourses(courseData.requirements.dc.flatMap((g) => g.class))}
+            {selectedSection === "Electives" &&
+              Object.values(courseData.electives.categories).map((cat, idx) => (
+                <div className="space-y-2">
+                  <h3 className="text-base sm:text-lg font-semibold">
+                    {cat.name}
+                  </h3>
+                  {renderCourses(cat.courses.flatMap((g) => g.class))}
+                </div>
+              ))}
+          </div>
+        )}
+      </div>
+    </>
   );
 };
-
-const SectionTitle = styled(Typography)(({ theme }) => ({
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "space-between",
-  padding: theme.spacing(2),
-  borderBottom: `2px solid ${theme.palette.divider}`,
-}));
-
-const CourseCount = styled(Typography)(({ theme }) => ({
-  fontSize: "1rem",
-  color: theme.palette.text.secondary,
-  fontWeight: 500,
-}));
-
-const ProgressPaper = styled(Paper)(({ theme }) => ({
-  padding: theme.spacing(3),
-  marginBottom: theme.spacing(4),
-  borderRadius: theme.spacing(2),
-  background: `linear-gradient(135deg, ${theme.palette.background.paper} 0%, ${theme.palette.grey[50]} 100%)`,
-}));
-
-const ProgressChip = styled(Chip)(({ theme }) => ({
-  borderRadius: "8px",
-  padding: theme.spacing(1),
-  height: "36px",
-  fontWeight: 600,
-  "& .MuiChip-icon": {
-    fontSize: "1.2rem",
-  },
-}));
-
-const StyledChip = styled(Chip)(({ theme }) => ({
-  minWidth: "fit-content",
-  margin: theme.spacing(0.5),
-}));
-
-interface CourseCardProps {
-  completed?: boolean;
-}
-
-const CourseCard = styled(Card, {
-  shouldForwardProp: (prop) => prop !== "completed",
-})<CourseCardProps>(({ theme, completed }) => ({
-  cursor: "pointer",
-  transition: "all 0.2s ease-in-out",
-  background: completed
-    ? `linear-gradient(135deg, ${theme.palette.success.light} 0%, ${theme.palette.success.main} 100%)`
-    : theme.palette.background.paper,
-  color: completed ? theme.palette.common.white : theme.palette.text.primary,
-  border: `1px solid ${
-    completed ? theme.palette.success.main : theme.palette.divider
-  }`,
-  "&:hover": {
-    transform: "translateY(-2px)",
-    boxShadow: theme.shadows[4],
-  },
-}));
-
-const CourseCardContent = styled(CardContent)({
-  "&:last-child": {
-    paddingBottom: 16,
-  },
-});
-
-export default MajorPlanner;

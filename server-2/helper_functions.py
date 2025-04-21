@@ -1,5 +1,6 @@
 import base64
 from concurrent.futures import ThreadPoolExecutor, as_completed
+import os
 import re
 from typing import Dict, List, Optional, Tuple
 from venv import logger
@@ -270,96 +271,118 @@ def get_majors():
     return majors_data
 
 
+import re
 
 def parse_prerequisites(prereq_text):
     if "Prerequisite(s):" not in prereq_text:
         return []
 
     cleaned_text = prereq_text.replace("Prerequisite(s):", "").strip()
+
+    # Pre-cleaning: remove Enrollment restrictions
+    if "Enrollment" in cleaned_text:
+        cleaned_text = cleaned_text.split("Enrollment")[0].strip()
+    
     concurrent_reqs = []
-    #get concurrent courses
+    
+    # Handle concurrent separately first
     concurrent_match = re.search(r'[Cc]oncurrent enrollment in ([^.]+)', cleaned_text)
     if concurrent_match:
-        cleaned_text = re.split(r"(?i)concurrent", cleaned_text)[0]
         concurrent_text = concurrent_match.group(1).strip()
-        #process and/or courses similar to normal courses for concurrent
-        concurrent_parts = re.split(r';\s+and\s+|\s*;\s*|\s+and\s+', concurrent_text)
-        
+        cleaned_text = re.split(r"(?i)concurrent", cleaned_text)[0]
+
+        concurrent_parts = re.split(r';\s*|\s+and\s+', concurrent_text)
         for part in concurrent_parts:
             if " or " in part:
-                
                 or_courses = []
-                #regex for or courses
                 or_parts = re.split(r'\s+or\s+', part)
-                
                 for or_part in or_parts:
                     course_match = re.search(r'([A-Z]{2,4}\s*\d+[A-Z]*)', or_part)
                     if course_match:
                         or_courses.append("Concurrent: " + course_match.group(1).strip())
-                
                 if or_courses:
                     concurrent_reqs.append(or_courses)
             else:
-                #single course
                 course_match = re.search(r'([A-Z]{2,4}\s*\d+[A-Z]*)', part)
                 if course_match:
-                    course = "Concurrent: " + course_match.group(1).strip()
-                    concurrent_reqs.append([course])
-    if "Enrollment" in cleaned_text:
-        cleaned_text = cleaned_text.split("Enrollment")[0].strip()
+                    concurrent_reqs.append(["Concurrent: " + course_match.group(1).strip()])
 
+    # Pre-process commas: fix cases like "CSE 13, 14, and 15" => "CSE 13 and CSE 14 and CSE 15"
+    cleaned_text = re.sub(r'([A-Z]{2,4})\s*(\d+[A-Z]*),\s*(\d+[A-Z]*)', r'\1 \2 and \1 \3', cleaned_text)
+    cleaned_text = re.sub(r'([A-Z]{2,4})\s*(\d+[A-Z]*),\s*(\d+[A-Z]*),\s*(\d+[A-Z]*)', r'\1 \2 and \1 \3 and \1 \4', cleaned_text)
 
-    #regex for splitting courses by ";" / "and"
-    top_level_parts = re.split(r';\s+and\s+|\s*;\s*|\s+and\s+', cleaned_text)
-   
+    # Now split by semicolon or "and"
+    top_level_parts = re.split(r';\s*|\s+and\s+', cleaned_text)
+
     prereq_list = []
-    
-    for part in top_level_parts:
+
+    # Group courses
+    i = 0
+    while i < len(top_level_parts):
+        part = top_level_parts[i]
         if " or " in part:
-            
             or_courses = []
-            #splits text by or
             or_parts = re.split(r'\s+or\s+', part)
-            
             for or_part in or_parts:
-                #extract course codes in the or
                 course_match = re.search(r'([A-Z]{2,4}\s*\d+[A-Z]*)', or_part)
                 if course_match:
                     or_courses.append(course_match.group(1).strip())
-            
             if or_courses:
                 prereq_list.append(or_courses)
         else:
-            #this is a single course requirement (no or)
-            #checks if its a course
             course_match = re.search(r'([A-Z]{2,4}\s*\d+[A-Z]*)', part)
             if course_match:
-                course = course_match.group(1).strip()
-                prereq_list.append([course])
-    
+                current_course = course_match.group(1).strip()
+                # Special handling: if next part is a lab like 15L
+                if i + 1 < len(top_level_parts):
+                    next_part = top_level_parts[i+1]
+                    next_course_match = re.search(r'([A-Z]{2,4}\s*\d+[A-Z]*)', next_part)
+                    if next_course_match:
+                        next_course = next_course_match.group(1).strip()
+                        if current_course[:-1] == next_course[:-1] and (next_course.endswith('L') or current_course.endswith('L')):
+                            prereq_list.append([current_course, next_course])
+                            i += 1  # Skip next part too
+                        else:
+                            prereq_list.append([current_course])
+                    else:
+                        prereq_list.append([current_course])
+                else:
+                    prereq_list.append([current_course])
+        i += 1
+
     prereq_list.extend(concurrent_reqs)
-    
-    return prereq_list    
 
-def compute_recommendations(classes_taken: List[str], major: str):
-    # Fetch JSON
-    resp = requests.get(f"http://127.0.0.1:5000/major_courses/{major}")
-    resp.raise_for_status()
-    data = resp.json()
+    return prereq_list
 
+def get_major_courses(major: str) -> List[str]:
+    major_files = get_majors()
+    return major_files[major]
+def compute_recommendations(classes_taken: List[str], major: str, prereq_dict: Dict):
+    data = get_major_courses(major)
     needed_classes = data.get("needed_classes", {})
-    major_prerequsites = data.get("major_prerequisites", {})
+
+    # All classes that unlock others or are part of the needed structure
+    major_classes = set(needed_classes.keys())
 
     equiv_classes = set()
     for c in classes_taken:
-        if c in needed_classes:
+        if c in major_classes:
             equiv_classes.add(c)
             for next_class in needed_classes.get(c, []):
                 equiv_classes.add(next_class)
+        else:
+            equiv_classes.add(c)  # still track all classes taken
 
     recommended_classes = set()
-    for item, value in major_prerequsites.items():
-        if set(value).issubset(equiv_classes) and item not in equiv_classes:
-            recommended_classes.add(item)
+    for course, prereq_groups in prereq_dict.items():
+        # Recommend only if it's part of the major
+        if course not in major_classes or course in equiv_classes:
+            continue
+
+        # Check if any group of prereqs is satisfied
+        for group in prereq_groups:
+            if set(group).issubset(equiv_classes):
+                recommended_classes.add(course)
+                break
 
     return list(equiv_classes), list(recommended_classes)
