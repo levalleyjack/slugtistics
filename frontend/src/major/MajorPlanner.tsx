@@ -296,7 +296,7 @@ export const MajorPlanner = ({ selectedMajor, onBack }: MajorPlannerProps) => {
               </p>
               <label className="inline-flex items-center px-6 py-3 bg-muted rounded-md cursor-pointer hover:bg-muted-foreground/10 transition-colors">
                 <UploadCloud className="h-5 w-5 mr-2" />
-                {transcript ? transcript.name : "Choose File"}
+                {transcript ? (transcript as File).name : "Choose File"}
                 <input
                   type="file"
                   accept="application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
