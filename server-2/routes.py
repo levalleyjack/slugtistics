@@ -5,6 +5,7 @@ from contextlib import contextmanager
 from sqlalchemy import func, case
 from tenacity import retry, stop_after_attempt, wait_exponential
 import logging
+import re
 from scraping.ratings import get_detailed_professor_info
 from models.data_models import CourseModel, LastUpdateModel, VisitorModel, db
 from config import app

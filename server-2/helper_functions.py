@@ -8,6 +8,8 @@ from click import File
 import pdfplumber
 import requests
 import json
+import requests
+
 quarter = 2252
 
 
@@ -264,7 +266,6 @@ def get_majors():
         cs_bs_data = json.load(file)
 
     majors_data = {
-
         cs_bs_data["program"]["name"]: cs_bs_data
     }
     return majors_data

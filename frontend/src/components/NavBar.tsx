@@ -76,15 +76,15 @@ const NavBar = () => {
             </div>
           )}
         </div>
-        <NavLink
+         <NavLink
           to="/major"
           className={({ isActive }) =>
             isActive ? "navbar-link navbar-link-active" : "navbar-link"
           }
         >
           <h2>Major Search</h2>
-        </NavLink>
-      </div>
+        </NavLink> 
+        </div>
       <div className="navbar-right">
         <NavLink
           to="/about"

@@ -135,7 +135,6 @@
   --secondary-color: var(--secondary);
 }
 
-
 /* App Structure from your CSS */
 .App {
   height: calc(100dvh - 64px);
@@ -202,6 +201,8 @@ textarea,
   font-family: var(--font-geist) !important;
   font-size: inherit;
   color: var(--foreground);
+}
+input {
   background-color: var(--input);
 }
 
@@ -375,10 +376,6 @@ html {
   transition: all 0.2s ease;
 }
 
-.MuiButton-root:hover {
-  background-color: var(--primary-foreground);
-  color: var(--primary);
-}
 
 /* Secondary Button */
 .MuiButton-root.secondary {
@@ -391,7 +388,6 @@ html {
   background-color: var(--secondary-foreground);
   color: var(--secondary);
 }
-
 
 .MuiPaper-root {
   background-color: var(--card);
