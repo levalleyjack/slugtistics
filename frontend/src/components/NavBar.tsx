@@ -49,9 +49,9 @@ const NavBar = () => {
           >
             <h2>
               Class Search
-              <StyledExpandIcon 
-                expanded={isHovering} 
-                sx={{ fontSize: isMobile? "0.8rem" : "1.2rem"}} 
+              <StyledExpandIcon
+                expanded={isHovering}
+                sx={{ fontSize: isMobile ? "0.8rem" : "1.2rem" }}
               />
             </h2>
           </NavLink>
@@ -75,7 +75,6 @@ const NavBar = () => {
               </NavLink>
             </div>
           )}
-           
         </div>
          <NavLink
           to="/major"
