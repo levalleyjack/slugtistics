@@ -92,7 +92,8 @@ export const MajorPlanner = ({ selectedMajor, onBack }: MajorPlannerProps) => {
   const [isMobileView, setIsMobileView] = useState(false);
 
   // Ref for the intersection observer target (where the header should start showing)
-  const coursesSectionRef = useRef(null);
+  const coursesSectionRef = useRef<HTMLDivElement>(null);
+  const headerRef = useRef(null);
   const mainContainerRef = useRef(null);
 
   const [notification, setNotification] = useState<{
@@ -104,7 +105,7 @@ export const MajorPlanner = ({ selectedMajor, onBack }: MajorPlannerProps) => {
     type: "info",
     isOpen: false,
   });
-  
+
   const triggerNotification = (
     type: "success" | "info" | "warning" | "error",
     message: string
@@ -117,15 +118,15 @@ export const MajorPlanner = ({ selectedMajor, onBack }: MajorPlannerProps) => {
     const checkIfMobile = () => {
       setIsMobileView(window.innerWidth < 768);
     };
-    
+
     // Initial check
     checkIfMobile();
-    
+
     // Add event listener
-    window.addEventListener('resize', checkIfMobile);
-    
+    window.addEventListener("resize", checkIfMobile);
+
     // Cleanup
-    return () => window.removeEventListener('resize', checkIfMobile);
+    return () => window.removeEventListener("resize", checkIfMobile);
   }, []);
 
   const { data: courseData, isLoading } = useQuery<CourseData>({
@@ -172,37 +173,27 @@ export const MajorPlanner = ({ selectedMajor, onBack }: MajorPlannerProps) => {
     }
   }, [recommendationsData]);
 
-  // Setup intersection observer for fixed header, only in non-mobile view
+  // Use scroll position instead of IntersectionObserver for better reliability
   useEffect(() => {
-    if (!coursesSectionRef.current || isMobileView) {
+    if (isMobileView) {
       setShowFixedHeader(false);
       return;
     }
 
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (!isMobileView) {
-          setShowFixedHeader(!entry.isIntersecting);
-        }
-      },
-      { threshold: 0.1 } // Trigger when 10% of the element is visible
-    );
+    const handleScroll = () => {
+      if (!coursesSectionRef.current) return;
 
-    observer.observe(coursesSectionRef.current);
-
-    return () => {
-      if (coursesSectionRef.current) {
-        observer.unobserve(coursesSectionRef.current);
-      }
+      const rect = coursesSectionRef.current.getBoundingClientRect();
+      // Show header when the courses section is scrolled above the viewport
+      setShowFixedHeader(rect.top <= 0);
     };
-  }, [coursesSectionRef, isMobileView]);
 
-  // Hide fixed header when in mobile view
-  useEffect(() => {
-    if (isMobileView) {
-      setShowFixedHeader(false);
-    }
-  }, [isMobileView]);
+    // Set initial state
+    handleScroll();
+
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, [isMobileView, courseData]);
 
   const processClassesInput = () => {
     if (classesInputList.length) {
@@ -210,7 +201,7 @@ export const MajorPlanner = ({ selectedMajor, onBack }: MajorPlannerProps) => {
       refetchRecommendations();
     }
   };
-  
+
   const toggleCourseCompletion = (course: string) => {
     setCompletedCourses((prev) => {
       const newSet = new Set(prev);
@@ -218,7 +209,7 @@ export const MajorPlanner = ({ selectedMajor, onBack }: MajorPlannerProps) => {
       return newSet;
     });
   };
-  
+
   const addNewClass = () => {
     const cleanInput = newClassInput.trim().toUpperCase();
     if (cleanInput && !classesInputList.includes(cleanInput)) {
@@ -315,11 +306,7 @@ export const MajorPlanner = ({ selectedMajor, onBack }: MajorPlannerProps) => {
   const MobileNavSelector = () => (
     <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
       <SheetTrigger asChild>
-        <Button 
-          variant="outline" 
-          size="icon" 
-          className="md:hidden"
-        >
+        <Button variant="outline" size="icon" className="md:hidden">
           <Menu className="h-5 w-5" />
         </Button>
       </SheetTrigger>
@@ -327,7 +314,6 @@ export const MajorPlanner = ({ selectedMajor, onBack }: MajorPlannerProps) => {
         <div className="mt-6 space-y-1">
           {["All", "Core", "Capstone", "DC", "Electives"].map((section) => (
             <div
-              key={section}
               className={`px-4 py-3 rounded-md cursor-pointer ${
                 selectedSection === section
                   ? "bg-primary text-white"
@@ -351,6 +337,7 @@ export const MajorPlanner = ({ selectedMajor, onBack }: MajorPlannerProps) => {
     <AnimatePresence>
       {showFixedHeader && !isMobileView && (
         <motion.div
+          ref={headerRef}
           variants={headerVariants}
           initial="hidden"
           animate="visible"
@@ -384,9 +371,7 @@ export const MajorPlanner = ({ selectedMajor, onBack }: MajorPlannerProps) => {
                         selectedSection === section
                           ? "bg-primary text-white"
                           : "text-gray-700 hover:bg-gray-100"
-                      } ${
-                        section === "All" ? "rounded-l-md" : ""
-                      } ${
+                      } ${section === "All" ? "rounded-l-md" : ""} ${
                         section === "Electives" ? "rounded-r-md" : ""
                       }`}
                       onClick={() => setSelectedSection(section)}
@@ -427,7 +412,7 @@ export const MajorPlanner = ({ selectedMajor, onBack }: MajorPlannerProps) => {
       </div>
     );
   }
-  
+
   return (
     <>
       {notification.isOpen && (
@@ -441,7 +426,7 @@ export const MajorPlanner = ({ selectedMajor, onBack }: MajorPlannerProps) => {
 
       <FixedHeader />
 
-      <div 
+      <div
         ref={mainContainerRef}
         className="flex flex-col max-w-7xl mx-auto px-3 sm:px-6 py-4"
       >
@@ -496,7 +481,9 @@ export const MajorPlanner = ({ selectedMajor, onBack }: MajorPlannerProps) => {
           {classesInputList.length === 0 && !transcript ? (
             <div className="flex flex-col items-center justify-center w-full h-full text-center">
               <UploadCloud className="h-8 w-8 sm:h-12 sm:w-12 text-muted-foreground" />
-              <h2 className="text-lg sm:text-2xl font-semibold mt-4">No classes yet</h2>
+              <h2 className="text-lg sm:text-2xl font-semibold mt-4">
+                No classes yet
+              </h2>
               <p className="text-sm sm:text-base text-muted-foreground mt-2 mb-4 sm:mb-6">
                 Upload your transcript or manually add classes to get started!
               </p>
@@ -545,7 +532,9 @@ export const MajorPlanner = ({ selectedMajor, onBack }: MajorPlannerProps) => {
               onKeyDown={(e) => e.key === "Enter" && addNewClass()}
               className="flex-grow"
             />
-            <Button onClick={addNewClass} className="w-full sm:w-auto">Add</Button>
+            <Button onClick={addNewClass} className="w-full sm:w-auto">
+              Add
+            </Button>
           </div>
 
           <div className="flex flex-wrap gap-2 items-center">
@@ -632,7 +621,9 @@ export const MajorPlanner = ({ selectedMajor, onBack }: MajorPlannerProps) => {
         {/* Recommended Courses */}
         {recommendedCourses.length > 0 && (
           <div className="mb-4 sm:mb-8">
-            <h2 className="text-base sm:text-lg font-semibold mb-2">Recommended Courses</h2>
+            <h2 className="text-base sm:text-lg font-semibold mb-2">
+              Recommended Courses
+            </h2>
             <div className="flex flex-wrap gap-2">
               {recommendedCourses.map((course) => (
                 <Badge
@@ -696,9 +687,11 @@ export const MajorPlanner = ({ selectedMajor, onBack }: MajorPlannerProps) => {
             {selectedSection === "DC" &&
               renderCourses(courseData.requirements.dc.flatMap((g) => g.class))}
             {selectedSection === "Electives" &&
-              Object.values(courseData.electives.categories).map((cat) => (
-                <div  className="space-y-2">
-                  <h3 className="text-base sm:text-lg font-semibold">{cat.name}</h3>
+              Object.values(courseData.electives.categories).map((cat, idx) => (
+                <div className="space-y-2">
+                  <h3 className="text-base sm:text-lg font-semibold">
+                    {cat.name}
+                  </h3>
                   {renderCourses(cat.courses.flatMap((g) => g.class))}
                 </div>
               ))}
