@@ -1,403 +1,457 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import {
-  Box,
-  Card,
-  CardContent,
-  Typography,
-  Container,
-  Grid,
-  Chip,
-  styled,
-  CircularProgress,
-  Paper,
-  IconButton,
-  Tooltip,
-} from "@mui/material";
-import {
-  Add as AddIcon,
-  CheckCircle as CheckCircleIcon,
-  School as SchoolIcon,
-  ArrowBack as ArrowBackIcon,
-} from "@mui/icons-material";
+import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
+import { ArrowLeft, CheckCircle, UploadCloud, Plus, X } from "lucide-react";
+import { local } from "../pages/GetGEData";
+import { Notification } from "@/components/Notification";
+import { motion } from "framer-motion";
+
+const pulseClass =
+  "transition-transform hover:scale-[1.02] active:scale-[0.98]";
 
 interface MajorPlannerProps {
     selectedMajor:string;
   onBack: () => void;
 }
+const containerVariants = {
+  hidden: { opacity: 0 },
+  show: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.02, // each child will animate after 80ms
+    },
+  },
+};
+
+const cardVariants = {
+  hidden: { opacity: 0, y: 20 },
+  show: { opacity: 1, y: 0 },
+};
 
 interface CourseData {
-  program: {
-    name: string;
-    admissionYear: string;
-  };
+  program: { name: string; admissionYear: string };
   requirements: {
     core: Array<{ class: string[] }>;
     capstone: Array<{ class: string[] }>;
     dc: Array<{ class: string[] }>;
   };
   electives: {
-    required: {
-      math: number;
-      upperDivision: number;
-    };
-    categories: {
-      [key: string]: {
-        name: string;
-        courses: Array<{ class: string[] }>;
-      };
-    };
+    required: { math: number; upperDivision: number };
+    categories: Record<
+      string,
+      { name: string; courses: Array<{ class: string[] }> }
+    >;
   };
 }
 
-const MajorPlanner = ({ selectedMajor, onBack }: MajorPlannerProps) => {
+interface RecommendationsResponse {
+  equiv_classes: string[];
+  recommended_classes: string[];
+  success: boolean;
+}
+
+export const MajorPlanner = ({ selectedMajor, onBack }: MajorPlannerProps) => {
   const [completedCourses, setCompletedCourses] = useState<Set<string>>(
     new Set()
   );
-  const [selectedSection, setSelectedSection] = useState<
-    "Core" | "Capstone" | "DC" | "Electives"
-  >("Core");
-  const [classesInput, setClassesInput] = useState<string>("");
+  const [classesInputList, setClassesInputList] = useState<string[]>([]);
+  const [recommendedCourses, setRecommendedCourses] = useState<string[]>([]);
+  const [classesToRecommend, setClassesToRecommend] = useState<string[]>([]);
+  const [transcript, setTranscript] = useState<File | null>(null);
+  const [selectedSection, setSelectedSection] = useState("All");
+  const [newClassInput, setNewClassInput] = useState("");
+  const [isDragging, setIsDragging] = useState(false);
+
+  const [notification, setNotification] = useState<{
+    message: string;
+    type: "success" | "info" | "warning" | "error";
+    isOpen: boolean;
+  }>({
+    message: "",
+    type: "info",
+    isOpen: false,
+  });
+  const triggerNotification = (
+    type: "success" | "info" | "warning" | "error",
+    message: string
+  ) => {
+    setNotification({ type, message, isOpen: true });
+  };
 
   const { data: courseData, isLoading } = useQuery<CourseData>({
-    queryKey: ["course-requirements"],
+    queryKey: ["course-requirements", selectedMajor],
     queryFn: async () => {
-      const response = await fetch(
-        `http://127.0.0.1:5000/major_courses/${selectedMajor}`
-      );
-      if (!response.ok) {
-        throw new Error("Failed to fetch course requirements");
-      }
+      const response = await fetch(`${local}/major_courses/${selectedMajor}`);
+      if (!response.ok) throw new Error("Failed to fetch course requirements");
       return response.json();
     },
   });
 
-  //Very case sensitive, need to improve
+  const {
+    data: recommendationsData,
+    refetch: refetchRecommendations,
+    isLoading: isLoadingRecommendations,
+  } = useQuery<RecommendationsResponse>({
+    queryKey: ["recommendations", classesToRecommend],
+    queryFn: async () => {
+      const response = await fetch(
+        `${local}/major_recommendations?classes=${encodeURIComponent(
+          classesToRecommend.join(",")
+        )}&major=${encodeURIComponent(selectedMajor)}`
+      );
+      if (!response.ok) throw new Error("Failed to fetch recommendations");
+      return response.json();
+    },
+    enabled: classesToRecommend.length > 0,
+  });
+
+  const allAvailableCourses = courseData
+    ? [
+        ...courseData.requirements.core.flatMap((g) => g.class),
+        ...courseData.requirements.capstone.flatMap((g) => g.class),
+        ...courseData.requirements.dc.flatMap((g) => g.class),
+        ...Object.values(courseData.electives.categories).flatMap((cat) =>
+          cat.courses.flatMap((g) => g.class)
+        ),
+      ]
+    : [];
+
+  useEffect(() => {
+    if (recommendationsData) {
+      setCompletedCourses(new Set(recommendationsData.equiv_classes || []));
+      setRecommendedCourses(recommendationsData.recommended_classes || []);
+    }
+  }, [recommendationsData]);
+
   const processClassesInput = () => {
-    // Split by comma, get rid of whitespace and empty strings
-    const classes = classesInput.split(",").map((c) => c.trim()).filter((c) => c.length > 0);
+    if (classesInputList.length) {
+      setClassesToRecommend(classesInputList);
+      refetchRecommendations();
+    }
+  };
+  const handleFileUpload = async () => {
+    if (!transcript) return;
+    if (transcript.size > 5 * 1024 * 1024) {
+      triggerNotification("error", "File size exceeds 5MB limit");
+      return;
+    }
 
-    setCompletedCourses(new Set(classes));
+    const formData = new FormData();
+    formData.append("transcript", transcript);
 
-  }
+    try {
+      const response = await fetch(
+        `${local}/major_recommendations/parse_transcript`,
+        { method: "PUT", body: formData }
+      );
+      if (!response.ok) throw new Error("Upload failed");
+
+      const data = await response.json();
+      if (Array.isArray(data.courses)) {
+        setClassesInputList(data.courses);
+        triggerNotification("success", "Transcript uploaded successfully");
+        setClassesToRecommend(data.courses);
+        refetchRecommendations();
+      }
+    } catch (err) {
+      triggerNotification("error", "Failed to upload transcript");
+    }
+  };
 
   const toggleCourseCompletion = (course: string) => {
     setCompletedCourses((prev) => {
       const newSet = new Set(prev);
-      if (newSet.has(course)) {
-        newSet.delete(course);
-      } else {
-        newSet.add(course);
-      }
+      newSet.has(course) ? newSet.delete(course) : newSet.add(course);
       return newSet;
     });
   };
 
-  const renderCourseSection = (
-    title: string, 
-    courseGroups: Array<{ class: string[] }> = []
-  ) => {
-    const allCourses = courseGroups.flatMap(group => group.class);
-    
-    return (
-      
-      <Box sx={{ mb: 4 }}>
-        <SectionTitle variant="h5" gutterBottom>
-          {title}
-          <CourseCount>
-            {completedCourses.size}/{allCourses.length} Completed
-          </CourseCount>
-        </SectionTitle>
-        <Grid container spacing={2}>
-          {courseGroups.map((group, groupIndex) => 
-            group.class.map((course) => {
-              const isCompleted = completedCourses.has(course);
-              return (
-                <Grid item xs={12} sm={6} md={3} key={`${course}-${groupIndex}`}>
-                  <CourseCard
-                    elevation={2}
-                    completed={isCompleted}
-                    onClick={() => toggleCourseCompletion(course)}
-                  >
-                    <CourseCardContent>
-                      <Box
-                        sx={{
-                          display: "flex",
-                          justifyContent: "space-between",
-                          alignItems: "center",
-                        }}
-                      >
-                        <Typography variant="h6" component="div">
-                          {course}
-                        </Typography>
-                        <Tooltip
-                          title={
-                            isCompleted 
-                              ? "Mark as Incomplete" 
-                              : "Mark as Complete"
-                          }
-                        >
-                          <IconButton
-                            size="small"
-                            color={isCompleted ? "success" : "default"}
-                          >
-                            {isCompleted ? <CheckCircleIcon /> : <AddIcon />}
-                          </IconButton>
-                        </Tooltip>
-                      </Box>
-                    </CourseCardContent>
-                  </CourseCard>
-                </Grid>
-              );
-            })
-          )}
-        </Grid>
-      </Box>
-    );
+  const removeClass = (course: string) => {
+    setClassesInputList((prev) => prev.filter((c) => c !== course));
+    setCompletedCourses((prev) => {
+      const newSet = new Set(prev);
+      newSet.delete(course.toUpperCase());
+      return newSet;
+    });
   };
 
-  const renderElectivesSection = () => {
-    if (!courseData?.electives) return null;
-
-    return (
-      <Box sx={{ mb: 4 }}>
-        <SectionTitle variant="h5" gutterBottom>
-          Electives
-          <CourseCount>
-            Requirements:
-            {courseData.electives.required.math} Math, 
-            {courseData.electives.required.upperDivision} Upper Division
-          </CourseCount>
-        </SectionTitle>
-        {Object.entries(courseData.electives.categories).map(([key, category]) => (
-          <Box key={key} sx={{ mb: 3 }}>
-            <Typography variant="h6" gutterBottom>
-              {category.name}
-            </Typography>
-            <Grid container spacing={2}>
-              {category.courses.map((courseGroup) => 
-                courseGroup.class.map((course) => {
-                  const isCompleted = completedCourses.has(course);
-                  return (
-                    <Grid item xs={12} sm={6} md={3} key={course}>
-                      <CourseCard
-                        elevation={2}
-                        completed={isCompleted}
-                        onClick={() => toggleCourseCompletion(course)}
-                      >
-                        <CourseCardContent>
-                          <Box
-                            sx={{
-                              display: "flex",
-                              justifyContent: "space-between",
-                              alignItems: "center",
-                            }}
-                          >
-                            <Typography variant="h6" component="div">
-                              {course}
-                            </Typography>
-                            <Tooltip
-                              title={
-                                isCompleted 
-                                  ? "Mark as Incomplete" 
-                                  : "Mark as Complete"
-                              }
-                            >
-                              <IconButton
-                                size="small"
-                                color={isCompleted ? "success" : "default"}
-                              >
-                                {isCompleted ? <CheckCircleIcon /> : <AddIcon />}
-                              </IconButton>
-                            </Tooltip>
-                          </Box>
-                        </CourseCardContent>
-                      </CourseCard>
-                    </Grid>
-                  );
-                })
+  const addNewClass = () => {
+    const cleanInput = newClassInput.trim().toUpperCase(); // <-- UPPERCASE fix
+    if (cleanInput && !classesInputList.includes(cleanInput)) {
+      setClassesInputList((prev) => [...prev, cleanInput]);
+      const matchedCourse = allAvailableCourses.find(
+        (c) => c.toLowerCase() === cleanInput.toLowerCase()
+      );
+      if (matchedCourse) {
+        setCompletedCourses((prev) => new Set(prev).add(matchedCourse));
+      }
+      setNewClassInput("");
+    }
+  };
+  const renderCourses = (courses: string[]) => (
+    <motion.div
+      variants={containerVariants}
+      initial="hidden"
+      animate="show"
+      className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3"
+    >
+      {courses.map((course) => (
+        <motion.div variants={cardVariants} className="w-full">
+          <Card
+            className={`cursor-pointer transition-all duration-300 hover:scale-[1.02] active:scale-[0.98] hover:shadow-lg ${
+              completedCourses.has(course)
+                ? "bg-emerald-100 border-emerald-400"
+                : recommendedCourses.includes(course)
+                ? "bg-yellow-100 border-yellow-400"
+                : "border-muted"
+            }`}
+            onClick={() => toggleCourseCompletion(course)}
+          >
+            <CardContent className="flex items-center justify-between p-4">
+              <span className="font-medium">{course}</span>
+              {completedCourses.has(course) ? (
+                <CheckCircle className="h-5 w-5 text-emerald-600" />
+              ) : (
+                <Plus className="h-5 w-5 text-muted-foreground" />
               )}
-            </Grid>
-          </Box>
-        ))}
-      </Box>
-    );
-  };
+            </CardContent>
+          </Card>
+        </motion.div>
+      ))}
+    </motion.div>
+  );
 
   if (isLoading) {
     return (
-      <Box sx={{ display: "flex", justifyContent: "center", mt: 4 }}>
-        <CircularProgress />
-      </Box>
+      <div className="p-6 max-w-7xl mx-auto">
+        <Skeleton className="h-8 w-64 mb-4" />
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {Array(9)
+            .fill(0)
+            .map((_, i) => (
+              <Skeleton className="h-24 rounded-lg" />
+            ))}
+        </div>
+      </div>
     );
   }
-
   return (
-    <Container maxWidth="lg" sx={{ py: 4 }}>
-      <Box sx={{ display: "flex", alignItems: "center", mb: 4, gap: 2 }}>
-        <IconButton onClick={onBack} sx={{ p: 1 }}>
-          <ArrowBackIcon />
-        </IconButton>
-        <Typography variant="h4" component="h1">
-          <SchoolIcon sx={{ mr: 1, verticalAlign: "middle" }} />
-          {courseData?.program?.name || "Major"} Requirements
-        </Typography>
-      </Box>
-
-      <ProgressPaper elevation={2}>
-        <Box sx={{display: "flex", justifyContent: "space-between", alignItems: "center", width: "100%"}}>
-          <Typography variant="h6" gutterBottom>
-            Overall Progress
-          </Typography>
-          <Box sx={{ display: "flex", flexDirection: "column", width: "500px", gap: 1 }}>
-            <textarea
-              style={{ 
-                padding: "8px", 
-                fontSize: "16px", 
-                width: "100%", 
-                height: "100px", 
-                borderRadius: "4px", 
-                border: "1px solid #ccc",
-                resize: "vertical"
-              }}
-              placeholder="Enter classes taken... e.g. (CSE 30, CSE 16, Math 19A, CSE 120...)"
-              value={classesInput}
-              onChange={(e) => setClassesInput(e.target.value)}
-            />
-            <Box sx={{ display: "flex", justifyContent: "flex-end" }}>
-              <Tooltip title="Mark these classes as completed">
-                <IconButton 
-                  onClick={processClassesInput}
-                  color="primary"
-                  sx={{ 
-                    border: "1px solid",
-                    borderColor: "primary.main",
-                    borderRadius: 1,
-                    px: 2
-                  }}
-                >
-                  <Typography variant="button" sx={{ mr: 1 }}>Submit</Typography>
-                  <CheckCircleIcon />
-                </IconButton>
-              </Tooltip>
-            </Box>
-          </Box>
-        </Box>
-        
-        
-        <Box sx={{ display: "flex", gap: 2 }}>
-          <ProgressChip
-            label={`${completedCourses.size} Completed`}
-            icon={<CheckCircleIcon />}
-          />
-          <ProgressChip
-            label={`${
-              (courseData?.requirements?.core?.length || 0) +
-              (courseData?.requirements?.capstone?.length || 0) +
-              (courseData?.requirements?.dc?.length || 0) -
-              completedCourses.size
-            } Remaining`}
-            color="primary"
-          />
-        </Box>
-      </ProgressPaper>
-      
-      <Box sx={{ padding: 2 }}>
-        <Grid container spacing={1}>
-          {[
-            { label: "Core", value: "Core" },
-            { label: "Capstone", value: "Capstone" },
-            { label: "DC", value: "DC" },
-            { label: "Electives", value: "Electives" },
-          ].map((section) => (
-            <Grid item key={section.value}>
-              <StyledChip
-                label={section.label}
-                onClick={() => setSelectedSection(section.value as any)}
-                color={selectedSection === section.value ? "primary" : "default"}
-              />
-            </Grid>
-          ))}
-        </Grid>
-      </Box>
-
-      {courseData && (
-        <>
-          {selectedSection === "Core" && 
-            renderCourseSection("Core Courses", courseData.requirements.core)}
-          {selectedSection === "Capstone" && 
-            renderCourseSection("Capstone Courses", courseData.requirements.capstone)}
-          {selectedSection === "DC" && 
-            renderCourseSection("Disciplinary Communication", courseData.requirements.dc)}
-          {selectedSection === "Electives" && renderElectivesSection()}
-        </>
+    <>
+      {notification.isOpen && (
+        <Notification
+          type={notification.type}
+          message={notification.message}
+          isOpen={notification.isOpen}
+          onClose={() => setNotification({ ...notification, isOpen: false })}
+        />
       )}
-    </Container>
+
+      <div className="flex flex-col max-w-7xl mx-auto px-6 py-4">
+        {/* Header */}
+        <div className="flex flex-col gap-2 mb-6">
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <button
+              onClick={onBack}
+              className="flex items-center gap-1 hover:text-primary transition-colors cursor-pointer"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              <span>Back</span>
+            </button>
+          </div>
+          <h1 className="text-3xl font-bold">
+            {courseData?.program.name} Requirements
+          </h1>
+        </div>
+
+        <div
+          onDragOver={(e) => {
+            e.preventDefault();
+            setIsDragging(true);
+          }}
+          onDragLeave={(e) => {
+            e.preventDefault();
+            setIsDragging(false);
+          }}
+          onDrop={(e) => {
+            e.preventDefault();
+            if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+              setTranscript(e.dataTransfer.files[0]);
+            }
+            setIsDragging(false);
+          }}
+          className={`relative w-full min-h-[400px] flex flex-col items-center border-2 border-dashed rounded-lg transition-all duration-300 ease-in-out p-6 ${
+            classesInputList.length === 0 ? "justify-center" : "items-start"
+          } ${isDragging ? "border-primary bg-muted/30" : "border-muted"}`}
+        >
+          {classesInputList.length === 0 && !transcript ? (
+            <div className="flex flex-col items-center justify-center w-full h-full text-center">
+              <UploadCloud className="h-12 w-12 text-muted-foreground" />
+              <h2 className="text-2xl font-semibold mt-4">No classes yet</h2>
+              <p className="text-muted-foreground mt-2 mb-6">
+                Upload your transcript or manually add classes to get started!
+              </p>
+              <label className="inline-flex items-center px-6 py-3 bg-muted rounded-md cursor-pointer hover:bg-muted-foreground/10 transition-colors">
+                <UploadCloud className="h-5 w-5 mr-2" />
+                {transcript ? transcript.name : "Choose File"}
+                <input
+                  type="file"
+                  accept="application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                  className="hidden"
+                  onChange={(e) =>
+                    e.target.files && setTranscript(e.target.files[0])
+                  }
+                />
+              </label>
+              <p className="text-sm text-muted-foreground mt-2">
+                or drag and drop your file here
+              </p>
+            </div>
+          ) : (
+            <div className="flex flex-wrap gap-2 w-full">
+              {classesInputList.map((course) => (
+                <Badge
+                  key={course}
+                  variant="secondary"
+                  className="flex items-center gap-1 cursor-pointer"
+                  onClick={() => removeClass(course)}
+                >
+                  {course}
+                  <X className="h-4 w-4" />
+                </Badge>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Always show upload/add controls */}
+        <div className="space-y-4 mb-6 mt-6">
+          {/* Added Classes */}
+
+          {/* Add Class Input */}
+          <div className="flex gap-2">
+            <Input
+              placeholder="Add a new class"
+              value={newClassInput}
+              onChange={(e) => setNewClassInput(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && addNewClass()}
+            />
+            <Button onClick={addNewClass}>Add</Button>
+          </div>
+
+          <div className="flex flex-wrap gap-2 items-center">
+            {/* File Upload Actions */}
+            <div className="flex gap-2 items-center">
+              <label className="inline-flex items-center px-4 py-2 bg-muted rounded-md cursor-pointer hover:bg-muted-foreground/10 transition-colors">
+                <UploadCloud className="h-4 w-4 mr-2" />
+                {transcript ? transcript.name : "Choose File"}
+                <input
+                  type="file"
+                  accept="application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                  className="hidden"
+                  onChange={(e) =>
+                    e.target.files && setTranscript(e.target.files[0])
+                  }
+                />
+              </label>
+              <Button
+                onClick={handleFileUpload}
+                disabled={!transcript}
+                variant="default"
+                className="cursor-pointer"
+              >
+                Upload
+              </Button>
+            </div>
+
+            {/* Divider */}
+
+            {/* Get Recommendations */}
+            {classesInputList.length > 0 && (
+              <>
+                <div className="h-12 w-px bg-muted" />
+
+                <Button
+                  onClick={processClassesInput}
+                  disabled={isLoadingRecommendations}
+                  variant="secondary"
+                  className="cursor-pointer"
+                >
+                  {isLoadingRecommendations
+                    ? "Processing..."
+                    : "Get Recommendations"}
+                </Button>
+              </>
+            )}
+          </div>
+        </div>
+
+        {/* Recommended Courses */}
+        {recommendedCourses.length > 0 && (
+          <div className="mb-8">
+            <h2 className="text-lg font-semibold mb-2">Recommended Courses</h2>
+            <div className="flex flex-wrap gap-2">
+              {recommendedCourses.map((course) => (
+                <Badge
+                  variant="secondary"
+                  className="cursor-pointer"
+                  onClick={() => toggleCourseCompletion(course)}
+                >
+                  {course}
+                </Badge>
+              ))}
+            </div>
+          </div>
+        )}
+        <div className="relative flex space-x-6 border-b border-border mb-6">
+          {["All", "Core", "Capstone", "DC", "Electives"].map((section) => (
+            <button
+              className={`relative px-4 py-2 font-medium transition-colors cursor-pointer ${
+                selectedSection === section
+                  ? "text-primary"
+                  : "text-muted-foreground hover:text-primary"
+              }`}
+              onClick={() => setSelectedSection(section)}
+            >
+              {section}
+              {selectedSection === section && (
+                <motion.span
+                  layoutId="tab-underline"
+                  className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary rounded-full"
+                  transition={{ type: "spring", stiffness: 500, damping: 30 }}
+                />
+              )}
+            </button>
+          ))}
+        </div>
+
+        {/* Courses Grid */}
+        {courseData && (
+          <div className="space-y-6">
+            {selectedSection === "All" && renderCourses(allAvailableCourses)}
+            {selectedSection === "Core" &&
+              renderCourses(
+                courseData.requirements.core.flatMap((g) => g.class)
+              )}
+            {selectedSection === "Capstone" &&
+              renderCourses(
+                courseData.requirements.capstone.flatMap((g) => g.class)
+              )}
+            {selectedSection === "DC" &&
+              renderCourses(courseData.requirements.dc.flatMap((g) => g.class))}
+            {selectedSection === "Electives" &&
+              Object.values(courseData.electives.categories).map((cat) => (
+                <div className="space-y-2">
+                  <h3 className="text-lg font-semibold">{cat.name}</h3>
+                  {renderCourses(cat.courses.flatMap((g) => g.class))}
+                </div>
+              ))}
+          </div>
+        )}
+      </div>
+    </>
   );
 };
-
-const SectionTitle = styled(Typography)(({ theme }) => ({
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "space-between",
-  padding: theme.spacing(2),
-  borderBottom: `2px solid ${theme.palette.divider}`,
-}));
-
-const CourseCount = styled(Typography)(({ theme }) => ({
-  fontSize: "1rem",
-  color: theme.palette.text.secondary,
-  fontWeight: 500,
-}));
-
-const ProgressPaper = styled(Paper)(({ theme }) => ({
-  padding: theme.spacing(3),
-  marginBottom: theme.spacing(4),
-  borderRadius: theme.spacing(2),
-  background: `linear-gradient(135deg, ${theme.palette.background.paper} 0%, ${theme.palette.grey[50]} 100%)`,
-}));
-
-const ProgressChip = styled(Chip)(({ theme }) => ({
-  borderRadius: "8px",
-  padding: theme.spacing(1),
-  height: "36px",
-  fontWeight: 600,
-  "& .MuiChip-icon": {
-    fontSize: "1.2rem",
-  },
-}));
-
-const StyledChip = styled(Chip)(({ theme }) => ({
-  minWidth: "fit-content",
-  margin: theme.spacing(0.5),
-}));
-
-interface CourseCardProps {
-  completed?: boolean;
-}
-
-const CourseCard = styled(Card, {
-  shouldForwardProp: (prop) => prop !== "completed",
-})<CourseCardProps>(({ theme, completed }) => ({
-  cursor: "pointer",
-  transition: "all 0.2s ease-in-out",
-  background: completed
-    ? `linear-gradient(135deg, ${theme.palette.success.light} 0%, ${theme.palette.success.main} 100%)`
-    : theme.palette.background.paper,
-  color: completed ? theme.palette.common.white : theme.palette.text.primary,
-  border: `1px solid ${
-    completed ? theme.palette.success.main : theme.palette.divider
-  }`,
-  "&:hover": {
-    transform: "translateY(-2px)",
-    boxShadow: theme.shadows[4],
-  },
-}));
-
-const CourseCardContent = styled(CardContent)({
-  "&:last-child": {
-    paddingBottom: 16,
-  },
-});
-
-export default MajorPlanner; 

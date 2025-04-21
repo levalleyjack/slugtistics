@@ -1,3 +1,47 @@
+@import "tailwindcss";
+@tailwind utilities;
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+}
+
+/* Font Configuration */
 @font-face {
   font-family: "Geist";
   src: url("../../Geist[wght].woff2") format("woff2"),
@@ -6,27 +50,112 @@
   font-weight: normal;
   font-style: normal;
 }
+
+/* Root Variables */
+:root {
+  /* Theme colors from paste.txt */
+  --radius: 0.625rem;
+  --background: oklch(1 0 0);
+  --foreground: oklch(0.129 0.042 264.695);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.129 0.042 264.695);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.129 0.042 264.695);
+  --primary: oklch(0.208 0.042 265.755);
+  --primary-foreground: oklch(0.984 0.003 247.858);
+  --secondary: oklch(0.968 0.007 247.896);
+  --secondary-foreground: oklch(0.208 0.042 265.755);
+  --muted: oklch(0.968 0.007 247.896);
+  --muted-foreground: oklch(0.554 0.046 257.417);
+  --accent: oklch(0.968 0.007 247.896);
+  --accent-foreground: oklch(0.208 0.042 265.755);
+  --destructive: oklch(0.577 0.245 27.325);
+  --border: oklch(0.929 0.013 255.508);
+  --input: oklch(0.929 0.013 255.508);
+  --ring: oklch(0.704 0.04 256.788);
+  --chart-1: oklch(0.646 0.222 41.116);
+  --chart-2: oklch(0.6 0.118 184.704);
+  --chart-3: oklch(0.398 0.07 227.392);
+  --chart-4: oklch(0.828 0.189 84.429);
+  --chart-5: oklch(0.769 0.188 70.08);
+  --sidebar: oklch(0.984 0.003 247.858);
+  --sidebar-foreground: oklch(0.129 0.042 264.695);
+  --sidebar-primary: oklch(0.208 0.042 265.755);
+  --sidebar-primary-foreground: oklch(0.984 0.003 247.858);
+  --sidebar-accent: oklch(0.968 0.007 247.896);
+  --sidebar-accent-foreground: oklch(0.208 0.042 265.755);
+  --sidebar-border: oklch(0.929 0.013 255.508);
+  --sidebar-ring: oklch(0.704 0.04 256.788);
+
+  /* Font variables from your app */
+  --font-geist: "Geist", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+    "Helvetica Neue", Arial, sans-serif;
+
+  /* Legacy variables - map to new theme */
+  --primary-color: var(--primary);
+  --secondary-color: var(--secondary);
+}
+
+/* Dark theme */
+.dark {
+  --background: oklch(0.129 0.042 264.695);
+  --foreground: oklch(0.984 0.003 247.858);
+  --card: oklch(0.208 0.042 265.755);
+  --card-foreground: oklch(0.984 0.003 247.858);
+  --popover: oklch(0.208 0.042 265.755);
+  --popover-foreground: oklch(0.984 0.003 247.858);
+  --primary: oklch(0.929 0.013 255.508);
+  --primary-foreground: oklch(0.208 0.042 265.755);
+  --secondary: oklch(0.279 0.041 260.031);
+  --secondary-foreground: oklch(0.984 0.003 247.858);
+  --muted: oklch(0.279 0.041 260.031);
+  --muted-foreground: oklch(0.704 0.04 256.788);
+  --accent: oklch(0.279 0.041 260.031);
+  --accent-foreground: oklch(0.984 0.003 247.858);
+  --destructive: oklch(0.704 0.191 22.216);
+  --border: oklch(1 0 0 / 10%);
+  --input: oklch(1 0 0 / 15%);
+  --ring: oklch(0.551 0.027 264.364);
+  --chart-1: oklch(0.488 0.243 264.376);
+  --chart-2: oklch(0.696 0.17 162.48);
+  --chart-3: oklch(0.769 0.188 70.08);
+  --chart-4: oklch(0.627 0.265 303.9);
+  --chart-5: oklch(0.645 0.246 16.439);
+  --sidebar: oklch(0.208 0.042 265.755);
+  --sidebar-foreground: oklch(0.984 0.003 247.858);
+  --sidebar-primary: oklch(0.488 0.243 264.376);
+  --sidebar-primary-foreground: oklch(0.984 0.003 247.858);
+  --sidebar-accent: oklch(0.279 0.041 260.031);
+  --sidebar-accent-foreground: oklch(0.984 0.003 247.858);
+  --sidebar-border: oklch(1 0 0 / 10%);
+  --sidebar-ring: oklch(0.551 0.027 264.364);
+
+  /* Update legacy variables for dark mode */
+  --primary-color: var(--primary);
+  --secondary-color: var(--secondary);
+}
+
+
+/* App Structure from your CSS */
 .App {
-  height: calc(100dvh-64px);
+  height: calc(100dvh - 64px);
   display: flex;
   flex-direction: column;
   margin-top: 64px;
 }
-:root {
-  --font-geist: "Geist", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
-    "Helvetica Neue", Arial, sans-serif;
-  --primary-color: #11141b;
-  --secondary-color: #1f2937;
-}
 
+/* MUI Component Overrides */
 .MuiTouchRipple-root {
   display: none !important;
 }
-.MuiTooltip-tooltip, 
+
+.MuiTooltip-tooltip,
 .MuiTooltip-popper {
   font-family: var(--font-geist) !important;
-  font-size: 0.75rem !important; 
+  font-size: 0.75rem !important;
 }
+
+/* Animation Effects */
 .shine {
   -webkit-mask-image: linear-gradient(
     -60deg,
@@ -61,14 +190,19 @@ body {
   font-family: var(--font-geist);
   font-size: 16px;
   margin: 0;
+  background-color: var(--background);
+  color: var(--foreground);
 }
 
+/* Form Element Styling */
 input,
 textarea,
 .MuiInputBase-input,
 .MuiFormLabel-root {
   font-family: var(--font-geist) !important;
   font-size: inherit;
+  color: var(--foreground);
+  background-color: var(--input);
 }
 
 input::placeholder,
@@ -76,8 +210,10 @@ textarea::placeholder,
 .MuiInputBase-input::placeholder {
   font-family: var(--font-geist);
   font-size: inherit;
+  color: var(--muted-foreground);
 }
 
+/* Typography Components */
 .MuiTypography-root,
 .MuiButton-root,
 .MuiChip-root {
@@ -93,12 +229,15 @@ textarea::placeholder,
 }
 
 .MuiSelect-icon {
-  color: #6b7280 !important;
+  color: var(--muted-foreground) !important;
   right: 12px !important;
 }
 
 .MuiMenu-paper {
-  border-radius: 8px !important;
+  border-radius: var(--radius-md) !important;
+  background-color: var(--popover) !important;
+  color: var(--popover-foreground) !important;
+  border: 1px solid var(--border);
 }
 
 .MuiMenuItem-root {
@@ -106,6 +245,7 @@ textarea::placeholder,
   min-height: unset !important;
 }
 
+/* Layout Components */
 .container {
   display: flex;
   flex-direction: column;
@@ -131,8 +271,13 @@ textarea::placeholder,
 .chart-container {
   width: 100%;
   height: auto;
+  background-color: var(--card);
+  color: var(--card-foreground);
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
 }
 
+/* Media Queries */
 @media (max-width: 768px) {
   .filters-container {
     flex-direction: column;
@@ -194,6 +339,8 @@ textarea::placeholder,
     max-width: 300px;
   }
 }
+
+/* Animation for loading dots */
 @keyframes dotBlink {
   0% {
     content: ".";
@@ -214,6 +361,42 @@ textarea::placeholder,
   font-size: 2rem;
   animation: dotBlink 1.5s infinite;
 }
+
 html {
   overflow: auto;
+}
+
+/* Button Styles with Theme Colors */
+.MuiButton-root {
+  background-color: var(--primary);
+  color: var(--primary-foreground);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--primary);
+  transition: all 0.2s ease;
+}
+
+.MuiButton-root:hover {
+  background-color: var(--primary-foreground);
+  color: var(--primary);
+}
+
+/* Secondary Button */
+.MuiButton-root.secondary {
+  background-color: var(--secondary);
+  color: var(--secondary-foreground);
+  border: 1px solid var(--secondary);
+}
+
+.MuiButton-root.secondary:hover {
+  background-color: var(--secondary-foreground);
+  color: var(--secondary);
+}
+
+
+.MuiPaper-root {
+  background-color: var(--card);
+  color: var(--card-foreground);
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
 }

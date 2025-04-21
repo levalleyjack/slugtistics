@@ -1,6 +1,11 @@
 {
   "compilerOptions": {
     "jsx": "react-jsx",
+    "paths": {
+      "@/*": ["src/*"]
+    },
+    "baseUrl": ".",
+
     /* Visit https://aka.ms/tsconfig to read more about this file */
 
     /* Projects */

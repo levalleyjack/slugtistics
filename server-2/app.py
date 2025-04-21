@@ -29,7 +29,8 @@ instructor_cache = {}
 gpa_cache = {}
 scheduler = None
 
-#initalize db tables
+
+# initalize db tables
 def init_db():
     try:
         with app.app_context():
@@ -39,7 +40,8 @@ def init_db():
         logger.error(f"Error creating database: {str(e)}")
         raise
 
-#get the gpa tables
+
+# get the gpa tables
 def get_slugtistics_db():
     if "slugtistics_db" not in g:
         g.slugtistics_db = sqlite3.connect(
@@ -53,7 +55,8 @@ def get_slugtistics_db():
         g.slugtistics_db.row_factory = sqlite3.Row
     return g.slugtistics_db
 
-#close gpa tables when done
+
+# close gpa tables when done
 @app.teardown_appcontext
 def close_slugtistics_db(exception=None):
     db = g.pop("slugtistics_db", None)
@@ -61,11 +64,9 @@ def close_slugtistics_db(exception=None):
         db.close()
 
 
-
-
-#this gets all the up to date info for class count, class status(open, closed, etc)
-#also changes discussion count
-#(free will to change it to whatever)
+# this gets all the up to date info for class count, class status(open, closed, etc)
+# also changes discussion count
+# (free will to change it to whatever)
 def update_course_statuses():
     logger.info("Updating course count and status")
     try:
@@ -75,7 +76,9 @@ def update_course_statuses():
             updated_courses = scrape_count()
             for course in updated_courses:
                 enroll_num = course.enroll_num
-                existing_course = CourseModel.query.filter_by(enroll_num=enroll_num).first()
+                existing_course = CourseModel.query.filter_by(
+                    enroll_num=enroll_num
+                ).first()
                 if existing_course:
                     existing_course.class_status = course.class_status
                     existing_course.class_count = course.class_count
@@ -86,12 +89,11 @@ def update_course_statuses():
     except Exception as e:
         logger.error(f"Trouble updating course statuses: {str(e)}")
 
-            
 
-#scraping all courses and getting gpa for each class and ratings as well
-#prob only need to do every day/two days, information won't change that much
-#scraping course count and status and discussion way more important
-#tentative, can maybe update even longer
+# scraping all courses and getting gpa for each class and ratings as well
+# prob only need to do every day/two days, information won't change that much
+# scraping course count and status and discussion way more important
+# tentative, can maybe update even longer
 @cache.cached(timeout=300, key_prefix="all_courses")
 def get_all_courses():
     global courses_cache, instructor_cache, gpa_cache
@@ -116,7 +118,7 @@ def get_all_courses():
                     course_instructors[course_code].append(instructor)
 
                 for course in scraped_courses:
-                    
+
                     subject = course.code.split()[0]
 
                     if subject not in courses_cache:
@@ -126,8 +128,9 @@ def get_all_courses():
                     course_code = course.code
                     print(course_code)
 
-
-                    if teacher != "Staff" and ("." in teacher or teacher not in instructor_cache):
+                    if teacher != "Staff" and (
+                        "." in teacher or teacher not in instructor_cache
+                    ):
                         historical_instructors = course_instructors.get(course_code, [])
                         matched_instructor = (
                             find_matching_instructor(teacher, historical_instructors)
@@ -200,9 +203,9 @@ def get_all_courses():
                         "grading": course.grading,
                         "course_type": course.course_type,
                     }
-                    #stores by subject
-                    #so {cse: cse 101, cse 30, etc}
-                    #not exact values but example
+                    # stores by subject
+                    # so {cse: cse 101, cse 30, etc}
+                    # not exact values but example
                     courses_cache[subject].append(course_info)
 
             logger.info(f"Successfully cached {len(scraped_courses)} courses")
@@ -212,7 +215,9 @@ def get_all_courses():
             raise
 
     return courses_cache
-#clear all cache
+
+
+# clear all cache
 def clear_caches():
     global courses_cache, instructor_cache, gpa_cache
     courses_cache = {}
@@ -221,31 +226,32 @@ def clear_caches():
     cache.clear()
     logger.info("All caches cleared")
 
-#store all of the ready-made courses to db to use
+
+# store all of the ready-made courses to db to use
 def store_courses_in_db():
-    #logger ignore
+    # logger ignore
     logger.info("Starting scheduled course storage process...")
-    #clearing cache to work with new info
+    # clearing cache to work with new info
     clear_caches()
 
     with app.app_context():
         try:
-            #getting the readymade info from scraping and ratings and gpa
+            # getting the readymade info from scraping and ratings and gpa
 
             all_courses = get_all_courses()
-            #now time to store it
+            # now time to store it
 
-            #logger, ignore
+            # logger, ignore
             if not all_courses:
                 logger.warning("No courses found to store")
                 return
-            #clear out db for course info
+            # clear out db for course info
             CourseModel.query.delete()
             LastUpdateModel.query.delete()
 
-            #count total courses added
+            # count total courses added
             courses_added = 0
-            #go through each course
+            # go through each course
             for subject, courses in all_courses.items():
                 for course in courses:
                     try:
@@ -254,8 +260,8 @@ def store_courses_in_db():
 
                         has_enrollment_reqs = bool(course.get("enrollment_reqs"))
 
-                        #setting up coursemodel so that 
-                        #course information can be stored to db
+                        # setting up coursemodel so that
+                        # course information can be stored to db
                         new_course = CourseModel(
                             ge=course["ge"],
                             subject=subject,
@@ -284,21 +290,21 @@ def store_courses_in_db():
 
                         db.session.add(new_course)
                         courses_added += 1
-                        #add all courses to db after increments of 100
+                        # add all courses to db after increments of 100
                         if courses_added % 100 == 0:
                             db.session.commit()
-                    #exceptions, ignore
+                    # exceptions, ignore
                     except Exception as e:
                         logger.error(f"Error processing course: {str(e)}")
                         continue
 
-            #add new last update time to db
+            # add new last update time to db
             db.session.add(LastUpdateModel())
-            #finally commit the rest of the courses
-            #now all courses in db
+            # finally commit the rest of the courses
+            # now all courses in db
             db.session.commit()
 
-            #logs and exceptions, ignore from here
+            # logs and exceptions, ignore from here
             logger.info(f"Successfully stored {courses_added} courses in database")
 
         except Exception as e:
@@ -306,7 +312,8 @@ def store_courses_in_db():
             db.session.rollback()
             raise
 
-#scheduler, this is where daily scraping + hourly enrollment counts is happening
+
+# scheduler, this is where daily scraping + hourly enrollment counts is happening
 def init_scheduler():
     global scheduler
     if scheduler is None:
@@ -319,7 +326,7 @@ def init_scheduler():
             id="update_course_statuses_job",
             misfire_grace_time=None,
             coalesce=True,
-            max_instances=1
+            max_instances=1,
         )
         scheduler.add_job(
             store_courses_in_db,
@@ -334,29 +341,30 @@ def init_scheduler():
         try:
             scheduler.start()
 
-            #logs, ignore
+            # logs, ignore
             if not scheduler.running:
                 raise RuntimeError("Scheduler failed to start")
-            #successfully ran
+            # successfully ran
             atexit.register(lambda: scheduler.shutdown(wait=True))
             logger.info("Scheduler started successfully")
         except Exception as e:
             logger.error(f"Error starting scheduler: {str(e)}")
             raise
 
+
 def init_app():
     try:
-        #chatbot, doesn't work as intended
+        # chatbot, doesn't work as intended
         # init_course_recommender(app) METHOD!!!
-        
+
         app.register_blueprint(courses_bp)
         init_db()
-        #comment out store_courses_in_db() if you didn't change any
-        #of the scraping part and you alr ran once
-        
-        store_courses_in_db()
+        # comment out store_courses_in_db() if you didn't change any
+        # of the scraping part and you alr ran once
+
+        #store_courses_in_db()
         init_prereq_dict(app)
-        update_course_statuses()
+        #update_course_statuses()  # METHOD!!!
         init_scheduler()
         logger.info("Application initialized successfully")
     except Exception as e:
@@ -368,7 +376,8 @@ def init_app():
 def teardown_app(exception=None):
     close_slugtistics_db()
 
-#dont use, do python3 wsgi.py instead
+
+# dont use, do python3 wsgi.py instead
 # if __name__ == "__main__":
 #     init_db()
 #     store_courses_in_db()
