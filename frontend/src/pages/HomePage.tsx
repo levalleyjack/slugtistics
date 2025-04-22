@@ -1,473 +1,230 @@
-//==========================================================================================================//
-//imports
-import React, { useEffect, useState } from "react";
-import Autocomplete from "@mui/material/Autocomplete";
-import TextField from "@mui/material/TextField";
-import MenuItem from "@mui/material/MenuItem";
-import Button from "@mui/material/Button";
-import Paper from "@mui/material/Paper";
-import { Bar } from "react-chartjs-2";
-import "chart.js/auto";
-import { ChartOptions } from "chart.js/auto";
-import { _DeepPartialObject } from "chart.js/dist/types/utils";
-import { useNavigate, useParams, useLocation } from "react-router-dom";
-import { styled } from "@mui/material";
+import { Bar, BarChart, CartesianGrid, XAxis } from "recharts"
+import * as React from "react"
+import { ComboBox } from "@/components/ui/combobox"
+import { useQuery, QueryClient } from "@tanstack/react-query"
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card"
+import {
+  ChartConfig,
+  ChartContainer,
+  ChartTooltip,
+  ChartTooltipContent,
+} from "@/components/ui/chart"
 
+interface ClassItem {
+  value: string
+  label: string
+}
 
-const OuterContainer = styled('div')(({ theme }) => ({
-  width: '80vw',
-  margin: '0 auto',
-  [theme.breakpoints.down('md')]: {
-    width: '100vw',
-  },
-}));
-
-const Container = styled('div')(({ theme }) => ({
-  padding: theme.spacing(2),
-}));
-
-const StyledPaper = styled(Paper)(({ theme }) => ({
-  marginTop: theme.spacing(2),
-}));
-
-const ChartContainer = styled('div')({
-  position: 'relative',
-  cursor: 'default',
-  height: '550px',
-});
-//==========================================================================================================//
-//homepage function and state declarations
-//this is the main page of the website
-
-const HomePage = () => {
-  const [classTitles, setClassTitles] = useState([]);
-  const [selectedClass, setSelectedClass] = useState("");
-  const [instructorsList, setInstructorsList] = useState([]);
-  const [instructor, setInstructor] = useState("All");
-  const [term, setTerm] = useState("All");
-  const [classInfo, setClassInfo] = useState([]);
-  const [showPercentage, setShowPercentage] = useState(false);
-  const [filteredQuarters, setFilteredQuarters] = useState<string[]>([]);
-  const [filteredInstructors, setFilteredInstructors] = useState([]);
-  const navigate = useNavigate();
-  const location = useLocation();
-  const params = new URLSearchParams(location.search);
-
-  const [quarterList, setQuarterList] = useState([
-    "2024 Spring Quarter",
-    "2024 Winter Quarter",
-    "2023 Fall Quarter",
-    "2023 Summer Quarter",
-    "2023 Spring Quarter",
-    "2023 Winter Quarter",
-    "2022 Fall Quarter",
-    "2022 Summer Quarter",
-    "2022 Spring Quarter",
-    "2022 Winter Quarter",
-    "2021 Fall Quarter",
-    "2021 Summer Quarter",
-    "2021 Spring Quarter",
-    "2021 Winter Quarter",
-    "2020 Fall Quarter",
-    "2020 Summer Quarter",
-    "2020 Spring Quarter",
-    "2020 Winter Quarter",
-    "2019 Fall Quarter",
-  ]);
-
-  const route = "https://api.slugtistics.com/api/";
-  // const route = "http://localhost:8080/";
-
-  
-  //URL parameters load
-  useEffect(() => {
-    const initialClass = params.get("class") || "";
-    const initialInstructor = params.get("instructor") || "All";
-    const initialTerm = params.get("term") || "All";
-  
-    setSelectedClass(initialClass);
-    setInstructor(initialInstructor);
-    setTerm(initialTerm);
-
-    fetch(`${route}instructors/${selectedClass}&term=${term}`)
-    .then((response) => response.json())
-    .then((data) => {
-      setFilteredInstructors(data);
-    })
-    .catch((error) => {
-      console.error("Error:", error);
-    });
-
-  }, []);
-  useEffect(() => {
-    //fetch initial chart data
-    fetch(`${route}grade-distribution/Sum:?instructor=All&term=All`)
-      .then((response) => response.json())
-      .then((data) => {
-        setClassInfo(data);
-      });
-
-    //fetch subject catalog numbers
-    fetch(`${route}SubjectCatalogNbr`)
-      .then((response) => response.json())
-      .then((data) => {
-        setClassTitles(data);
-      })
-      .catch((error) => {
-        console.error("Error:", error);
-      });
-  }, []);
-
-  useEffect(() => {
-    if (selectedClass) {
-      //only fetch grade distribution when class, instructor, or term changes
-      fetch(
-        `${route}grade-distribution/${selectedClass}?instructor=${instructor}&term=${term}`
-      )
-        .then((response) => response.json())
-        .then((data) => {
-          setClassInfo(data);
-        })
-        .catch((error) => {
-          console.error("Error:", error);
-        });
-    }
-  }, [selectedClass, instructor, term]);
-
-
-  useEffect(() => {
-    if (selectedClass) {
-      //fetch quarters only when class changes
-      fetch(`${route}quarters/${selectedClass}`)
-        .then((response) => response.json())
-        .then((data) => {
-          setFilteredQuarters(data);
-        })
-        .catch((error) => {
-          console.error("Error:", error);
-        });
-    }
-  }, [selectedClass]);
-
-
-  useEffect(() => {
-    if (selectedClass) {
-      //fetch instructors when class changes
-      fetch(`${route}instructors/${selectedClass}`)
-        .then((response) => response.json())
-        .then((data) => {
-          setFilteredInstructors(data);
-        })
-        .catch((error) => {
-          console.error("Error:", error);
-        });
-    }
-  }, [selectedClass]);
-
-
-  const handleClassSelect = (event: any, newValue: string | null) => {
-    setSelectedClass(newValue ?? "");
-    setFilteredQuarters(quarterList);
-    setTerm("All");
-    setInstructor("All");
-  
-    // Fetch instructors for the selected class
-    if (newValue) {
-      fetch(`${route}instructors/${newValue}`)
-        .then((response) => response.json())
-        .then((data) => {
-          setInstructorsList(data);
-          setFilteredInstructors(data);
-          // Check if instructor from URL is in the fetched list; if not, set to "All"
-          const urlInstructor = params.get("instructor") || "All";
-          if (urlInstructor === "All" || data.includes(urlInstructor)) {
-            setInstructor(urlInstructor);
-          } else {
-            setInstructor("All");
-          }
-        })
-        .catch((error) => console.error("Error:", error));
-  
-      // Fetch grade distribution for the selected class
-      fetch(`${route}grade-distribution/${newValue}?instructor=${instructor}&term=${term}`)
-        .then((response) => response.json())
-        .then((data) => setClassInfo(data))
-        .catch((error) => console.error("Error:", error));
-    }
-  };
-
-const handleTermSelect = (event: React.ChangeEvent<{ value: unknown }>) => {
-  const selectedTerm = event.target.value as string;
-  setTerm(selectedTerm);
-
-  if (selectedTerm !== "All") {
-    fetch(`${route}instructors/${selectedClass}/${selectedTerm}`)
-      .then((response) => response.json())
-      .then((data) => {
-        setFilteredInstructors(data);
-        const urlInstructor = params.get("instructor") || "All";
-        if (urlInstructor === "All" || data.includes(urlInstructor)) {
-          setInstructor(urlInstructor);
-        } else {
-          setInstructor("All");
-        }
-      })
-      .catch((error) => console.error("Error:", error));
-  } else {
-    setFilteredInstructors(instructorsList);
+// Fetcher for TanStack Query
+async function fetchClasses(): Promise<ClassItem[]> {
+  const res = await fetch('classes')
+  if (!res.ok) {
+    throw new Error('Failed to fetch classes')
   }
-};
+  return res.json()
+}
 
-  const handleInstructorSelect = (event: { target: { value: any; }; }) => {
-    const selectedInstructor = event.target.value;
-    setInstructor(selectedInstructor);
+const chartData = [
+  { date: "2024-04-01", desktop: 222, mobile: 150 },
+  { date: "2024-04-02", desktop: 97, mobile: 180 },
+  { date: "2024-04-03", desktop: 167, mobile: 120 },
+  { date: "2024-04-04", desktop: 242, mobile: 260 },
+  { date: "2024-04-05", desktop: 373, mobile: 290 },
+  { date: "2024-04-06", desktop: 301, mobile: 340 },
+  { date: "2024-04-07", desktop: 245, mobile: 180 },
+  { date: "2024-04-08", desktop: 409, mobile: 320 },
+  { date: "2024-04-09", desktop: 59, mobile: 110 },
+  { date: "2024-04-10", desktop: 261, mobile: 190 },
+  { date: "2024-04-11", desktop: 327, mobile: 350 },
+  { date: "2024-04-12", desktop: 292, mobile: 210 }
+]
 
-    if (selectedInstructor !== "All") {
-      fetch(`${route}quarters/${selectedClass}/${selectedInstructor}`)
-        .then((response) => response.json())
-        .then((data) => {
-          setFilteredQuarters(data);
-        })
-        .catch((error) => {
-          console.error("Error:", error);
-        });
-    } else {
-      fetch(`${route}quarters/${selectedClass}`)
-        .then((response) => response.json())
-        .then((data) => {
-          setFilteredQuarters(data);
-          setFilteredInstructors(instructorsList);
-        })
-        .catch((error) => {
-          console.error("Error:", error);
-        });
-    }
-  };
+const frameworks = [
+  {
+    value: "next.js",
+    label: "Next.js",
+  },
+  {
+    value: "sveltekit",
+    label: "SvelteKit",
+  },
+  {
+    value: "nuxt.js",
+    label: "Nuxt.js",
+  },
+  {
+    value: "remix",
+    label: "Remix",
+  },
+  {
+    value: "astro",
+    label: "Astro",
+  },
+]
+
+
+
+const chartConfig = {
+  views: {
+    label: "Page Views",
+  },
+  desktop: {
+    label: "Desktop",
+    color: "hsl(var(--chart-1))",
+  },
+  mobile: {
+    label: "Mobile",
+    color: "hsl(var(--chart-2))",
+  },
+} satisfies ChartConfig
+
+
+export function HomePage() {
   
-    // //Update URL parameters when dropdown selections change
-    // useEffect(() => {
-    //   const searchParams = new URLSearchParams();
-    //   if (selectedClass) searchParams.append("class", selectedClass);
-    //   if (instructor !== "All") searchParams.append("instructor", instructor);
-    //   if (term !== "All") searchParams.append("term", term);
+    const [activeChart, setActiveChart] =
+    React.useState<keyof typeof chartConfig>("desktop")
+    const [selectedClass, setSelectedClass] =
+    React.useState<string>('')
+    
+    const [open, setOpen] = React.useState(false)
+    const [value, setValue] = React.useState("")
+
+  const total = React.useMemo(
+    () => ({
+      desktop: chartData.reduce((acc, curr) => acc + curr.desktop, 0),
+      mobile: chartData.reduce((acc, curr) => acc + curr.mobile, 0),
+    }),
+    []
+  )
+
+  const {
+    data: classes = [],
+    isLoading,
+    isError,
+    error,
+  } = useQuery<ClassItem[], Error>({
+    queryKey: ['classes'],
+    queryFn: fetchClasses,
+    staleTime: 5 * 60000,
+    cacheTime: 30 * 60000,
+    retry: 1,
+  })
   
-    //   navigate({ search: searchParams.toString() });
-    // }, [selectedClass, instructor, term, navigate]);
+  {/* API */}
+  
+  const route = "https://api.slugtistics.com/api/";
 
-  //if All Instructors selected then query for all quarters with X instructor
-  //if All Quarters selected then query for all instructors
-  //if both selected then query for all quarters with X instructor
-  //if a quarter is selected, then query for all instructors in that quarter
-  //if an instructor is selected, then query for all quarters with that instructor
-
-  //problems:
-  //instructor and quarter selected, changing instructor should change quarter to ALL if ther is no data for that instructor in that quarter
-  //if all insturctors is selected, then filtered quarter list should be all quarters
-  //if a quarter is selected, filter the instructors list to only show instructors that taught in that quarter
-
-  //get the average GPA
-  const calculateAverageGPA = () => {
-    let totalGPA = 0;
-    let totalStudents = 0;
-
-    Object.entries(classInfo).forEach(([grade, count]) => {
-      const gpa = calculateGPA(grade);
-      totalGPA += gpa * count;
-      totalStudents += count;
-    });
-
-    const averageGPA = totalGPA / totalStudents;
-    return averageGPA.toFixed(2);
-  };
-
-  const calculateGPA = (grade: string) => {
-    switch (grade) {
-      case "A+":
-        return 4.0;
-      case "A":
-        return 4.0;
-      case "A-":
-        return 3.7;
-      case "B+":
-        return 3.3;
-      case "B":
-        return 3.0;
-      case "B-":
-        return 2.7;
-      case "C+":
-        return 2.3;
-      case "C":
-        return 2.0;
-      case "C-":
-        return 1.7;
-      case "D+":
-        return 1.3;
-      case "D":
-        return 1.0;
-      case "D-":
-        return 0.7;
-      case "F":
-        return 0.0;
-      default:
-        return 0.0;
-    }
-  };
-
-  const averageGPA = calculateAverageGPA();
-
-  //==========================================================================================================//
-  //chart.js magic
-
-  //calculate the total number of students
-  const totalStudents = Object.values(classInfo).reduce(
-    (acc, val) => acc + val,
-    0
-  );
-
-  //calculate the percentage values for each grade
-  const percentageData = Object.values(classInfo).map((value) =>
-    ((value / totalStudents) * 100).toFixed(2)
-  );
-
-  const getValues = () => {
-    return showPercentage ? percentageData : Object.values(classInfo);
-  };
-
-  const chartData = {
-    labels: [
-      "A+",
-      "A",
-      "A-",
-      "B+",
-      "B",
-      "B-",
-      "C+",
-      "C",
-      "C-",
-      "D+",
-      "D",
-      "D-",
-      "F",
-    ],
-    datasets: [
-      {
-        label: "Students",
-        data: getValues(),
-        backgroundColor: "rgba(85, 192, 192, 1)",
-      },
-    ],
-  };
-  const chartOptions: ChartOptions<"bar"> = {
-    responsive: true,
-    maintainAspectRatio: false,
-    scales: {
-      y: {
-        beginAtZero: true,
-        ticks: {
-          callback: function (value: string | number) {
-            return showPercentage ? value + "%" : value;
-          },
-        },
-      },
-    },
-    plugins: {
-      legend: {
-        display: false,
-      },
-      title: {
-        display: true,
-        //increase size
-        text: `Average GPA: ${averageGPA}`,
-      },
-    },
-  };
+    // Access the clien
+  const queryClient = new QueryClient()
+  // Queries
 
 
-  const showPercentageButtonStyle = {
-    backgroundColor: "#111827",
-    margin: "0.5rem",
-  };
+  
 
-  //==========================================================================================================//
-  //return statement
   return (
-    <OuterContainer>
-      <Container>
-        <div>
-          <Autocomplete
-            options={classTitles}
-            value={selectedClass}
-            onChange={handleClassSelect}
-            freeSolo
-            renderInput={(params) => (
-              <TextField
-                {...params}
-                label="Search Classes"
-                variant="outlined"
-                InputLabelProps={{
-                  style: { color: "gray" },
+    <div className="p-8 space-y-8">
+    {/* Search Card */}
+    <Card>
+      <CardHeader>
+        <CardTitle>Search Framework</CardTitle>
+        <CardDescription>Select a framework from the list</CardDescription>
+      </CardHeader>
+      <CardContent>
+          {isLoading ? (
+            <div>Loading classes…</div>
+          ) : isError ? (
+            <div>Error: {error.message}</div>
+          ) : (
+            <ComboBox
+              items={classes}
+              value={selectedClass}
+              onValueChange={setSelectedClass}
+              placeholder="Select a class..."
+            />
+          )}
+        </CardContent>
+    </Card>
+
+      {/* Chart Card */}
+      <Card>
+        <CardHeader className="flex flex-col sm:flex-row items-stretch border-b p-0">
+          <div className="flex flex-1 flex-col justify-center gap-1 px-6 py-5 sm:py-6">
+            <CardTitle>Bar Chart - Interactive</CardTitle>
+            <CardDescription>Showing total visitors for the last 3 months</CardDescription>
+          </div>
+          <div className="flex">
+            {(["desktop", "mobile"] as (keyof typeof chartConfig)[]).map(
+              (chart) => (
+                <button
+                  key={chart}
+                  data-active={activeChart === chart}
+                  className="relative z-30 flex flex-1 flex-col justify-center gap-1 border-t px-6 py-4 text-left even:border-l data-[active=true]:bg-muted/50 sm:border-l sm:border-t-0 sm:px-8 sm:py-6"
+                  onClick={() => setActiveChart(chart)}
+                >
+                  <span className="text-xs text-muted-foreground">
+                    {chartConfig[chart].label}
+                  </span>
+                  <span className="text-lg font-bold leading-none sm:text-3xl">
+                    {total[chart].toLocaleString()}
+                  </span>
+                </button>
+              )
+            )}
+          </div>
+        </CardHeader>
+        <CardContent className="px-2 sm:p-6">
+          <ChartContainer
+            config={chartConfig}
+            className="aspect-auto h-[250px] w-full"
+          >
+            <BarChart
+              accessibilityLayer
+              data={chartData}
+              margin={{ left: 12, right: 12 }}
+            >
+              <CartesianGrid vertical={false} />
+              <XAxis
+                dataKey="date"
+                tickLine={false}
+                axisLine={false}
+                tickMargin={8}
+                minTickGap={32}
+                tickFormatter={(value) => {
+                  const date = new Date(value)
+                  return date.toLocaleDateString("en-US", {
+                    month: "short",
+                    day: "numeric",
+                  })
                 }}
               />
-            )}
-          />
-
-          <div className="filters-container">
-            <TextField
-              select
-              label="Instructor"
-              value={instructor}
-              onChange={handleInstructorSelect}
-              variant="outlined"
-              className="instructor-select-field"
-              InputLabelProps={{ style: { color: "gray" } }}
-            >
-              <MenuItem value="All">All Instructors</MenuItem>
-              {filteredInstructors.map((instructor) => (
-                <MenuItem key={instructor} value={instructor}>
-                  {instructor}
-                </MenuItem>
-              ))}
-            </TextField>
-
-            <TextField
-              select
-              label="Term"
-              value={term}
-              onChange={handleTermSelect}
-              variant="outlined"
-              className="term-select-field"
-              InputLabelProps={{ style: { color: "gray" } }}
-            >
-              <MenuItem value="All">All Quarters</MenuItem>
-              {filteredQuarters.map((quarter) => (
-                <MenuItem key={quarter} value={quarter}>
-                  {quarter}
-                </MenuItem>
-              ))}
-            </TextField>
-
-            <Button
-              variant="contained"
-              color="primary"
-              style={{ ...showPercentageButtonStyle }}
-              onClick={() => setShowPercentage((prev) => !prev)}
-              className="percentage-select-field"
-            >
-              {showPercentage ? "Show Raw Data" : "Show Percentage"}
-            </Button>
-          </div>
-        </div>
-        <StyledPaper>
-          <ChartContainer>
-            <Bar
-              className="chart"
-              data={chartData}
-              options={chartOptions}
-            />
+              <ChartTooltip
+                content={
+                  <ChartTooltipContent
+                    className="w-[150px]"
+                    nameKey="views"
+                    labelFormatter={(value) => {
+                      return new Date(value).toLocaleDateString("en-US", {
+                        month: "short",
+                        day: "numeric",
+                        year: "numeric",
+                      })
+                    }}
+                  />
+                }
+              />
+              <Bar dataKey={activeChart} fill={`var(--color-${activeChart})`} />
+            </BarChart>
           </ChartContainer>
-        </StyledPaper>
-      </Container>
-    </OuterContainer>
-  );
-};
+        </CardContent>
+      </Card>
+    </div>
+  )
+}
+
 export default HomePage;
