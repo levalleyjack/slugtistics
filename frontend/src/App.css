@@ -1,11 +1,12 @@
-@import "tailwindcss";
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
-
-@tailwind utilities;
+@import "tw-animate-css";
 
 @custom-variant dark (&:is(.dark *));
+
+@layer base {
+  button, [role="button"] {
+    cursor: pointer;
+  }
+}
 
 @theme inline {
   --radius-sm: calc(var(--radius) - 4px);
