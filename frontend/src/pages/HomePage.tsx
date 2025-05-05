@@ -1,8 +1,6 @@
 import * as React from "react"
 import ReactSelect from "react-select";
-import { VirtualizedCombobox } from '@/components/ui/virtualizedcombobox';
-
-import { motion } from "framer-motion"
+import { MenuList } from '@/components/MenuList';
 import { useQuery } from "@tanstack/react-query"
 import { Check, ChevronsUpDown } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -49,39 +47,107 @@ const chartConfig = {
   desktop: { label: "Desktop", color: "hsl(var(--chart-1))" },
   mobile:  { label: "Mobile",  color: "hsl(var(--chart-2))" },
 } as const
+//route
+const route = "http://127.0.0.1:8080/"
 
-// Fetch function
-const fetchClassOptions = async (): Promise<Option[]> => {
-  const res = await fetch('https://api.slugtistics.com/api/SubjectCatalogNbr')
-  if (!res.ok) throw new Error('Failed to fetch')
-  const data: string[] = await res.json()
-  return data.map((label, index) => ({ label, value: index.toString() }))
+
+// ---- types ----
+type ClassOption = { label: string; value: string }
+type ClassInfo = {
+  SubjectCatalogNbr: string
+  Term: string
+  Instructors: string
+  // Grades now include A+…F, P, NP, W
+  Grades: Record<string, number | null>
 }
+
+async function fetchClasses(): Promise<ClassOption[]> {
+  const res = await fetch(route + "classes")
+  if (!res.ok) throw new Error("Failed to load classes")
+  const data: string[] = await res.json()
+  return data.map((cls) => ({ label: cls, value: cls }))
+}
+
+async function fetchClassInfo(subject: string): Promise<ClassInfo[]> {
+  const res = await fetch(route + `class-info/${subject}`)
+  if (!res.ok) throw new Error("Failed to load class info")
+  return res.json()
+}
+
 
 
 
 export function HomePage() {
   const [activeChart, setActiveChart] = React.useState<keyof typeof chartConfig>("desktop")
-  const [selectedClass, setSelectedClass] = React.useState<Option | null>(null)
-  const [selectedOption, setSelectedOption] = React.useState(null);
+  const [selectedClass, setSelectedClass] = React.useState<ClassOption | null>(null)
+  const [selectedInstructor, setSelectedInstructor] = React.useState<string | null>(null)
+  const [selectedTerm, setSelectedTerm] = React.useState<string | null>(null)
+  
+// 1) load all classes
+const { data: classOptions = [], isLoading: loadingClasses } = useQuery({
+  queryKey: ["classes"],
+  queryFn: fetchClasses,
+  staleTime: Infinity,
+})
+  
 
-
-
-
-  const { data: options = [], isLoading, isError } = useQuery({
-    queryKey: ['classOptions'],
-    queryFn: fetchClassOptions,
-    staleTime: Infinity,
+  // 2) load info for the chosen class
+  const { data: classInfo = [], isLoading: loadingInfo } = useQuery({
+    queryKey: ["classInfo", selectedClass?.value],
+    queryFn: () => fetchClassInfo(selectedClass!.value),
+    enabled: Boolean(selectedClass),
   })
+
+  // 3) extract unique instructors & terms
+  const termOptions = React.useMemo(() => {
+    const filtered = classInfo.filter((c) =>
+      !selectedInstructor || c.Instructors === selectedInstructor
+    )
+    const set_ = new Set(filtered.map((c) => c.Term))
+    return Array.from(set_).map((label) => ({ label, value: label }))
+  }, [classInfo, selectedInstructor])
   
+  const instructorOptions = React.useMemo(() => {
+    const filtered = classInfo.filter((c) =>
+      !selectedTerm || c.Term === selectedTerm
+    )
+    const set_ = new Set(filtered.map((c) => c.Instructors))
+    return Array.from(set_).map((label) => ({ label, value: label }))
+  }, [classInfo, selectedTerm])
+
+  const gradeChartData = React.useMemo(() => {
+    // initialize every grade bucket to 0
+    const buckets: Record<string, number> = {
+      "A+": 0, A: 0, "A-": 0,
+      "B+": 0, B: 0, "B-": 0,
+      "C+": 0, C: 0, "C-": 0,
+      "D+": 0, D: 0, "D-": 0,
+      F:  0,
+      P:  0, NP: 0, W: 0,
+    };
+
+    // sum up only the classInfo rows matching both filters
+    classInfo.forEach((row) => {
+      if (
+        (!selectedInstructor || row.Instructors === selectedInstructor) &&
+        (!selectedTerm       || row.Term        === selectedTerm)
+      ) {
+        Object.entries(row.Grades).forEach(([grade, count]) => {
+          buckets[grade] = (buckets[grade] || 0) + (count ?? 0);
+        });
+      }
+    });
+
+    // convert to [{ grade, count }, …]
+    return Object.entries(buckets).map(([grade, count]) => ({
+      grade,
+      count,
+    }));
+  }, [classInfo, selectedInstructor, selectedTerm]);
+
   
-  const handleSearch = React.useCallback(
-    (value: string) =>
-      options.filter((opt) =>
-        opt.label.toLowerCase().includes(value.toLowerCase())
-      ),
-    [options]
-  );
+
+
   
   const [open, setOpen] = React.useState(false)
   const [value, setValue] = React.useState("")
@@ -102,88 +168,78 @@ export function HomePage() {
         </CardHeader>
         <CardContent>
         <div className="flex items-center justify-between mb-4 w-full gap-4">
-          
-            <VirtualizedCombobox
-              options={options.map((o) => o.label)} // assuming `options` is array of { label, value }
-              searchPlaceholder="Select class..."
-            />
+  {/* Class Select */}
+  <div className="w-[800px]">
+    <ReactSelect
+      isLoading={loadingClasses}
+      options={classOptions}
+      value={selectedClass}
+      components={{ MenuList }}
+      onChange={(option) => setSelectedClass(option)}
+      placeholder="Select class..."
+      className="min-h-1/2"
+      styles={{
+        control: (provided) => ({
+          ...provided,
+          minHeight: '50px',
+        }),
+      }}
+    />
+  </div>
 
-    <Select>
-      <SelectTrigger className="w-full">
-        <SelectValue placeholder="By..." />
-      </SelectTrigger>
-      <SelectContent>
-        <SelectGroup>
-          <SelectLabel>Select Type</SelectLabel>
-          <SelectItem value="instructor">By Instructor</SelectItem>
-          <SelectItem value="quarter">By Quarter</SelectItem>
-        </SelectGroup>
-      </SelectContent>
-    </Select>
-    <Select>
-      <SelectTrigger className="w-full">
-        <SelectValue placeholder="Select..." />
-      </SelectTrigger>
-      <SelectContent>
-        <SelectGroup>
-          <SelectLabel>Options</SelectLabel>
-          <SelectItem value="fall">Fall</SelectItem>
-          <SelectItem value="winter">Winter</SelectItem>
-          <SelectItem value="spring">Spring</SelectItem>
-        </SelectGroup>
-      </SelectContent>
-    </Select>
-    <Select>
-      <SelectTrigger className="w-full">
-        <SelectValue placeholder="..." />
-      </SelectTrigger>
-      <SelectContent>
-        <SelectGroup>
-          <SelectLabel>Options</SelectLabel>
-          <SelectItem value="2023">2023</SelectItem>
-          <SelectItem value="2024">2024</SelectItem>
-        </SelectGroup>
-      </SelectContent>
-    </Select>
-    <Button variant="outline">Add Class</Button>
-    <motion.div/>
+  {/* Term (Quarter) Select */}
+  <div className="w-[400px]">
+  <ReactSelect
+  isLoading={loadingInfo}
+  options={instructorOptions}
+  value={instructorOptions.find(opt => opt.value === selectedInstructor) || null}
+  onChange={(option) => setSelectedInstructor(option?.value ?? null)}
+  placeholder="Select instructor..."
+  className="min-h-1/2"
+  isClearable={true}
+  styles={{ control: (provided) => ({ ...provided, minHeight: '50px' }) }}
+/>
 
   </div>
-  
-        </CardContent>
-      </Card>
+
+  {/* Instructor Select */}
+  <div className="w-[400px]">
+  <ReactSelect
+  isLoading={loadingInfo}
+  options={termOptions}
+  value={termOptions.find(opt => opt.value === selectedTerm) || null}
+  onChange={(option) => setSelectedTerm(option?.value ?? null)}
+  placeholder="Select term..."
+  className="min-h-1/2"
+  isClearable={true}
+  styles={{ control: (provided) => ({ ...provided, minHeight: '50px' }) }}
+/>
+
+  </div>
+
+  <Button variant="outline">Add Class</Button>
+</div>
+  </CardContent>
+</Card>
 
       {/* — Chart Card — */}
       <Card>
         <CardHeader className="flex flex-col sm:flex-row items-stretch border-b p-0">
           <div className="flex flex-1 flex-col justify-center gap-1 px-6 py-5 sm:py-6">
-            <CardTitle>Bar Chart - Interactive</CardTitle>
-            <CardDescription>Showing total visitors</CardDescription>
-          </div>
-          <div className="flex">
-            {(["desktop", "mobile"] as const).map((key) => (
-              <button
-                key={key}
-                data-active={activeChart === key}
-                className="relative z-30 flex flex-1 flex-col justify-center gap-1 border-t px-6 py-4 text-left even:border-l data-[active=true]:bg-muted/50 sm:border-l sm:border-t-0 sm:px-8 sm:py-6"
-                onClick={() => setActiveChart(key)}
-              >
-                <span className="text-xs text-muted-foreground">
-                  {chartConfig[key].label}
-                </span>
-                <span className="text-lg font-bold leading-none sm:text-3xl">
-                  {total[key].toLocaleString()}
-                </span>
-              </button>
-            ))}
+            <CardTitle>Grade Distribution</CardTitle>
+            <CardDescription>
+              {selectedClass?.label ?? "—"} 
+              {selectedInstructor && ` / ${selectedInstructor}`} 
+              {selectedTerm       && ` / ${selectedTerm}`}
+            </CardDescription>
           </div>
         </CardHeader>
         <CardContent className="px-2 sm:p-6">
-          <ChartContainer config={chartConfig} className="aspect-auto h-[250px] w-full">
-            <BarChart data={chartData} margin={{ left: 12, right: 12 }}>
+          <ChartContainer className="h-[250px] w-full" config={{ count: { label: "Students" } }}>
+            <BarChart data={gradeChartData} margin={{ left: 12, right: 12 }}>
               <CartesianGrid vertical={false} />
               <XAxis
-                dataKey="date"
+                dataKey="grade"
                 tickLine={false}
                 axisLine={false}
                 tickMargin={8}
@@ -193,18 +249,8 @@ export function HomePage() {
                 }
               />
               <ChartTooltip
-                content={
-                  <ChartTooltipContent
-                    className="w-[150px]"
-                    nameKey="views"
-                    labelFormatter={(v) =>
-                      new Date(v).toLocaleDateString("en-US", {
-                        month: "short", day: "numeric", year: "numeric",
-                      })
-                    }
-                  />
-                }
-              />
+                  content={<ChartTooltipContent nameKey="count" />}
+                />
               <Bar dataKey={activeChart} fill={`var(--color-${activeChart})`} />
             </BarChart>
           </ChartContainer>
