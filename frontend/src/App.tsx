@@ -10,7 +10,8 @@ import AllCourses from "./pages/AllCourses";
 import { ReactNode } from "react";
 import { Chatbot } from "./components/ChatBot";
 import MajorSearch from "./major/MajorSearch";
-import { alpha, createTheme, ThemeProvider } from "@mui/material/styles";
+import { alpha, createTheme } from "@mui/material/styles";
+import { ThemeProvider } from "./components/theme-provider";
 
 const queryClient = new QueryClient();
 const theme = createTheme({
@@ -68,6 +69,7 @@ const AppContent = () => {
   //const showChatbot = location.pathname === '/ge' || location.pathname === '/all';
 
   return (
+    
     <div className="App">
       <NavBar />
       {/*showChatbot && <Chatbot />*/}
@@ -122,7 +124,7 @@ const AppContent = () => {
 
 function App() {
   return (
-    <ThemeProvider theme={theme}>
+    <ThemeProvider defaultTheme="light" storageKey="vite-ui-theme">
       <QueryClientProvider client={queryClient}>
         <BrowserRouter>
           <AppContent />
