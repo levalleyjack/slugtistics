@@ -47,6 +47,13 @@ const GRADE_POINTS: Record<string, number> = {
   F: 0.0,
 }
 
+async function fetchRatings(subject: string): Promise<Rating[]> {
+  const res = await fetch(`${route}ratings/${subject}`)
+  if (!res.ok) throw new Error("Failed to load ratings")
+  return res.json()
+}
+
+
 async function fetchClasses(): Promise<ClassOption[]> {
   const res = await fetch(route + "classes")
   if (!res.ok) throw new Error("Failed to load classes")
@@ -75,6 +82,13 @@ export function HomePage() {
     queryFn: fetchClasses,
     staleTime: Infinity,
   })
+
+  const { data: ratings = [] } = useQuery({
+    queryKey: ["ratings", selectedClass?.value],
+    queryFn: () => fetchRatings(selectedClass!.value),
+    enabled: Boolean(selectedClass),
+  })
+  
 
   // 2) default “Sum: course…” on first load
   React.useEffect(() => {
@@ -142,6 +156,7 @@ export function HomePage() {
     }
   }, [currentChartData])
 
+  
   // — handlers —
   const handleAddClass = () => {
     if (!selectedClass) return
@@ -222,7 +237,7 @@ export function HomePage() {
               />
             </div>
             {/* Instructor */}
-            <div className="w-[200px] min-w-[150px]">
+            <div className="w-[300px] min-w-[150px]">
               <ReactSelect
                 options={instructorOptions}
                 value={
@@ -236,7 +251,7 @@ export function HomePage() {
               />
             </div>
             {/* Term */}
-            <div className="w-[200px] min-w-[150px]">
+            <div className="w-[300px] min-w-[150px]">
               <ReactSelect
                 options={termOptions}
                 value={
@@ -262,7 +277,7 @@ export function HomePage() {
       {/* Summary Cards */}
       <div className="flex flex-wrap gap-4">
         {addedCharts.map((ch) => (
-          <Card key={ch.id} className="w-[200px]">
+          <Card key={ch.id} className="w-[300px] w-min-[200px]">
             <CardHeader className="flex justify-between items-baseline">
               <CardTitle className="text-sm">{ch.label}</CardTitle>
               <Button size="sm" variant="ghost" onClick={() => handleRemove(ch.id)}>
