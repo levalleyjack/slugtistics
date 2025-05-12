@@ -10,56 +10,21 @@ const CONFIG = {
   gcTime: 30 * 60 * 1000,
 } as const;
 
-const GE_COURSES_URL = `${local}/ge_courses`;
 const All_COURSES_URL = `${local}/all_courses`;
 
-export const useGECourseData = () => {
-  const courseQuery = useQuery({
-    queryKey: ["ge_courses"],
-    queryFn: async () => {
-      const response = await axios.get<{ data: Record<string, Course[]> }>(
-        GE_COURSES_URL
-      );
-      return response.data?.data ?? {};
-    },
-    staleTime: CONFIG.staleTime,
-    refetchInterval: CONFIG.staleTime,
-    refetchOnWindowFocus: false,
-    refetchOnMount: false,
-    gcTime: CONFIG.gcTime,
-  });
-
-  const enhancedData = React.useMemo<Record<string, Course[]>>(() => {
-    if (!courseQuery.data) return {};
-
-    return Object.fromEntries(
-      Object.entries(courseQuery.data).map(([category, courses]) => [
-        category,
-        Array.isArray(courses)
-          ? courses.map(
-              (course): Course => ({
-                ...course,
-                ge_category: category,
-              })
-            )
-          : [],
-      ])
-    );
-  }, [courseQuery.data]);
-
-  return {
-    data: enhancedData,
-    isLoading: courseQuery.isLoading,
-    isError: courseQuery.isError,
-    error: courseQuery.error,
-  };
-};
 export const useAllCourseData = () => {
   const courseQuery = useQuery({
     queryKey: ["all_courses"],
     queryFn: async () => {
-      const response = await axios.get<{ data: Course[] }>(All_COURSES_URL);
-      return response.data?.data ?? {};
+      const response = await axios.get<{
+        data: Course[];
+        last_update: string;
+      }>(All_COURSES_URL);
+
+      return {
+        data: response.data?.data ?? [],
+        lastUpdate: response.data?.last_update,
+      };
     },
     staleTime: CONFIG.staleTime,
     refetchInterval: CONFIG.staleTime,
@@ -69,7 +34,8 @@ export const useAllCourseData = () => {
   });
 
   return {
-    data: courseQuery.data ?? [],
+    data: courseQuery.data?.data ?? [],
+    lastUpdate: courseQuery.data?.lastUpdate ?? "",
     isLoading: courseQuery.isLoading,
     isError: courseQuery.isError,
     error: courseQuery.error,

@@ -1,127 +1,65 @@
+import React, { useState, useMemo, useRef, useEffect } from "react";
+import { Search, X } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import { useDebounce } from "use-debounce";
+import { cn } from "@/lib/utils";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Course, getLetterGrade } from "@/Constants";
+import { Tooltip, useTheme } from "@mui/material";
 import {
-  TextField,
-  InputAdornment,
-  Popper,
-  Paper,
-  Typography,
-  CircularProgress,
-  ClickAwayListener,
-  styled,
-  List,
-  ListItem,
-  ListItemText,
   Chip,
-  useTheme,
-  alpha,
-  useMediaQuery,
-  Box,
-  IconButton,
-  Tooltip,
-} from "@mui/material";
-import SearchIcon from "@mui/icons-material/Search";
-import EqualizerIcon from "@mui/icons-material/Equalizer";
-
-import React, { useState, useMemo, useRef } from "react";
-import {
-  COLORS,
-  Course,
+  CourseCodeChip,
   DifficultyChip,
-  getLetterGrade,
-  getStatusColor,
-  GlobalSearchDropdownProps,
+  GECategoryChip,
   GradeChip,
   RatingChip,
-  StyledExpandIcon,
-} from "../Constants";
-import StarIcon from "@mui/icons-material/Star";
+  ReviewCountChip,
+} from "@/components/ui/chip";
 import StatusIcon from "./StatusIcon";
-import ClearIcon from "@mui/icons-material/Clear";
+export type GlobalSearchProps = {
+  courses: Course[] | Record<string, Course[]>;
+  onCourseSelect: (course: Course, id: string, geCategory?: string) => void;
+  selectedGE?: string;
+  disabled?: boolean;
+};
 
-const StyledPopper = styled(Popper)(({ theme }) => ({
-  width: "100%",
-  zIndex: 10,
-  position: "fixed",
-}));
+function getUniqueRandomIndices<T>(arr: Course[], count: number): number[] {
+  if (arr.length <= count) {
+    return arr.map((_, i) => i); // fallback if not enough elements
+  }
 
-const SearchWrapper = styled("div")(({ theme }) => ({
-  position: "relative",
-  width: "100%",
-  display: "flex",
-  flexDirection: "column",
-  [theme.breakpoints.down("sm")]: {
-    width: "100%",
-  },
-}));
-const StyledPaper = styled(Paper)(({ theme }) => ({
-  width: "100%",
-  maxHeight: "calc(100dvh - 150px)",
-  border: `1px solid ${theme.palette.divider}`,
-  borderTop: "none",
-  borderTopLeftRadius: 0,
-  borderTopRightRadius: 0,
-  borderBottomLeftRadius: "8px",
-  borderBottomRightRadius: "8px",
-  overflowY: "auto",
-  boxShadow: theme.shadows[8],
-}));
-const EndAdornment = styled(Box)(({ theme }) => ({
-  display: "flex",
-  alignItems: "center",
-  gap: theme.spacing(0.5),
-}));
+  const indices = new Set<number>();
+  while (indices.size < count) {
+    const randIndex = Math.floor(Math.random() * arr.length);
+    if (arr[randIndex].instructor.toLowerCase() !== "staff") {
+      indices.add(randIndex);
+    }
+  }
 
-const StyledIconButton = styled(IconButton)(({ theme }) => ({
-  padding: theme.spacing(0.5),
-  "&:hover": {
-    backgroundColor: alpha(theme.palette.action.active, 0.04),
-  },
-}));
-
-const StyledListItem = styled(ListItem)(({ theme }) => ({
-  padding: theme.spacing(1.5, 2),
-  "&:hover": {
-    backgroundColor: alpha(theme.palette.primary.main, 0.04),
-    cursor: "pointer",
-  },
-}));
-
-const CategoryChip = styled(Chip)(({ theme }) => ({
-  backgroundColor: alpha(theme.palette.primary.main, 0.1),
-  color: theme.palette.primary.main,
-  fontWeight: 500,
-  fontSize: "0.75rem",
-}));
-
-const NoResults = styled("div")(({ theme }) => ({
-  padding: theme.spacing(2),
-  textAlign: "center",
-  color: theme.palette.text.secondary,
-}));
-
-const SearchMetrics = styled(Typography)(({ theme }) => ({
-  padding: theme.spacing(1, 2),
-  borderBottom: `1px solid ${theme.palette.divider}`,
-  backgroundColor: theme.palette.grey[50],
-  fontSize: "0.875rem",
-  fontWeight: 500,
-  position: "sticky",
-  zIndex: 1,
-  top: 0,
-}));
+  return Array.from(indices);
+}
 
 const GlobalSearch = ({
   courses,
   onCourseSelect,
   selectedGE,
-  lastUpdated,
-  disabled = false,
-}: GlobalSearchDropdownProps) => {
-  const [search, setSearch] = useState("");
-  const [isOpen, setIsOpen] = useState(false);
-  const anchorRef = useRef<HTMLDivElement>(null);
-  const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
 
+  disabled = false,
+}: GlobalSearchProps) => {
+  const modalRef = useRef<HTMLDivElement>(null);
+
+  const [search, setSearch] = useState("");
+  const debouncedSearch = search;
+  const [isOpen, setIsOpen] = useState(false);
+  const searchRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [randomIndexes, setRandomIndexes] = useState<number[]>([]);
+
+  const theme = useTheme();
+
+  // Flatten courses array if needed
   const allCourses = useMemo(() => {
     if (!courses) return [];
 
@@ -136,11 +74,15 @@ const GlobalSearch = ({
       }))
     );
   }, [courses]);
-
+  useEffect(() => {
+    if (isOpen) {
+      const indices = getUniqueRandomIndices(allCourses, 3);
+      setRandomIndexes(indices);
+    }
+  }, [isOpen, allCourses]);
+  // Filter courses based on search term
   const searchResults = useMemo(() => {
-    if (!search.trim()) return [];
-
-    const searchInput = search.toLowerCase().trim();
+    const searchInput = debouncedSearch.toLowerCase().trim();
     const searchTerms = searchInput.split(" ");
 
     const normalizeInstructorName = (name: string) => {
@@ -228,8 +170,9 @@ const GlobalSearch = ({
         );
       })
       .slice(0, 20);
-  }, [search, allCourses]);
+  }, [debouncedSearch, allCourses]);
 
+  // Separate results by GE category if applicable
   const { selectedGECourses, otherCourses } = useMemo(() => {
     if (!selectedGE) {
       return {
@@ -252,9 +195,12 @@ const GlobalSearch = ({
     );
   }, [searchResults, selectedGE]);
 
+  // Event handlers
   const handleSearchChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     setSearch(event.target.value);
-    setIsOpen(true);
+    if (!isOpen && event.target.value) {
+      setIsOpen(true);
+    }
   };
 
   const handleCourseClick = (course: Course) => {
@@ -266,302 +212,280 @@ const GlobalSearch = ({
     setIsOpen(false);
     setSearch("");
   };
-  const handleClear = () => {
-    setSearch("");
-    setIsOpen(false);
+  const toggleSearch = () => {
+    const newIsOpen = !isOpen;
+    setIsOpen(newIsOpen);
+    if (newIsOpen) {
+      // Focus the input when opening
+      setTimeout(() => inputRef.current?.focus(), 100);
+    }
   };
-  if (disabled && isOpen) {
-    setIsOpen(false);
-  }
 
-  const toggleExpand = () => {
-    setIsOpen(!isOpen);
-  };
+  // Close search when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        searchRef.current &&
+        !searchRef.current.contains(event.target as Node)
+      ) {
+        setIsOpen(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
+
+  // Close search when disabled
+  useEffect(() => {
+    if (disabled && isOpen) {
+      setIsOpen(false);
+    }
+  }, [disabled, isOpen]);
+
+  // Course list item component
   const CourseListItem = ({ course }: { course: Course }) => {
     const { instructor_ratings: rmpData } = course;
+
     return (
-      <StyledListItem
+      <motion.div
+        initial={{ opacity: 0, y: 5 }}
+        animate={{ opacity: 1, y: 0 }}
+        exit={{ opacity: 0, y: -5 }}
+        transition={{ duration: 0.15 }}
+        className="p-4 pb-2 border-b border-gray-100 hover:bg-slate-50 cursor-pointer "
         onClick={() => handleCourseClick(course)}
-        divider
-        secondaryAction={
-          <div
-            style={{
-              display: "flex",
-              flexDirection: "column",
-              justifyContent: "center",
-              alignItems: "center",
-            }}
-          >
-            {course.gpa && (
-              <Tooltip title={`Average GPA: ${course.gpa}`}>
-                <GradeChip
-                  grade={Number(course.gpa)}
-                  label={`${getLetterGrade(course.gpa)}`}
-                  size="small"
-                  sx={{
-                    height: "25px",
-                    fontSize: "0.7rem",
-                  }}
-                  interactive={0}
+      >
+        <div className="flex justify-between">
+          <div className="flex-1">
+            <div className="flex items-center gap-2">
+              <span className="font-semibold text-slate-900">
+                {`${course.subject} ${course.catalog_num}`}
+              </span>
+              <StatusIcon status={course.class_status} />
+            </div>
+            <h3 className="text-sm font-medium mt-1 text-slate-800">
+              {course.name}
+            </h3>
+            <p className="text-xs text-slate-500 mt-1">
+              {course.instructor} • {course.class_type}
+            </p>
+
+            {rmpData && (
+              <div className="flex gap-2 mt-2">
+                <RatingChip rating={rmpData?.avg_rating} compact />
+                <DifficultyChip
+                  difficulty={rmpData?.difficulty_level}
+                  compact
                 />
-              </Tooltip>
+              </div>
+            )}
+          </div>
+
+          <div className="flex flex-col items-end gap-2">
+            {course.gpa && (
+              <GradeChip
+                interactive={false}
+                grade={Number(course.gpa)}
+                letterGrade={getLetterGrade(course.gpa)}
+              />
             )}
 
             {course.ge &&
               course.ge !== "AnyGE" &&
               course.ge_category !== "AnyGE" && (
-                <CategoryChip
-                  label={course.ge || course.ge_category}
-                  size="small"
-                />
+                <GECategoryChip category={course.ge} interactive={false} />
               )}
           </div>
+        </div>
+      </motion.div>
+    );
+  };
+
+  const ResultsHeader = ({
+    count,
+    category,
+  }: {
+    count: number;
+    category?: string;
+  }) => (
+    <div className="sticky top-0 z-1 bg-slate-50/90 backdrop-blur-sm border-b border-slate-200 px-4 py-2 flex justify-between items-center">
+      <p className="text-sm font-medium text-slate-700 flex items-center gap-1.5">
+        <span>
+          {count} course{count === 1 ? "" : "s"}{" "}
+        </span>
+        {category && (
+          <Badge variant="outline" className="bg-white border-slate-200">
+            {category}
+          </Badge>
+        )}
+      </p>
+    </div>
+  );
+
+  const NoResults = () => (
+    <div className="py-12 flex flex-col items-center justify-center">
+      <div className="bg-slate-100 rounded-full p-4 mb-4">
+        <Search className="h-6 w-6 text-slate-400" />
+      </div>
+      <p className="text-slate-500 text-center">
+        No courses found matching "{search}"
+      </p>
+      <p className="text-slate-400 text-sm mt-2 text-center">
+        Try adjusting your search or filters
+      </p>
+    </div>
+  );
+
+  return (
+    <div className="relative" ref={searchRef}>
+      <Tooltip title="Search for classes, instructors, etc." disableInteractive>
+        <button
+          onClick={toggleSearch}
+          disabled={disabled}
+          type="button"
+          aria-label="Search for classes"
+          className="h-9 w-9 rounded-md flex items-center justify-center transition hover:bg-slate-100 disabled:opacity-50 cursor-pointer"
+        >
+          <Search className="h-5 w-5 text-slate-600" />
+        </button>
+      </Tooltip>
+      {/* Full screen overlay */}
+      <AnimatePresence>
+  {isOpen && (
+    <motion.div
+      className="
+        fixed inset-x-0 top-[64px] bottom-0
+        bg-slate-900/50 z-50
+        flex items-start justify-center
+        px-4
+      "
+      style={{ height: "calc(100dvh - 64px)" }}
+      onMouseDown={(e) => {
+        if (modalRef.current && !modalRef.current.contains(e.target as Node)) {
+          setIsOpen(false);
         }
-      >
-        <ListItemText
-          primary={
-            <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-              <Typography variant="subtitle2" component="span">
-                {`${course.subject} ${course.catalog_num}`}
-              </Typography>
-              <StatusIcon status={course.class_status} />
-            </Box>
-          }
-          secondary={
-            <>
-              <Typography variant="body2" color="textPrimary" component="span">
-                {course.name}
-              </Typography>
-              <div style={{ flexDirection: "column" }}>
-                <Typography
-                  variant="caption"
-                  color="textSecondary"
-                  component="div"
-                  sx={{ mt: 0.5 }}
-                >
-                  {course.instructor} • {course.class_type}
-                </Typography>
-                {rmpData && (
-                  <div style={{ flexDirection: "row" }}>
-                    <RatingChip
-                      icon={<StarIcon color="inherit" fontSize="small" />}
-                      label={`${rmpData.avg_rating?.toFixed(1) || "N/A"}/5`}
-                      size="small"
-                      sx={{
-                        border: `1px solid ${
-                          rmpData.avg_rating >= 4
-                            ? theme.palette.success.dark
-                            : rmpData.avg_rating >= 3
-                            ? theme.palette.warning.dark
-                            : theme.palette.error.dark
-                        }`,
-                        color:
-                          rmpData.avg_rating >= 4
-                            ? theme.palette.success.main
-                            : rmpData.avg_rating >= 3
-                            ? theme.palette.warning.main
-                            : theme.palette.error.main,
-                        backgroundColor: "white",
-                        fontSize: "0.7rem",
-                        marginRight: "4px",
-                      }}
-                    />
-                    <DifficultyChip
-                      label={`${
-                        rmpData.difficulty_level?.toFixed(1) || "N/A"
-                      }/5 difficulty`}
-                      size="small"
-                      variant="outlined"
-                      difficulty={rmpData.difficulty_level}
-                      sx={{ fontSize: "0.7rem" }}
-                    />
+      }}
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.2 }}
+    >
+      {/* push your modal down slightly from the very top */}
+      <div ref={modalRef} className="mt-8 w-full max-w-2xl">
+        <motion.div
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -10 }}
+          transition={{ duration: 0.2, type: "spring", stiffness: 300, damping: 25 }}
+          className="bg-white rounded-xl shadow-2xl border border-slate-200 overflow-hidden"
+        >
+              {/* Search header */}
+              <div className="border-b border-slate-200">
+                <div className="relative">
+                  <Input
+                    ref={inputRef}
+                    value={search}
+                    onChange={handleSearchChange}
+                    placeholder="Search courses, instructors, subjects..."
+                    className="!bg-white dark:!bg-white border-0 focus-visible:ring-0 focus-visible:ring-offset-0 pl-6 pr-12 h-14 text-base placeholder:text-slate-400"
+                    autoFocus
+                  />
+                  <div className="absolute right-4 top-1/2 transform -translate-y-1/2 flex items-center gap-2">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-7 w-7 rounded-full text-slate-400 hover:text-slate-600 hover:bg-slate-100"
+                      onClick={() => setIsOpen(false)}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+              </div>
+
+              {/* Search results container */}
+              <div className="relative max-h-[70vh] overflow-hidden virtuoso-wrapper">
+                {debouncedSearch.length > 0 ? (
+                  <div className="overflow-y-auto max-h-[70vh]">
+                    {searchResults.length === 0 ? (
+                      <NoResults />
+                    ) : (
+                      <>
+                        {selectedGECourses.length > 0 && (
+                          <div>
+                            <ResultsHeader
+                              count={selectedGECourses.length}
+                              category={selectedGE}
+                            />
+                            {selectedGECourses.map((course) => (
+                              <CourseListItem key={course.id} course={course} />
+                            ))}
+                          </div>
+                        )}
+
+                        {otherCourses.length > 0 && (
+                          <div>
+                            <ResultsHeader
+                              count={otherCourses.length}
+                              category={
+                                selectedGE ? "Other categories" : undefined
+                              }
+                            />
+                            {otherCourses.map((course) => (
+                              <CourseListItem key={course.id} course={course} />
+                            ))}
+                          </div>
+                        )}
+                      </>
+                    )}
+                  </div>
+                ) : (
+                  <div className="flex flex-col items-center justify-center p-12 text-slate-500">
+                    <div className="relative">
+                      <div className="bg-slate-100 rounded-full p-4 mb-4">
+                        <Search className="h-6 w-6 text-slate-400" />
+                      </div>
+                    </div>
+                    <p className="text-lg font-medium text-slate-700 mb-1">
+                      Course Search
+                    </p>
+                    <p className="text-sm text-slate-500 text-center max-w-sm">
+                      Start typing to search for courses, instructors, or
+                      subjects
+                    </p>
+                    <div className="flex flex-wrap justify-center gap-2 mt-4">
+                      {randomIndexes.length === 3 &&
+                        randomIndexes.every((i) => allCourses[i]) &&
+                        [
+                          `${allCourses[randomIndexes[0]].subject} ${
+                            allCourses[randomIndexes[0]].catalog_num
+                          }`,
+                          `${allCourses[randomIndexes[1]].name}`,
+                          `${allCourses[randomIndexes[2]].instructor}`,
+                        ].map((example) => (
+                          <Button
+                            key={example}
+                            variant="outline"
+                            size="sm"
+                            className="bg-slate-50 border-slate-200 hover:bg-slate-100 text-xs rounded-full"
+                            onClick={() => setSearch(example)}
+                          >
+                            {example}
+                          </Button>
+                        ))}
+                    </div>
                   </div>
                 )}
               </div>
-            </>
-          }
-        />
-      </StyledListItem>
-    );
-  };
-  return (
-    <SearchWrapper>
-      <ClickAwayListener onClickAway={() => setIsOpen(false)}>
-        <div>
-          <div ref={anchorRef}>
-            <TextField
-              fullWidth
-              value={search}
-              onChange={handleSearchChange}
-              onFocus={() => setIsOpen(true)}
-              placeholder="Search for classes"
-              slotProps={{
-                input: {
-                  startAdornment: (
-                    <InputAdornment position="start" sx={{ width: 32 }}>
-                      <Box
-                        sx={{
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          width: 20,
-                        }}
-                      >
-                        <SearchIcon color="action" />
-                      </Box>
-                    </InputAdornment>
-                  ),
-                  endAdornment: (
-                    <InputAdornment position="end">
-                      <EndAdornment>
-                        {search && (
-                          <StyledIconButton
-                            onClick={handleClear}
-                            size="small"
-                            aria-label="clear search"
-                          >
-                            <ClearIcon fontSize="small" />
-                          </StyledIconButton>
-                        )}
-                        {search && (
-                          <StyledIconButton
-                            onClick={toggleExpand}
-                            size="small"
-                            aria-label={
-                              isOpen ? "collapse results" : "expand results"
-                            }
-                          >
-                            <StyledExpandIcon
-                              expanded={isOpen}
-                              fontSize="small"
-                            />
-                          </StyledIconButton>
-                        )}
-                      </EndAdornment>
-                    </InputAdornment>
-                  ),
-                  style: {
-                    borderRadius: "8px",
-                  },
-                },
-              }}
-              sx={{
-                borderRadius: "8px",
-                "& .MuiOutlinedInput-root": {
-                  backgroundColor: COLORS.GRAY_50,
-                  transition: "background-color 0.2s",
-                  borderRadius:
-                    isOpen && search.length > 0
-                      ? "8px 8px 0 0 !important"
-                      : "8px",
-                  height: 36,
-                },
-              }}
-            />
-          </div>
-          <StyledPopper
-            open={isOpen && search.length > 0}
-            anchorEl={anchorRef.current}
-            placement="bottom-start"
-            modifiers={[
-              {
-                name: "matchWidth",
-                enabled: true,
-                phase: "beforeWrite",
-                requires: ["computeStyles"],
-                fn: ({ state }) => {
-                  state.styles.popper.width = `${state.rects.reference.width}px`;
-                },
-                effect: ({ state }) => {
-                  const width =
-                    state.elements.reference.getBoundingClientRect().width;
-                  state.elements.popper.style.width = `${width}px`;
-                },
-              },
-            ]}
-          >
-            <StyledPaper elevation={0}>
-              {searchResults.length === 0 ? (
-                <NoResults>
-                  <Typography color="textSecondary">
-                    No courses found matching "{search}"
-                  </Typography>
-                </NoResults>
-              ) : (
-                <>
-                  {selectedGECourses.length > 0 && (
-                    <>
-                      <SearchMetrics>
-                        <Box
-                          sx={{
-                            display: "flex",
-                            width: "100%",
-                            justifyContent: "space-between",
-                            alignItems: "center",
-                          }}
-                        >
-                          <Typography component="span" variant="body2">
-                            Found {selectedGECourses.length} course
-                            {selectedGECourses.length === 1 ? "" : "s"} in{" "}
-                            {selectedGE}
-                          </Typography>
-                          <Typography
-                            component="span"
-                            variant="caption"
-                            sx={{ marginLeft: "auto" }}
-                          >
-                            {lastUpdated}
-                          </Typography>
-                        </Box>
-                      </SearchMetrics>
-                      <List disablePadding>
-                        {selectedGECourses.map((course: Course) => (
-                          <CourseListItem key={course.id} course={course} />
-                        ))}
-                      </List>
-                    </>
-                  )}
-
-                  {otherCourses.length > 0 && (
-                    <>
-                      <SearchMetrics>
-                        <Box
-                          sx={{
-                            display: "flex",
-                            width: "100%",
-                            justifyContent: "space-between",
-                            alignItems: "center",
-                          }}
-                        >
-                          <Typography component="span" variant="body2">
-                            Found {otherCourses.length} course
-                            {`${otherCourses.length === 1 ? "" : "s"} ${
-                              selectedGE ? "in other categories" : ""
-                            }`}
-                          </Typography>
-                          <Typography
-                            component="span"
-                            variant="caption"
-                            sx={{ marginLeft: "auto" }}
-                          >
-                            {lastUpdated}
-                          </Typography>
-                        </Box>
-                      </SearchMetrics>
-                      <List disablePadding>
-                        {otherCourses.map((course: Course) => (
-                          <CourseListItem key={course.id} course={course} />
-                        ))}
-                      </List>
-                    </>
-                  )}
-                </>
-              )}
-            </StyledPaper>
-          </StyledPopper>
-        </div>
-      </ClickAwayListener>
-    </SearchWrapper>
+            </motion.div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
   );
 };
 

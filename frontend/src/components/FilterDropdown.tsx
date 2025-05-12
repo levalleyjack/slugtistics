@@ -1,670 +1,407 @@
-import React, { useState, useCallback } from "react";
+import { useState } from "react";
 import {
-  Button,
   Popover,
-  Box,
-  Typography,
-  FormControl,
-  Select,
-  MenuItem,
-  Chip,
-  OutlinedInput,
-  ListItemText,
-  styled,
-  alpha,
-  SelectProps,
-  IconButton,
-  Tooltip,
-  Divider,
-  ToggleButtonGroup,
-  ToggleButton,
-  useTheme,
-  useMediaQuery,
-  Slide,
-  Fade,
-  Grow,
-  Zoom,
-} from "@mui/material";
-import CheckIcon from "@mui/icons-material/Check";
-import FilterAltIcon from "@mui/icons-material/FilterAlt";
-import CloseIcon from "@mui/icons-material/Close";
-import DeleteForeverIcon from "@mui/icons-material/DeleteForever";
-import SelectAllIcon from "@mui/icons-material/SelectAll";
-import SortByAlphaIcon from "@mui/icons-material/SortByAlpha";
-import TuneIcon from "@mui/icons-material/Tune";
-import StarIcon from "@mui/icons-material/Star";
-import EqualizerIcon from "@mui/icons-material/Equalizer";
-import LockIcon from "@mui/icons-material/Lock";
-import ComputerIcon from "@mui/icons-material/Computer";
-import SchoolIcon from "@mui/icons-material/School";
-import AssignmentLateIcon from "@mui/icons-material/AssignmentLate";
-import CategoryIcon from "@mui/icons-material/Category";
-import WorkspacePremiumIcon from "@mui/icons-material/WorkspacePremium";
+  PopoverTrigger,
+  PopoverContent,
+} from "@/components/ui/popover";
+import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Separator } from "@/components/ui/separator";
+import {
+  Filter,
+  X,
+  BookOpen,
+  Lock,
+  BadgeCheck,
+  MonitorPlay,
+  Circle,
+  Briefcase,
+  Clock,
+} from "lucide-react";
+import type { FilterDropdownProps } from "../Constants";
 import {
   careersOptions,
   classTypeOptions,
   enrollmentStatusOptions,
-  FilterDropdownProps,
   prereqOptions,
-  StyledExpandIcon,
 } from "../Constants";
+import { Badge } from "@/components/ui/badge";
 
-const StyledFormControl = styled(FormControl)(({ theme }) => ({
-  width: "100%",
-  marginBottom: theme.spacing(2),
-  "& .MuiOutlinedInput-root": {
-    backgroundColor: "white",
-    borderRadius: "4px",
-    transition: "all 0.2s ease-in-out",
-    "&:hover": {
-      backgroundColor: alpha(theme.palette.primary.main, 0.04),
-    },
-  },
-  "& .MuiSelect-select": {
-    padding: "8px 14px",
-  },
-}));
-const StyledFilterButton = styled(Button)(({ theme }) => ({
-  borderRadius: "8px",
-  padding: "6px 16px",
-  height: "36px",
-  marginRight: theme.spacing(2),
-  textTransform: "none",
-  borderColor: theme.palette.divider,
-  backgroundColor: theme.palette.background.paper,
-  boxShadow: "none",
-  "&:hover": {
-    backgroundColor: alpha(theme.palette.primary.main, 0.04),
-    borderColor: theme.palette.primary.main,
-    boxShadow: `0 2px 8px ${alpha(theme.palette.primary.main, 0.15)}`,
-  },
-  [theme.breakpoints.down("sm")]: {
-    ".MuiButton-startIcon, .MuiButton-endIcon": {
-      margin: 0, // Remove margin for small screens
-    },
-  },
-  transition: "all 0.2s ease-in-out",
-}));
+import { cn } from "@/lib/utils";
+import { motion, AnimatePresence } from "framer-motion";
+import { Tooltip } from "@mui/material";
 
-const StyledChip = styled(Chip)(({ theme }) => ({
-  height: 24,
-  borderRadius: 4,
-  backgroundColor: alpha(theme.palette.primary.main, 0.08),
-  "& .MuiChip-label": {
-    fontSize: "0.75rem",
-    padding: "0 8px",
-  },
-  "& .MuiChip-deleteIcon": {
-    fontSize: "16px",
-    color: theme.palette.text.secondary,
-    "&:hover": {
-      color: theme.palette.error.main,
-    },
-  },
-}));
-
-const StyledPopover = styled(Popover)(({ theme }) => ({
-  [theme.breakpoints.down("sm")]: {
-    "& .MuiPopover-paper": {
-      overflow: "visible",
-    },
-    backgroundColor: alpha(theme.palette.action.disabledBackground, 0.5),
-  },
-  "& .MuiPopover-paper": {
-    borderRadius: "8px",
-
-    backgroundColor: "transparent",
-    [theme.breakpoints.down("sm")]: {
-      width: "calc(100dvw - 32px)",
-      height: `calc(100dvh - 64px)`,
-      position: "fixed",
-      top: "64px !important",
-      left: "0px !important",
-      bottom: "0 !important",
-      transform: "none !important",
-      margin: 0,
-      maxWidth: "100%",
-      maxHeight: "none",
-    },
-  },
-}));
-const StyledPopoverContent = styled(Box)(({ theme }) => ({
-  padding: theme.spacing(3),
-  paddingBottom: 0,
-  width: 320,
-  overflow: "auto",
-
-  backgroundColor: theme.palette.background.paper,
-  [theme.breakpoints.down("sm")]: {
-    width: "100%",
-    height: "100%",
-    padding: theme.spacing(1),
-    paddingLeft: theme.spacing(2),
-    paddingRight: theme.spacing(2),
-    display: "flex",
-    flexDirection: "column",
-  },
-}));
-const StyledToggleButtonGroup = styled(ToggleButtonGroup)(({ theme }) => ({
-  width: "100%",
-  "& .MuiToggleButtonGroup-grouped": {
-
-    borderRadius: "8px",
-    flex: 1,
-    border: `1px solid ${theme.palette.divider}`,
-    backgroundColor: "white",
-    "&.Mui-selected": {
-      backgroundColor: theme.palette.primary.main,
-      color: theme.palette.primary.contrastText,
-      "&:hover": {
-        backgroundColor: theme.palette.primary.dark,
-      },
-    },
-    "&:not(:first-of-type)": {
-      marginLeft: theme.spacing(1),
-      borderLeft: `1px solid ${theme.palette.divider}`,
-    },
-  },
-}));
-
-const StyledMenuItem = styled(MenuItem)(({ theme }) => ({
-  minHeight: "44px",
-  color: theme.palette.text.secondary,
-  gap: "8px",
-  "&:hover": {
-    backgroundColor: alpha(theme.palette.primary.main, 0.08),
-    color: theme.palette.primary.main, 
-  },
-  "&.Mui-selected": {
-    color: theme.palette.text.primary, 
-    "& .MuiSvgIcon-root": {
-      color: theme.palette.primary.main, 
-    },
-    backgroundColor: alpha(theme.palette.primary.main, 0.12),
-    "&:hover": {
-      backgroundColor: alpha(theme.palette.primary.main, 0.16),
-    },
-  },
-  
-}));
-const MenuProps: SelectProps["MenuProps"] = {
-  PaperProps: {
-    style: {
-      maxHeight: 300,
-    },
-    elevation: 3,
-  },
-  anchorOrigin: {
-    vertical: "bottom",
-    horizontal: "left",
-  },
-  transformOrigin: {
-    vertical: "top",
-    horizontal: "left",
-  },
-  variant: "menu",
-};
-
-const FilterDropdown: React.FC<FilterDropdownProps> = ({
+export default function FilterDropdown({
   codes,
   GEs,
-  sortBy,
   selectedGEs,
   selectedSubjects,
   selectedClassTypes,
   selectedEnrollmentStatuses,
   selectedCareers,
   selectedPrereqs,
-  onSortBy,
   onSelectedSubjectsChange,
   onClassTypesChange,
   onEnrollmentStatusesChange,
   onSelectedGEs,
   onSelectedCareersChange,
   onSelectedPrereqsChange,
-}) => {
-  const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
-  const [anchorEl, setAnchorEl] = useState<HTMLButtonElement | null>(null);
-  const open = Boolean(anchorEl);
-  const id = open ? "filter-popover" : undefined;
+}: FilterDropdownProps) {
+  const [open, setOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState("enrollment");
 
-  const handleClick = useCallback(
-    (event: React.MouseEvent<HTMLButtonElement>) => {
-      setAnchorEl(event.currentTarget);
-    },
-    []
-  );
+  // Calculate total selected filters for badge count
+  const totalFilters =
+    selectedSubjects.length +
+    selectedClassTypes.length +
+    selectedEnrollmentStatuses.length +
+    selectedGEs.length +
+    selectedCareers.length +
+    selectedPrereqs.length;
 
-  const handleClose = useCallback(() => {
-    setAnchorEl(null);
-  }, []);
+  const categoryFilters = {
+    enrollment: selectedEnrollmentStatuses.length,
+    types: selectedClassTypes.length,
+    subjects: selectedSubjects.length,
+    careers: selectedCareers.length,
+    prereqs: selectedPrereqs.length,
+    ge: selectedGEs.length,
+  };
 
-  const handleChipDelete = useCallback(
-    (
-      selectedItems: string[],
-      setSelectedItems: (items: string[]) => void,
-      event: React.MouseEvent,
-      value: string
-    ) => {
-      event.stopPropagation();
-      setSelectedItems(selectedItems.filter((item) => item !== value));
-    },
-    []
-  );
+  const categoryIcons = {
+    subjects: <BookOpen className="w-4 h-4" />, // Clear metaphor for academic subject
+    careers: <Briefcase className="w-4 h-4" />, // Represents career/level cleanly (vs. Building2)
+    prereqs: <Lock className="w-4 h-4" />, // Lock icon makes sense for “gated by prerequisites”
+    ge: <BadgeCheck className="w-4 h-4" />, // Emphasizes “requirement fulfilled” visually
+    types: <MonitorPlay className="w-4 h-4" />, // Implies format: online/async/etc.
+    enrollment: <Clock className="w-4 h-4" />, // Circle = open; swap icon state by status if needed
+  };
 
-  const getButtonLabel = useCallback(() => {
-    const totalFilters =
-      selectedSubjects.length +
-      selectedClassTypes.length +
-      selectedEnrollmentStatuses.length +
-      (GEs?.length > 1 ? selectedGEs.length : 0) +
-      selectedCareers.length +
-      selectedPrereqs.length;
-    return `${isMobile ? "" : "Filters"} ${
-      totalFilters > 0 ? `(${totalFilters})` : ""
-    }`;
-  }, [
-    selectedSubjects,
-    selectedClassTypes,
-    selectedEnrollmentStatuses,
-    selectedGEs,
-    GEs,
-    selectedCareers,
-    selectedPrereqs,
-    isMobile,
-  ]);
+  // Define filter categories for both mobile and desktop
+  const filterCategories = {
+    enrollment: "Enrollment Status",
+    ...(GEs.length > 1 ? { ge: "GE Req" } : {}),
+    types: "Class Format",
 
-  const handleSortChange = useCallback(
-    (event: React.MouseEvent<HTMLElement>, newSort: string | null) => {
-      if (newSort !== null && onSortBy) {
-        onSortBy(newSort);
-      }
-    },
-    [onSortBy]
-  );
+    prereqs: "Prerequisite Req",
+    careers: "Student Level",
 
-  const renderFilterHeader = useCallback(
-    (
-      title: string,
-      selectedItems: string[],
-      onSelectedItems: (value: string[]) => void,
-      allItems: string[],
-      icon: React.ReactElement
-    ) => (
-      <Box
-        sx={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          mb: 1,
-        }}
-      >
-        <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-          {icon}
-          <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
-            {title}
-          </Typography>
-        </Box>
-        <Box sx={{ display: "flex", gap: 0.5 }}>
-          <Tooltip title="Select All">
-            <IconButton
-              size="small"
-              onClick={() => onSelectedItems(allItems)}
-              sx={{ borderRadius: "8px" }}
+    subjects: "Subject Area",
+  };
+
+  function renderFilterSection(
+    title: string,
+    options: string[],
+    selected: string[],
+    onChange: (vals: string[]) => void
+  ) {
+    return (
+      <div className="space-y-3">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <h3 className="text-sm font-medium text-slate-900">{title}</h3>
+            <Badge
+              variant="outline"
+              className="text-xs font-normal bg-slate-50 border-slate-200 text-slate-600"
             >
-              <SelectAllIcon fontSize="small" />
-            </IconButton>
-          </Tooltip>
-          {selectedItems.length > 0 && (
-            <Tooltip title="Clear">
-              <IconButton
-                size="small"
-                onClick={() => onSelectedItems([])}
-                sx={{ borderRadius: "8px" }}
+              {selected.length} of {options.length}
+            </Badge>
+          </div>
+          <div className="flex items-center gap-1">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-7 text-xs font-medium text-slate-600 hover:text-slate-900 hover:bg-slate-100"
+              onClick={() => onChange(options)}
+            >
+              Select All
+            </Button>
+            <Separator orientation="vertical" className="h-4" />
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-7 text-xs font-medium text-slate-600 hover:text-slate-900 hover:bg-slate-100"
+              onClick={() => onChange([])}
+              disabled={selected.length === 0}
+            >
+              Clear
+            </Button>
+          </div>
+        </div>
+        <ScrollArea className="h-52 rounded-lg border border-slate-200 bg-white">
+          <div className="p-1">
+            {options.map((opt) => (
+              <label
+                key={opt}
+                className={cn(
+                  "flex items-center gap-2 px-2.5 py-2 rounded-md cursor-pointer text-sm transition-colors",
+                  selected.includes(opt)
+                    ? "bg-blue-50 text-blue-900"
+                    : "text-slate-700 hover:bg-slate-50"
+                )}
               >
-                <DeleteForeverIcon fontSize="small" />
-              </IconButton>
-            </Tooltip>
-          )}
-        </Box>
-      </Box>
-    ),
-    []
-  );
-
-  const renderSelectContent = useCallback(
-    (selected: string[], onDelete: (value: string[]) => void) => {
-      if (!selected || selected.length === 0) {
-        return <Typography>All</Typography>;
-      }
-      return (
-        <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.5 }}>
-          {selected.map((value) => (
-            <StyledChip
-              key={value}
-              label={value}
-              onMouseDown={(e) => e.stopPropagation()}
-              onDelete={(event) =>
-                handleChipDelete(selected, onDelete, event, value)
-              }
-            />
-          ))}
-        </Box>
-      );
-    },
-    [handleChipDelete]
-  );
+                <Checkbox
+                  checked={selected.includes(opt)}
+                  onCheckedChange={(checked) => {
+                    if (checked) onChange([...selected, opt]);
+                    else onChange(selected.filter((v) => v !== opt));
+                  }}
+                  className="data-[state=checked]:bg-blue-600 data-[state=checked]:border-blue-600"
+                />
+                <span className="truncate">{opt}</span>
+              </label>
+            ))}
+          </div>
+        </ScrollArea>
+      </div>
+    );
+  }
 
   return (
-    <>
-      <StyledFilterButton
-        onClick={handleClick}
-        variant="outlined"
-        startIcon={<FilterAltIcon />}
-        endIcon={<StyledExpandIcon expanded={open} />}
-      >
-        {getButtonLabel()}
-      </StyledFilterButton>
+    <Popover open={open} onOpenChange={setOpen}>
+      <Tooltip title="Filter Classes">
+        <PopoverTrigger asChild>
+          <Button
+            variant="outline"
+            size="icon"
+            className={cn(
+              "relative h-9 w-9 border-slate-200 bg-white hover:bg-slate-50 hover:shadow-md transition-shadow",
+              totalFilters > 0 && "ring-1 ring-blue-100 border-blue-200"
+            )}
+          >
+            <Filter className="h-4 w-4 text-slate-600" />
+            {totalFilters > 0 && (
+              <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-blue-600 text-[10px] font-medium text-white shadow-sm">
+                {totalFilters}
+              </span>
+            )}
+          </Button>
+        </PopoverTrigger>
+      </Tooltip>
 
-      <StyledPopover
-        transitionDuration={{ enter: 200, exit: isMobile ? 150 : 200 }}
-        id={id}
-        open={open}
-        anchorEl={anchorEl}
-        onClose={handleClose}
-        anchorOrigin={{
-          vertical: "bottom",
-          horizontal: "right",
-        }}
-        transformOrigin={{
-          vertical: "top",
-          horizontal: "right",
-        }}
-        slotProps={{
-          root: {
-            slotProps: {
-              backdrop: {
-                open: true,
-              },
-            },
-          },
-        }}
-        elevation={4}
+      <PopoverContent
+        side="bottom"
+        align="start"
+        className="w-[340px] sm:w-[600px] p-0 border-slate-200 shadow-xl rounded-xl overflow-hidden"
       >
-        <StyledPopoverContent>
-          {isMobile && (
-            <>
-              <Box
-                sx={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "center",
-                  mb: 2,
-                  position: "sticky",
-                  top: -8,
-                  backgroundColor: "white",
-                  zIndex: 1,
-                  py: 1,
-                  borderBottom: 1,
-                  borderColor: "divider",
-                }}
-              >
-                <Typography variant="h6" sx={{ fontWeight: 600 }}>
-                  Filters
-                </Typography>
-                <IconButton
-                  onClick={handleClose}
-                  size="small"
-                  sx={{
-                    borderRadius: "8px",
+        <AnimatePresence mode="wait">
+          <motion.div
+            className="flex flex-col sm:flex-row h-[550px] max-h-[80vh]"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.15 }}
+          >
+            {/* Sidebar navigation for desktop */}
+            <div className="hidden sm:flex flex-col w-[180px] bg-slate-50 border-r border-slate-200 p-2 pt-3">
+              <div className="px-3 mb-3">
+                <h2 className="font-semibold text-slate-900">Filters</h2>
+                <p className="text-xs text-slate-500 mt-1">
+                  Refine course results
+                </p>
+              </div>
+
+              <div className="space-y-1">
+                {Object.entries(filterCategories).map(([key, label]) => (
+                  <Button
+                    key={key}
+                    variant="ghost"
+                    size="sm"
+                    className={cn(
+                      "w-full justify-start px-3 h-9 font-normal",
+                      activeTab === key
+                        ? "bg-white text-blue-600 shadow-sm font-medium hover:bg-white hover:text-blue-600"
+                        : "text-slate-700 hover:bg-slate-100 hover:text-slate-900"
+                    )}
+                    onClick={() => setActiveTab(key)}
+                  >
+                    <div className="flex items-center gap-2 w-full">
+                      <div className="flex items-center gap-2">
+                        {categoryIcons[key]}
+                        <span>{label}</span>
+                      </div>
+
+                      {categoryFilters[key] > 0 && (
+                        <Badge
+                          variant="secondary"
+                          className="ml-auto text-xs font-normal bg-blue-100 text-blue-700 hover:bg-blue-100"
+                        >
+                          {categoryFilters[key]}
+                        </Badge>
+                      )}
+                    </div>
+                  </Button>
+                ))}
+              </div>
+
+              {totalFilters > 0 && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="mt-auto mx-2 mb-2 text-xs border-slate-200 hover:bg-slate-100"
+                  onClick={() => {
+                    onSelectedSubjectsChange([]);
+                    onClassTypesChange([]);
+                    onEnrollmentStatusesChange([]);
+                    onSelectedGEs([]);
+                    onSelectedCareersChange([]);
+                    onSelectedPrereqsChange([]);
                   }}
                 >
-                  <CloseIcon />
-                </IconButton>
-              </Box>
-            </>
-          )}
-
-          <Box sx={{ mb: 2 }}>
-            <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1 }}>
-              Sort By
-            </Typography>
-            <StyledToggleButtonGroup
-              value={sortBy}
-              exclusive
-              onChange={handleSortChange}
-              size="small"
-            >
-              <Tooltip title="Default (Ratings & GPA)">
-                <ToggleButton value="DEFAULT">
-                  <TuneIcon />
-                </ToggleButton>
-              </Tooltip>
-              <Tooltip title="GPA">
-                <ToggleButton value="GPA">
-                  <EqualizerIcon />
-                </ToggleButton>
-              </Tooltip>
-              <Tooltip title="Ratings">
-                <ToggleButton value="INSTRUCTOR">
-                  <StarIcon />
-                </ToggleButton>
-              </Tooltip>
-              <Tooltip title="A-Z">
-                <ToggleButton value="ALPHANUMERIC">
-                  <SortByAlphaIcon />
-                </ToggleButton>
-              </Tooltip>
-            </StyledToggleButtonGroup>
-          </Box>
-
-          <Divider sx={{ my: 2 }} />
-
-          <StyledFormControl>
-            {renderFilterHeader(
-              "Enrollment Status",
-              selectedEnrollmentStatuses,
-              onEnrollmentStatusesChange,
-              enrollmentStatusOptions,
-              <LockIcon />
-            )}
-            <Select
-              multiple
-              size="small"
-              value={selectedEnrollmentStatuses}
-              onChange={(e) =>
-                onEnrollmentStatusesChange(e.target.value as string[])
-              }
-              input={<OutlinedInput />}
-              renderValue={(selected) =>
-                renderSelectContent(
-                  selected as string[],
-                  onEnrollmentStatusesChange
-                )
-              }
-              MenuProps={MenuProps}
-            >
-              {enrollmentStatusOptions.map((option) => (
-                <StyledMenuItem key={option} value={option}>
-                  <ListItemText primary={option} />
-                  {selectedEnrollmentStatuses.includes(option) && (
-                    <CheckIcon sx={{ ml: 1 }} />
-                  )}
-                </StyledMenuItem>
-              ))}
-            </Select>
-          </StyledFormControl>
-
-          <StyledFormControl>
-            {renderFilterHeader(
-              "Class Type",
-              selectedClassTypes,
-              onClassTypesChange,
-              classTypeOptions,
-              <ComputerIcon />
-            )}
-            <Select
-              multiple
-              size="small"
-              value={selectedClassTypes}
-              onChange={(e) => onClassTypesChange(e.target.value as string[])}
-              input={<OutlinedInput />}
-              renderValue={(selected) =>
-                renderSelectContent(selected as string[], onClassTypesChange)
-              }
-              MenuProps={MenuProps}
-            >
-              {classTypeOptions.map((option) => (
-                <StyledMenuItem key={option} value={option}>
-                  <ListItemText primary={option} />
-                  {selectedClassTypes.includes(option) && (
-                    <CheckIcon sx={{ ml: 1 }} />
-                  )}
-                </StyledMenuItem>
-              ))}
-            </Select>
-          </StyledFormControl>
-
-          <StyledFormControl>
-            {renderFilterHeader(
-              "Subjects",
-              selectedSubjects,
-              onSelectedSubjectsChange,
-              codes,
-              <CategoryIcon />
-            )}
-            <Select
-              multiple
-              value={selectedSubjects}
-              onChange={(e) =>
-                onSelectedSubjectsChange(e.target.value as string[])
-              }
-              input={<OutlinedInput />}
-              renderValue={(selected) =>
-                renderSelectContent(
-                  selected as string[],
-                  onSelectedSubjectsChange
-                )
-              }
-              MenuProps={MenuProps}
-            >
-              {codes?.map((option) => (
-                <StyledMenuItem key={option} value={option}>
-                  <ListItemText primary={option} />
-                  {selectedSubjects.includes(option) && (
-                    <CheckIcon sx={{ ml: 1 }} />
-                  )}
-                </StyledMenuItem>
-              ))}
-            </Select>
-          </StyledFormControl>
-
-          <StyledFormControl>
-            {renderFilterHeader(
-              "Career Type",
-              selectedCareers,
-              onSelectedCareersChange,
-              careersOptions,
-              <WorkspacePremiumIcon />
-            )}
-            <Select
-              multiple
-              size="small"
-              value={selectedCareers}
-              onChange={(e) =>
-                onSelectedCareersChange(e.target.value as string[])
-              }
-              input={<OutlinedInput />}
-              renderValue={(selected) =>
-                renderSelectContent(
-                  selected as string[],
-                  onSelectedCareersChange
-                )
-              }
-              MenuProps={MenuProps}
-            >
-              {careersOptions.map((option) => (
-                <StyledMenuItem key={option} value={option}>
-                  <ListItemText primary={option} />
-                  {selectedCareers.includes(option) && (
-                    <CheckIcon sx={{ ml: 1 }} />
-                  )}
-                </StyledMenuItem>
-              ))}
-            </Select>
-          </StyledFormControl>
-
-          <StyledFormControl sx={GEs.length < 2 ? { mb: "32px" } : {}}>
-            {renderFilterHeader(
-              "Prerequisites",
-              selectedPrereqs,
-              onSelectedPrereqsChange,
-              prereqOptions,
-              <AssignmentLateIcon />
-            )}
-            <Select
-              multiple
-              size="small"
-              value={selectedPrereqs}
-              onChange={(e) =>
-                onSelectedPrereqsChange(e.target.value as string[])
-              }
-              input={<OutlinedInput />}
-              renderValue={(selected) =>
-                renderSelectContent(
-                  selected as string[],
-                  onSelectedPrereqsChange
-                )
-              }
-              MenuProps={MenuProps}
-            >
-              {prereqOptions.map((option) => (
-                <StyledMenuItem key={option} value={option}>
-                  <ListItemText primary={option} />
-                  {selectedPrereqs.includes(option) && (
-                    <CheckIcon sx={{ ml: 1 }} />
-                  )}
-                </StyledMenuItem>
-              ))}
-            </Select>
-          </StyledFormControl>
-
-          {GEs?.length > 1 && (
-            <StyledFormControl sx={{ mb: "32px" }}>
-              {renderFilterHeader(
-                "GEs",
-                selectedGEs,
-                onSelectedGEs,
-                GEs,
-                <SchoolIcon />
+                  <X className="w-3.5 h-3.5 mr-1" />
+                  Clear All Filters
+                </Button>
               )}
-              <Select
-                multiple
-                size="small"
-                value={selectedGEs}
-                onChange={(e) => onSelectedGEs(e.target.value as string[])}
-                input={<OutlinedInput />}
-                renderValue={(selected) =>
-                  renderSelectContent(selected as string[], onSelectedGEs)
-                }
-                MenuProps={MenuProps}
-              >
-                {GEs?.map((option) => (
-                  <StyledMenuItem key={option} value={option}>
-                    <ListItemText primary={option} />
-                    {selectedGEs.includes(option) && (
-                      <CheckIcon sx={{ ml: 1 }} />
-                    )}
-                  </StyledMenuItem>
-                ))}
-              </Select>
-            </StyledFormControl>
-          )}
-        </StyledPopoverContent>
-      </StyledPopover>
-    </>
-  );
-};
+            </div>
 
-export default FilterDropdown;
+            {/* Tabs for mobile view */}
+            <div className="sm:hidden flex flex-col bg-white border-b border-slate-200">
+              <div className="p-4 flex items-center justify-between">
+                <h2 className="font-semibold text-slate-900">Filters</h2>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8 hover:bg-slate-100"
+                  onClick={() => setOpen(false)}
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+
+              <div className="border-t border-slate-100">
+                <ScrollArea className="w-full pb-2">
+                  <div className="flex px-4 py-2 gap-2">
+                    {Object.entries({
+                      enrollment: "Enrollment",
+                      types: "Type",
+                      subjects: "Subjects",
+                      careers: "Career",
+                      prereqs: "Prereqs",
+                      ...(GEs.length > 1 ? { ge: "GE" } : {}),
+                    }).map(([key, label]) => (
+                      <Button
+                        key={key}
+                        variant={activeTab === key ? "default" : "outline"}
+                        size="sm"
+                        className={cn(
+                          "h-8 px-3 rounded-full whitespace-nowrap flex-shrink-0",
+                          activeTab === key
+                            ? "bg-blue-600 text-white shadow-sm"
+                            : "bg-white border-slate-200 text-slate-700"
+                        )}
+                        onClick={() => setActiveTab(key)}
+                      >
+                        <div className="flex items-center gap-1.5">
+                          <span>{label}</span>
+                          {categoryFilters[key] > 0 && (
+                            <Badge
+                              variant="secondary"
+                              className="ml-0.5 text-[10px] h-4 w-4 p-0 flex items-center justify-center rounded-full bg-white text-blue-700"
+                            >
+                              {categoryFilters[key]}
+                            </Badge>
+                          )}
+                        </div>
+                      </Button>
+                    ))}
+                  </div>
+                </ScrollArea>
+              </div>
+            </div>
+
+            {/* Content area */}
+            <div className="flex-1 p-4 overflow-hidden bg-white">
+              <motion.div
+                key={activeTab}
+                initial={{ opacity: 0, y: 5 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.2 }}
+                className="h-full flex flex-col"
+              >
+                {activeTab === "enrollment" &&
+                  renderFilterSection(
+                    "Class Status",
+                    enrollmentStatusOptions,
+                    selectedEnrollmentStatuses,
+                    onEnrollmentStatusesChange
+                  )}
+
+                {activeTab === "types" &&
+                  renderFilterSection(
+                    "Class Type",
+                    classTypeOptions,
+                    selectedClassTypes,
+                    onClassTypesChange
+                  )}
+
+                {activeTab === "subjects" &&
+                  renderFilterSection(
+                    "Subjects",
+                    codes,
+                    selectedSubjects,
+                    onSelectedSubjectsChange
+                  )}
+
+                {activeTab === "careers" &&
+                  renderFilterSection(
+                    "Career Type",
+                    careersOptions,
+                    selectedCareers,
+                    onSelectedCareersChange
+                  )}
+
+                {activeTab === "prereqs" &&
+                  renderFilterSection(
+                    "Prerequisites",
+                    prereqOptions,
+                    selectedPrereqs,
+                    onSelectedPrereqsChange
+                  )}
+
+                {activeTab === "ge" &&
+                  GEs.length > 1 &&
+                  renderFilterSection(
+                    "GE Requirements",
+                    GEs,
+                    selectedGEs,
+                    onSelectedGEs
+                  )}
+              </motion.div>
+
+              {/* Mobile action buttons */}
+              <div className="mt-4 sm:hidden flex items-center justify-between">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="border-slate-200 text-slate-700 hover:bg-slate-50"
+                  onClick={() => {
+                    // Clear all filters when Cancel is clicked
+                    onSelectedSubjectsChange([]);
+                    onClassTypesChange([]);
+                    onEnrollmentStatusesChange([]);
+                    onSelectedGEs([]);
+                    onSelectedCareersChange([]);
+                    onSelectedPrereqsChange([]);
+                    setOpen(false);
+                  }}
+                >
+                  Clear All
+                </Button>
+
+                <Button
+                  size="sm"
+                  className="bg-blue-600 hover:bg-blue-700 text-white shadow-sm"
+                  onClick={() => setOpen(false)}
+                >
+                  Apply Filters
+                </Button>
+              </div>
+            </div>
+          </motion.div>
+        </AnimatePresence>
+      </PopoverContent>
+    </Popover>
+  );
+}

@@ -33,16 +33,22 @@ import {
   COLORS,
   CourseCardProps,
   CourseCode,
+  getLetterGrade,
+  StyledChip,
+} from "../Constants";
+
+import {
+  Chip,
   CourseCodeChip,
   DifficultyChip,
-  getLetterGrade,
+  GECategoryChip,
   GradeChip,
   RatingChip,
   ReviewCountChip,
-  StyledChip,
-} from "../Constants";
+} from "@/components/ui/chip";
 import StatusIcon from "./StatusIcon";
 import React from "react";
+import { Bookmark, BookmarkCheck, Ellipsis, Heart } from "lucide-react";
 
 export const CourseCard = forwardRef<HTMLDivElement, CourseCardProps>(
   (
@@ -74,9 +80,6 @@ export const CourseCard = forwardRef<HTMLDivElement, CourseCardProps>(
       instructor_ratings: rmpData,
     } = course;
     const course_code = `${course.subject} ${course.catalog_num}`;
-    const currentIcon = categories.find(
-      (category) => category.id === course.ge
-    )?.icon;
 
     const handleRatingsOpen = (e: React.MouseEvent) => {
       e.preventDefault();
@@ -84,7 +87,7 @@ export const CourseCard = forwardRef<HTMLDivElement, CourseCardProps>(
         onExpandChange(course.id);
       }
       e.stopPropagation();
-      
+
       onRatingsOpen(
         rmpData.name ?? course.instructor,
         rmpData?.course_codes.some(
@@ -134,61 +137,22 @@ export const CourseCard = forwardRef<HTMLDivElement, CourseCardProps>(
     const isStaffOrLoading = fullInstructorName === "Staff";
 
     const RenderRMPContent = () => {
-      if (!rmpData || isStaffOrLoading) {
-        return (
-          <Box sx={{ display: "flex", gap: 1, alignItems: "center", mt: 1 }}>
-            <RatingChip
-              icon={<CancelIcon sx={{ fontSize: 16, color: COLORS.WHITE }} />}
-              label="No rating found"
-              size="small"
-              sx={{
-                color: "inherit",
-                boxShadow: "0 2px 8px rgba(0, 0, 0, 0.15)",
-              }}
-            />
-          </Box>
-        );
-      }
-
       return (
         <Box sx={{ display: "flex", gap: 1, alignItems: "center", mt: 1 }}>
           <RatingChip
-            icon={<StarIcon color="inherit" />}
-            label={`${rmpData.avg_rating?.toFixed(1) || "N/A"}/5`}
-            size="small"
-            sx={{
-              border: `1px solid ${
-                rmpData.avg_rating >= 4
-                  ? theme.palette.success.dark
-                  : rmpData.avg_rating >= 3
-                  ? theme.palette.warning.dark
-                  : theme.palette.error.dark
-              }`,
-              color:
-                rmpData.avg_rating >= 4
-                  ? theme.palette.success.main
-                  : rmpData.avg_rating >= 3
-                  ? theme.palette.warning.main
-                  : theme.palette.error.main,
-              backgroundColor: "white",
-            }}
+            rating={!isStaffOrLoading ? rmpData?.avg_rating : undefined}
+            compact
           />
           <DifficultyChip
-            label={`${
-              rmpData.difficulty_level?.toFixed(1) || "N/A"
-            }/5 difficulty`}
-            size="small"
-            variant="outlined"
-            difficulty={rmpData.difficulty_level}
+            difficulty={
+              !isStaffOrLoading ? rmpData?.difficulty_level : undefined
+            }
+            compact
           />
           {isSmallScreen && rmpData?.num_ratings != undefined && (
             <ReviewCountChip
-              icon={<RateReviewIcon color="inherit" />}
-              label={`${rmpData?.num_ratings} ${
-                rmpData?.num_ratings > 1 ? "reviews" : "review"
-              }`}
+              count={rmpData.num_ratings}
               onClick={handleRatingsOpen}
-              size="small"
             />
           )}
         </Box>
@@ -214,42 +178,23 @@ export const CourseCard = forwardRef<HTMLDivElement, CourseCardProps>(
                 sx={{ display: "flex", alignItems: "center", gap: 1, mb: 1 }}
               >
                 <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                  <CourseCodeChip
-                    label={course_code}
-                    size="small"
-                    onClick={handleCourseDetailsOpen}
-                  />
-                  {avgGPA !== null && !Number.isNaN(avgGPA) ? (
-                    <Tooltip title={`${avgGPA}`}>
+                  <CourseCodeChip courseCode={course_code} />
+                  {avgGPA !== null && !isNaN(Number(avgGPA)) ? (
+                    <Tooltip title={`${avgGPA}`} disableInteractive>
                       <GradeChip
                         grade={Number(avgGPA)}
-                        label={`${getLetterGrade(avgGPA)}`}
-                        size="small"
-                        sx={{
-                          height: "28px",
-                          boxShadow: "0 2px 8px rgba(0, 0, 0, 0.15)",
-                          "&:hover": {
-                            boxShadow: "0 4px 12px rgba(0, 0, 0, 0.2)",
-                          },
-                        }}
+                        letterGrade={getLetterGrade(avgGPA)}
                         onClick={handleDistributionOpen}
                       />
                     </Tooltip>
                   ) : (
-                    <StyledChip
-                      icon={
-                        <CancelIcon
-                          sx={{ fontSize: 16, color: COLORS.WHITE }}
-                        />
-                      }
-                      label="No GPA"
-                      size="small"
-                      sx={{
-                        height: "28px",
-                        boxShadow: "0 2px 8px rgba(0, 0, 0, 0.15)",
-                      }}
+                    <GradeChip
+                      grade={undefined}
+                      letterGrade={getLetterGrade(avgGPA)}
+                      onClick={handleDistributionOpen}
                     />
                   )}
+
                   <StatusIcon status={course.class_status} />
                 </Box>
               </Box>
@@ -282,12 +227,8 @@ export const CourseCard = forwardRef<HTMLDivElement, CourseCardProps>(
                   <Grid item>
                     {!isSmallScreen && rmpData?.num_ratings != undefined && (
                       <ReviewCountChip
-                        icon={<RateReviewIcon color="inherit" />}
-                        label={`${rmpData?.num_ratings} ${
-                          rmpData?.num_ratings > 1 ? "reviews" : "review"
-                        }`}
+                        count={rmpData.num_ratings}
                         onClick={handleRatingsOpen}
-                        size="small"
                       />
                     )}
                   </Grid>
@@ -309,90 +250,57 @@ export const CourseCard = forwardRef<HTMLDivElement, CourseCardProps>(
               >
                 <Box sx={{ display: "flex" }}>
                   {!hideCompareButton && (
-                    <Tooltip title="Favorite Course">
-                      <IconButton
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          if (handleAddToFavorites) {
-                            handleAddToFavorites(course);
-                          }
-                        }}
-                        size="small"
-                        sx={{
-                          p: 0.5,
-                          borderRadius: "8px",
-                          "&:hover": {
-                            backgroundColor: theme.palette.action.hover,
-                          },
-                        }}
-                      >
-                        {isFavorited ? (
-                          <BookmarkIcon fontSize="small" />
-                        ) : (
-                          <BookmarkBorderIcon
-                            fontSize="small"
-                            color="disabled"
-                          />
-                        )}
-                      </IconButton>
-                    </Tooltip>
+                    <IconButton
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        if (handleAddToFavorites) {
+                          handleAddToFavorites(course);
+                        }
+                      }}
+                      size="small"
+                      sx={{
+                        transition: "background-color 0.15s ease-in-out",
+                        p: 0.5,
+                        borderRadius: "8px",
+                        "&:hover": {
+                          backgroundColor: theme.palette.action.hover,
+                        },
+                      }}
+                    >
+                      <Heart
+                        className="h-4 w-5 text-slate-400"
+                        fill={
+                          isFavorited ? "rgba(239, 68, 68, 0.5)" : "transparent"
+                        }
+                      />
+                    </IconButton>
                   )}
+
                   <IconButton
                     onClick={handleMenuClick}
                     size="small"
                     sx={{
                       p: 0.5,
                       borderRadius: "8px",
+                      transition: "background-color 0.15s ease-in-out",
+
                       "&:hover": {
                         backgroundColor: theme.palette.action.hover,
                       },
                     }}
                   >
-                    <MoreVertIcon fontSize="small" />
+                    <Ellipsis className="h-4 w-5 text-slate-400" />
                   </IconButton>
                 </Box>
 
                 {course.ge && (
-                  <Box
-                    component="span"
-                    sx={{
-                      display: "inline-flex",
-                      alignItems: "center",
-                      backgroundColor: theme.palette.background.default,
-                      padding: "3px 8px",
-                      borderRadius: "8px",
-                      border: `1px solid ${theme.palette.divider}`,
-                      cursor: setSelectedGE ? "pointer" : "default",
-                      "&:hover": setSelectedGE
-                        ? {
-                            backgroundColor: theme.palette.action.hover,
-                          }
-                        : {},
+                  <GECategoryChip
+                    category={course.ge}
+                    interactive={!!setSelectedGE}
+                    onClick={() => {
+                      if (setSelectedGE) setSelectedGE(course.ge);
                     }}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      if (setSelectedGE) {
-                        setSelectedGE(course.ge);
-                      }
-                    }}
-                  >
-                    {currentIcon &&
-                      React.cloneElement(currentIcon, {
-                        style: { fontSize: "14px", marginRight: "4px" },
-                      })}
-                    <Typography
-                      variant="caption"
-                      component="span"
-                      sx={{
-                        fontSize: "0.75rem",
-                        fontWeight: 500,
-                        color: "text.secondary",
-                      }}
-                    >
-                      {categories.find((category) => category.id === course.ge)
-                        ?.id || ""}
-                    </Typography>
-                  </Box>
+                  />
                 )}
 
                 <Typography
@@ -508,12 +416,12 @@ const StyledCard = styled(Card)(({ theme }) => ({
   boxSizing: "border-box",
 
   position: "relative",
-  transition: "transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out",
+  transition:
+    "transform 0.15s ease-in-out, box-shadow 0.15s ease-in-out, background-color 0.15s ease-in-out",
   "&:hover": {
     backgroundColor: theme.palette.action.hover,
     "& .MuiChip-clickable": {
       transform: "translateY(-1px)",
-      boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
     },
   },
   ".MuiCardActionArea-focusHighlight": {

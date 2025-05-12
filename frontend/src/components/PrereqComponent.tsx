@@ -8,17 +8,13 @@ import {
   Stack,
   Paper,
   Fade,
-  IconButton,
   styled,
   useTheme,
   Divider,
-  Tooltip,
 } from "@mui/material";
 import {
   List as ListIcon,
   FormatAlignLeft as TextIcon,
-  KeyboardArrowDown as ArrowDownIcon,
-  KeyboardArrowUp as ArrowUpIcon,
   School as SchoolIcon,
 } from "@mui/icons-material";
 
