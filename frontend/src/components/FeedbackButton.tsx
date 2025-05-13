@@ -17,22 +17,24 @@ import { Flag } from "lucide-react";
 
 const FeedbackButton = () => {
   const [open, setOpen] = useState(false);
-  const [feedback, setFeedback] = useState("");
+  const [name, setName] = useState("");
   const [email, setEmail] = useState("");
+  const [feedback, setFeedback] = useState("");
   const [notificationOpen, setNotificationOpen] = useState(false);
-  const [notificationType, setNotificationType] = useState<"success" | "error">(
-    "success"
-  );
+  const [notificationType, setNotificationType] =
+    useState<"success" | "error">("success");
   const [notificationMessage, setNotificationMessage] = useState("");
   const [isEmailTouched, setIsEmailTouched] = useState(false);
 
-  // Configure confetti reward
+  // confetti reward
   const { reward, isAnimating } = useReward("rewardId", "confetti");
-  const isValidEmail = (value: string) =>
-    /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value) || value.trim() === "";
+
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  const isEmailValid = emailRegex.test(email);
+  const isEmailFieldValid = email.trim() !== "" && isEmailValid;
 
   const handleSubmit = async () => {
-    if (!feedback.trim() || isAnimating) return;
+    if (!feedback.trim() || !isEmailFieldValid || isAnimating) return;
     reward();
 
     try {
@@ -44,23 +46,33 @@ const FeedbackButton = () => {
             "Content-Type": "application/json",
             Accept: "application/json",
           },
-          body: JSON.stringify({ email, message: feedback, _captcha: false }),
+          body: JSON.stringify({
+            name,
+            email,
+            message: feedback,
+            _captcha: false,
+          }),
         }
       );
       if (!res.ok) throw new Error("Submission failed");
 
       setNotificationType("success");
       setNotificationMessage(
-        "Thank you so much!!! You will help us improve the overall experience for Slugtistics."
+        "Thank you so much! Your feedback helps improve Slugtistics."
       );
       setNotificationOpen(true);
 
+      // reset form
       setOpen(false);
-      setFeedback("");
+      setName("");
       setEmail("");
+      setFeedback("");
+      setIsEmailTouched(false);
     } catch (err) {
       setNotificationType("error");
-      setNotificationMessage("Oops, something went wrong. Try again later.");
+      setNotificationMessage(
+        "Oops, something went wrong. Please try again later."
+      );
       setNotificationOpen(true);
     }
   };
@@ -89,7 +101,6 @@ const FeedbackButton = () => {
         <Flag className="w-7 h-7" />
       </motion.button>
 
-      {/* Feedback Dialog */}
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="max-w-md w-full bg-background rounded-xl shadow-2xl p-0 overflow-hidden border-none">
           <div className="flex flex-col">
@@ -104,13 +115,23 @@ const FeedbackButton = () => {
 
             <div className="p-6 space-y-5 relative">
               <Input
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="Name (optional)"
+                className="w-full rounded-md border border-border focus:ring-2 focus:ring-[#003399] transition"
+              />
+
+              <Input
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 onBlur={() => setIsEmailTouched(true)}
-                placeholder="Email (optional)"
+                placeholder="Email"
                 className="w-full rounded-md border border-border focus:ring-2 focus:ring-[#003399] transition"
               />
-              {isEmailTouched && email && !isValidEmail(email) && (
+              {isEmailTouched && email.trim() === "" && (
+                <p className="text-sm text-red-500">Email is required.</p>
+              )}
+              {isEmailTouched && email.trim() && !isEmailValid && (
                 <p className="text-sm text-red-500">Invalid email address.</p>
               )}
 
@@ -122,15 +143,11 @@ const FeedbackButton = () => {
               />
 
               <DialogFooter className="p-0">
-                {/* Reward target div */}
                 <div id="rewardId" />
-                <motion.div
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                >
+                <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
                   <Button
                     onClick={handleSubmit}
-                    disabled={!feedback.trim() || isAnimating}
+                    disabled={!feedback.trim() || !isEmailFieldValid || isAnimating}
                     className="w-full py-4 text-base font-semibold"
                   >
                     Send Feedback
@@ -142,7 +159,6 @@ const FeedbackButton = () => {
         </DialogContent>
       </Dialog>
 
-      {/* Notification */}
       <Notification
         type={notificationType}
         message={notificationMessage}

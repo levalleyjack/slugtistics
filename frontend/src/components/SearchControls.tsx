@@ -117,7 +117,7 @@ export const SearchControls: React.FC<SearchControlsProps> = ({
             <button
               type="button"
               aria-label="Clear all favorites"
-              className="m-0 ml-1 w-4 h-4 flex items-center justify-center text-gray-500 hover:text-gray-600 transition-colors"
+              className="m-0 ml-1 w-5 h-5 flex items-center justify-center text-gray-500 hover:text-gray-600 transition-colors"
               onClick={handleDeleteAllFavorites}
             >
               <Trash className="w-4 h-4 cursor-pointer" />
@@ -144,7 +144,7 @@ export const SearchControls: React.FC<SearchControlsProps> = ({
               </div>
               <div className="flex items-center text-sm text-gray-700">
                 <Flower className="w-4 h-4 mr-1" />
-                Spring 2025
+                Fall 2025
               </div>
             </PopoverContent>
           </Popover>

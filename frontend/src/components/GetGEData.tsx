@@ -54,7 +54,7 @@ export const useGEState = (defaultValue: string) => {
     (value: string | ((prev: string) => string)) => {
       setSelectedGE((prev) => {
         const newValue = typeof value === "function" ? value(prev) : value;
-        navigate(`/ge?ge=${newValue}`);
+        navigate(`?ge=${newValue}`);
         return newValue;
       });
     },

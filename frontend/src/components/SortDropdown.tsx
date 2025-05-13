@@ -1,5 +1,3 @@
-"use client";
-
 import React from "react";
 import {
   Popover,
@@ -58,7 +56,7 @@ export const SortDropdown: React.FC<SortDropdownProps> = ({
                 key={opt.value}
                 onClick={() => onSortBy(opt.value as any)}
                 className={cn(
-                  "flex items-center justify-between w-full px-3 py-2 text-sm rounded-md transition-colors",
+                  "flex items-center justify-between w-full px-3 py-2 text-sm rounded-md transition-colors cursor-pointer",
                   sortBy === opt.value
                     ? "bg-blue-600 text-white"
                     : "text-slate-700 hover:bg-slate-50"

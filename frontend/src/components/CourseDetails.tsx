@@ -38,6 +38,7 @@ import { local } from "./GetGEData";
 import { DiscussionSection } from "@/Constants";
 import LocationMap from "./LocationComponent";
 import { Tooltip } from "@mui/material";
+import PrerequisitesSection from "./PrereqComponent";
 
 // Type Definitions
 export enum ClassStatusEnum {
@@ -54,7 +55,7 @@ export type GradientType = {
 
 export interface EnrollmentRequirements {
   description: string;
-  courses: string[];
+  courses: string[][];
 }
 
 export interface CourseData {
@@ -171,44 +172,6 @@ const DetailItem: React.FC<{
   );
 };
 
-// Prerequisites Section Component
-const PrerequisitesSection: React.FC<{
-  enrollmentReqs: string;
-  coursesReq?: string[];
-}> = ({ enrollmentReqs, coursesReq }) => {
-  return (
-    <div className="space-y-4">
-      <p className="text-sm leading-relaxed">{enrollmentReqs}</p>
-
-      {coursesReq && coursesReq.length > 0 && (
-        <div className="flex flex-wrap gap-2 mt-2">
-          {coursesReq.map((course, idx) => (
-            <Badge
-              key={idx}
-              variant="outline"
-              className="bg-primary/5 hover:bg-primary/10 transition-colors cursor-pointer"
-            >
-              {course}
-            </Badge>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-};
-
-// Status Icon Component
-const StatusIcon: React.FC<{ status: ClassStatusEnum }> = ({ status }) => {
-  switch (status) {
-    case ClassStatusEnum.OPEN:
-      return <Check size={16} className="text-green-500" />;
-    case ClassStatusEnum.WAITLIST:
-      return <AlertTriangle size={16} className="text-amber-500" />;
-    default:
-      return <AlertTriangle size={16} className="text-red-500" />;
-  }
-};
-
 export const CourseDetailsPanel: React.FC<CourseDetailsProps> = ({
   course,
   onClose,
@@ -229,7 +192,7 @@ export const CourseDetailsPanel: React.FC<CourseDetailsProps> = ({
     queryFn: async (): Promise<EnrollmentData> => {
       try {
         const response = await fetch(
-          `https://my.ucsc.edu/PSIGW/RESTListeningConnector/PSFT_CSPRD/SCX_CLASS_LIST.v1/2252?subject=${course?.subject}&catalog_nbr=${course?.catalog_num}`
+          `https://my.ucsc.edu/PSIGW/RESTListeningConnector/PSFT_CSPRD/SCX_CLASS_LIST.v1/2258?subject=${course?.subject}&catalog_nbr=${course?.catalog_num}`
         );
         const data = await response.json();
 

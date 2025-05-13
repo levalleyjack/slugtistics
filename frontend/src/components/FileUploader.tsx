@@ -112,6 +112,9 @@ export const FileUploader = ({
       <p className="text-xs sm:text-sm text-muted-foreground mt-2">
         or drag and drop your file here
       </p>
+      <p className="text-xs sm:text-sm text-muted-foreground mt-2">
+        Use the HTML version of your transcript instead of the PDF Version!
+      </p>
     </div>
   );
 };

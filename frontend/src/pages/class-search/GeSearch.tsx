@@ -334,6 +334,7 @@ const GeSearch: React.FC = () => {
     : "none";
 
   const scrollToSelected = useCallback(() => {
+    setSelectedGE("AnyGE");
     if (virtuosoRef.current && selectedIndex > -1) {
       virtuosoRef.current.scrollToIndex({
         index: selectedIndex,
@@ -463,8 +464,3 @@ const GeSearch: React.FC = () => {
 };
 
 export default GeSearch;
-
-const FavoritesContainer = styled("div")(({ theme }) => ({
-  backgroundColor: COLORS.WHITE,
-  borderBottom: `1px solid ${theme.palette.divider}`,
-}));

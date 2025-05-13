@@ -1,5 +1,3 @@
-"use client";
-
 import React from "react";
 import { Box } from "@mui/material";
 import { ArrowRight, BookOpen, School, Search } from "lucide-react";

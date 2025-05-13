@@ -26,11 +26,11 @@ import {
   enrollmentStatusOptions,
   prereqOptions,
 } from "../Constants";
-import { Badge } from "@/components/ui/badge";
 
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
-import { Tooltip } from "@mui/material";
+import { Badge as MUIBadge, Tooltip } from "@mui/material";
+import { Badge } from "./ui/badge";
 
 export default function FilterDropdown({
   codes,
@@ -81,7 +81,7 @@ export default function FilterDropdown({
   // Define filter categories for both mobile and desktop
   const filterCategories = {
     enrollment: "Enrollment Status",
-    ...(GEs.length > 1 ? { ge: "GE Req" } : {}),
+    ...(GEs.length > 1 ? { ge: "GE Requirements" } : {}),
     types: "Class Format",
 
     prereqs: "Prerequisite Req",
@@ -162,21 +162,22 @@ export default function FilterDropdown({
     <Popover open={open} onOpenChange={setOpen}>
       <Tooltip title="Filter Classes">
         <PopoverTrigger asChild>
-          <Button
-            variant="outline"
-            size="icon"
-            className={cn(
-              "relative h-9 w-9 border-slate-200 bg-white hover:bg-slate-50 hover:shadow-md transition-shadow",
-              totalFilters > 0 && "ring-1 ring-blue-100 border-blue-200"
-            )}
+          <MUIBadge
+            badgeContent={totalFilters > 0 ? totalFilters : 0}
+            color="primary"
+            overlap="circular"
+            invisible={totalFilters < 1}
           >
-            <Filter className="h-4 w-4 text-slate-600" />
-            {totalFilters > 0 && (
-              <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-blue-600 text-[10px] font-medium text-white shadow-sm">
-                {totalFilters}
-              </span>
-            )}
-          </Button>
+            <Button
+              variant="outline"
+              size="icon"
+              className={cn(
+                "relative h-9 w-9 border-slate-200 bg-white hover:bg-slate-50 hover:shadow-md transition-shadow"
+              )}
+            >
+              <Filter className="h-4 w-4 text-slate-600" />
+            </Button>
+          </MUIBadge>
         </PopoverTrigger>
       </Tooltip>
 
@@ -194,8 +195,8 @@ export default function FilterDropdown({
             transition={{ duration: 0.15 }}
           >
             {/* Sidebar navigation for desktop */}
-            <div className="hidden sm:flex flex-col w-[180px] bg-slate-50 border-r border-slate-200 p-2 pt-3">
-              <div className="px-3 mb-3">
+            <div className="hidden sm:flex flex-col w-[240px] bg-slate-50 border-r border-slate-200 p-2 pt-3">
+            <div className="px-3 mb-3">
                 <h2 className="font-semibold text-slate-900">Filters</h2>
                 <p className="text-xs text-slate-500 mt-1">
                   Refine course results
