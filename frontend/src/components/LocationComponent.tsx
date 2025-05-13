@@ -85,36 +85,34 @@ const LocationMap: React.FC<LocationMapProps> = ({
   }, [GOOGLE_MAPS_API_KEY]);
 
   const getFormattedAddress = (loc: string) => {
-    if (/\bTA\b/.test(loc)) {
-      return "UCSC Theater Arts Center Mainstage";
-    }
-    if (loc.includes("Hum & Soc Sci")) {
-      return "UC Santa Cruz humanities and social science";
-    }
-    if (loc.includes("Gamelan Stu")) {
+    const normalizedLoc = loc.toLowerCase();
+
+    if (/\bta\b/i.test(loc)) return "UCSC Theater Arts Center Mainstage";
+    if (normalizedLoc.includes("hum & soc sci"))
+      return "UC Santa Cruz Humanities and Social Sciences";
+    if (normalizedLoc.includes("gamelan stu"))
       return "UC Santa Cruz Gamelan Studio";
+    if (normalizedLoc.includes("music center")) return "UCSC Music Center";
+    if (normalizedLoc.includes("steven acad"))
+      return "Classroom 150, UC Santa Cruz";
+    if (normalizedLoc.includes("crown clrm"))
+      return "Crown Classrooms, UC Santa Cruz";
+    if (normalizedLoc.includes("cowell acad"))
+      return "Cowell Classrooms, UC Santa Cruz";
+    if (normalizedLoc.includes("physsciences"))
+      return "Physical Sciences Building, UC Santa Cruz";
+    if (normalizedLoc.includes("digital arts"))
+      return "Digital Arts and New Media, UC Santa Cruz";
+    if (normalizedLoc.includes("earth&marine"))
+      return "Earth and Marine Sciences Building, UC Santa Cruz";
+    if (normalizedLoc.includes("mchenry"))
+      return "McHenry Library, UC Santa Cruz";
+    if (normalizedLoc.includes("engineer 2")) {
+      return "Engineering 2, UC Santa Cruz";
     }
-    if (loc.includes("Music Center")) {
-      return "UCSC Music Center";
-    }
-    if (loc.includes("Steven Acad")) {
-      return "Stevenson Academic 150";
-    }
-    if (loc.includes("Crown Clrm")) {
-      return "Crown Classrooms";
-    }
-    if (loc.includes("Cowell Acad")) {
-      return "Cowell Classrooms";
-    }
-    if (loc.includes("Phy")) {
-      return "Physical Sciences Bldg";
-    }
-    if (loc.includes("Digital Arts")) {
-      return "Digital Arts and New Media";
-    }
+
     return `UC Santa Cruz ${loc}`;
   };
-
   React.useEffect(() => {
     if (mapsLoaded && isValidLocation(location)) {
       const geocoder = new google.maps.Geocoder();
@@ -158,8 +156,8 @@ const LocationMap: React.FC<LocationMapProps> = ({
     >
       <APIProvider apiKey={GOOGLE_MAPS_API_KEY}>
         <Map
-          defaultZoom={17}
-          defaultCenter={position}
+          zoom={17}
+          center={position}
           mapId="4fa4ec527cd2f0dc"
           disableDefaultUI
           gestureHandling="cooperative"
