@@ -581,6 +581,7 @@ const ChatInput: React.FC<ChatInputProps> = ({
               title="Accepts .pdf, .doc, .docx"
               placement="top"
               PopperProps={{ sx: { zIndex: 3000 } }}
+              disableInteractive
             >
               <IconButton
                 onClick={onFileClick}

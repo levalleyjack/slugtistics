@@ -5,12 +5,13 @@ import NavBar from "./components/NavBar";
 import HomePage from "./pages/HomePage";
 import AboutPage from "./pages/AboutPage";
 import NotFoundPage from "./pages/NotFoundPage";
-import GeSearch from "./pages/GeSearch";
-import AllCourses from "./pages/AllCourses";
+import GeSearch from "./pages/class-search/GeSearch";
+import AllCourses from "./pages/class-search/AllCourses";
 import { ReactNode } from "react";
 import { Chatbot } from "./components/ChatBot";
-import MajorSearch from "./major/MajorSearch";
+import MajorSearch from "./pages/major-search/MajorSearch";
 import { alpha, createTheme, ThemeProvider } from "@mui/material/styles";
+import FeedbackButton from "./components/FeedbackButton";
 
 const queryClient = new QueryClient();
 const theme = createTheme({
@@ -90,21 +91,14 @@ const AppContent = () => {
             }
           />
           <Route
-            path="/ge"
+            path="/class"
             element={
-              <PageLayout title={"GE Search | Slugtistics"}>
+              <PageLayout title={"Class Search | Slugtistics"}>
                 <GeSearch />
               </PageLayout>
             }
           />
-          <Route
-            path="/all"
-            element={
-              <PageLayout title={"All Courses | Slugtistics"}>
-                <AllCourses />
-              </PageLayout>
-            }
-          />
+          
           <Route
             path="/major"
             element={
@@ -116,6 +110,7 @@ const AppContent = () => {
           <Route path="*" element={<NotFoundPage />} />
         </Routes>
       </div>
+      <FeedbackButton />
     </div>
   );
 };

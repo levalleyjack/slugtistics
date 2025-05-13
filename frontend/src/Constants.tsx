@@ -1,22 +1,24 @@
 import React from "react";
-import MenuBookIcon from "@mui/icons-material/MenuBook";
-import CalculateIcon from "@mui/icons-material/Calculate";
-import ScienceIcon from "@mui/icons-material/Science";
-import BarChartIcon from "@mui/icons-material/BarChart";
-import AutoStoriesIcon from "@mui/icons-material/AutoStories";
-import ParkIcon from "@mui/icons-material/Park";
-import PsychologyIcon from "@mui/icons-material/Psychology";
-import PrecisionManufacturingIcon from "@mui/icons-material/PrecisionManufacturing";
-import PaletteIcon from "@mui/icons-material/Palette";
-import VolunteerActivismIcon from "@mui/icons-material/VolunteerActivism";
-import AppsIcon from "@mui/icons-material/Apps";
 import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
-import BookIcon from "@mui/icons-material/Book";
-import { alpha, Chip, ChipProps, styled, Theme, useTheme } from "@mui/material";
-import Diversity2Icon from "@mui/icons-material/Diversity2";
-import HandshakeIcon from "@mui/icons-material/Handshake";
-import Diversity3Icon from "@mui/icons-material/Diversity3";
-
+import { Chip, ChipProps, styled, Theme, useTheme } from "@mui/material";
+import { toZonedTime } from "date-fns-tz";
+import {
+  AppWindow,
+  BookOpen,
+  Globe,
+  Users2,
+  Film,
+  Sigma,
+  FlaskConical,
+  BarChart2,
+  FileText,
+  Leaf,
+  Brain,
+  Cpu,
+  Handshake,
+  Paintbrush2,
+  HeartHandshake,
+} from "lucide-react";
 export const COLORS = {
   WHITE: "#ffffff",
   BLACK: "#000000",
@@ -291,7 +293,7 @@ export interface CourseCardProps {
   ratingsOpen?: boolean;
   distributionOpen?: boolean;
   courseDetailsOpen?: boolean;
-  isFavorited?:boolean;
+  isFavorited?: boolean;
 
   onExpandChange?: (courseCode: string) => void;
   setSelectedGE?: (category: string) => void;
@@ -363,10 +365,12 @@ export interface StatisticsDrawerProps {
   activePanel: string | null;
   isDistributionDrawer: boolean;
 }
+export type ScrollDirection = "up" | "down" | "none";
+
 export interface SearchControlsProps {
-  isCategoryDrawer: boolean;
   handleCategoryToggle: () => void;
-  headerVisible: boolean;
+  lastUpdated: any;
+  scrollDirection: ScrollDirection;
   isCategoriesVisible: boolean;
   courses: any;
   handleGlobalCourseSelect: (
@@ -391,6 +395,12 @@ export interface SearchControlsProps {
   setSelectedPrereqs: (prereqs: string[]) => void;
   selectedGEs: string[];
   setSelectedGEs: (ges: string[]) => void;
+  scrollToSelectedCourse: () => void;
+  setIsOpen?: (open: boolean) => void;
+  favoriteCoursesLength: number;
+  compareMode: boolean;
+  setCompareMode: (on: boolean) => void;
+  handleDeleteAllFavorites: ()=>void;
 }
 export interface Message {
   id: number;
@@ -438,79 +448,84 @@ export interface GlobalSearchDropdownProps {
   onCourseSelect: (course: Course, courseId: string, category?: string) => void;
   selectedGE?: string;
   lastUpdated: string;
-  disabled:boolean;
+  disabled: boolean;
 }
+
 export const categories = [
-  { id: "AnyGE", name: "All Courses", icon: <AppsIcon color="inherit" /> },
-  { id: "C", name: "Composition", icon: <BookIcon color="inherit" /> },
+  { id: "AnyGE", name: "All Courses", icon: <AppWindow /> },
+  { id: "C", name: "Composition", icon: <BookOpen /> },
 
   {
     id: "CC",
     name: "Cross-Cultural Analysis",
-    icon: <Diversity3Icon color="inherit" />,
+    icon: <Globe />,
   },
   {
     id: "ER",
     name: "Ethnicity and Race",
-    icon: <Diversity2Icon color="inherit" />,
+    icon: <Users2 />,
   },
   {
     id: "IM",
     name: "Interpreting Arts and Media",
-    icon: <MenuBookIcon color="inherit" />,
+    icon: <Film />,
   },
   {
     id: "MF",
     name: "Mathematical and Formal Reasoning",
-    icon: <CalculateIcon color="inherit" />,
+    icon: <Sigma />,
   },
   {
     id: "SI",
     name: "Scientific Inquiry",
-    icon: <ScienceIcon color="inherit" />,
+    icon: <FlaskConical />,
   },
   {
     id: "SR",
     name: "Statistical Reasoning",
-    icon: <BarChartIcon color="inherit" />,
+    icon: <BarChart2 />,
   },
   {
     id: "TA",
     name: "Textual Analysis",
-    icon: <AutoStoriesIcon color="inherit" />,
+    icon: <FileText />,
   },
   {
     id: "PE-E",
     name: "Perspectives: Environmental Awareness",
-    icon: <ParkIcon color="inherit" />,
+    icon: <Leaf />,
   },
   {
     id: "PE-H",
     name: "Perspectives: Human Behavior",
-    icon: <PsychologyIcon color="inherit" />,
+    icon: <Brain />,
   },
   {
     id: "PE-T",
     name: "Perspectives: Technology and Society",
-    icon: <PrecisionManufacturingIcon color="inherit" />,
+    icon: <Cpu />,
   },
   {
     id: "PR-E",
     name: "Practice: Collaborative Endeavor",
-    icon: <HandshakeIcon color="inherit" />,
+    icon: <Handshake />,
   },
   {
     id: "PR-C",
     name: "Practice: Creative Process",
-    icon: <PaletteIcon color="inherit" />,
+    icon: <Paintbrush2 />,
   },
   {
     id: "PR-S",
     name: "Practice: Service Learning",
-    icon: <VolunteerActivismIcon color="inherit" />,
+    icon: <HeartHandshake />,
   },
 ];
 
+export const categoryIconMap = categories.reduce((acc, curr) => {
+  acc[curr.id] = curr.icon;
+  return acc;
+}, {} as Record<string, React.ReactNode>);
 export const StyledExpandIcon = styled(KeyboardArrowDownIcon, {
   shouldForwardProp: (prop) => prop !== "expanded",
 })<{ expanded: boolean }>(({ theme, expanded }) => ({
@@ -548,7 +563,6 @@ export const BaseChip = styled(Chip)(({ theme }) => ({
   height: "28px",
   fontWeight: "bold",
   "&.MuiChip-clickable": {
-    boxShadow: "0 2px 8px rgba(0, 0, 0, 0.1)",
     "&:hover": {
       transform: "translateY(-2px)",
       filter: "brightness(110%)",
@@ -602,23 +616,12 @@ export const DifficultyChip = styled(BaseChip)<DifficultyChipProps>(
 );
 
 export const CourseCodeChip = styled(BaseChip)(({ theme }) => ({
-  background: `linear-gradient(135deg,
-    ${theme.palette.primary.dark} 0%,
-    ${theme.palette.primary.light} 100%)`,
-  color: "white",
+  border: "1px solid",
+
+  background: "transparent",
   fontSize: "0.875rem",
   letterSpacing: "0.03em",
   height: "32px",
-  "& .MuiChip-label": {
-    padding: "0 12px",
-    textTransform: "uppercase",
-    lineHeight: 1.2,
-  },
-  "&.MuiChip-clickable:hover": {
-    background: `linear-gradient(135deg,
-      ${theme.palette.primary.light} 0%,
-      ${theme.palette.primary.main} 100%)`,
-  },
 }));
 
 export const GECategoryChip = styled(BaseChip)(({ theme }) => ({
@@ -667,10 +670,20 @@ export const GradeChip = styled(BaseChip)<GradeChipProps>(
       ${theme.palette.error.main} 50%,
       ${theme.palette.error.dark} 100%)`;
     };
+    const getText = (gpa: number) => {
+      if (gpa >= 3.7) return theme.palette.success.dark;
+      if (gpa >= 3.3) return theme.palette.success.light;
+
+      if (gpa >= 3.0) return theme.palette.warning.dark;
+
+      if (gpa >= 2.7) return theme.palette.warning.light;
+
+      return theme.palette.error.dark;
+    };
     return {
-      background: interactive ? getGradient(grade) : theme.palette.common.white,
-      color: interactive ? theme.palette.common.white : "transparent",
-      backgroundImage: !interactive ? getGradient(grade) : undefined,
+      height: "28px",
+      background: interactive ? getGradient(grade) : "transparent",
+      color: interactive ? theme.palette.common.white : getText(grade),
       backgroundClip: !interactive ? "text" : undefined,
       WebkitBackgroundClip: !interactive ? "text" : undefined,
       WebkitTextFillColor: !interactive ? "transparent" : undefined,
@@ -735,4 +748,120 @@ export const calculateCourseScoreOutOf10 = (
     gpaWeight
   );
   return normalizedScore * 10;
+};
+
+export function sortCourses(courses: Course[], sortBy: string): Course[] {
+  return [...courses].sort((a, b) => {
+    switch (sortBy) {
+      case "DEFAULT":
+        const scoreA = calculateCourseScoreOutOf10(
+          a.gpa,
+          a.instructor_ratings?.avg_rating,
+          0.85
+        );
+        const scoreB = calculateCourseScoreOutOf10(
+          b.gpa,
+          b.instructor_ratings?.avg_rating,
+          0.85
+        );
+        return scoreB - scoreA;
+
+      case "GPA":
+        return (b.gpa ?? -Infinity) - (a.gpa ?? -Infinity);
+
+      case "INSTRUCTOR":
+        return (
+          (b.instructor_ratings?.avg_rating ?? -Infinity) -
+          (a.instructor_ratings?.avg_rating ?? -Infinity)
+        );
+
+      case "ALPHANUMERIC":
+        return `${a.subject} ${a.catalog_num}`.localeCompare(
+          `${b.subject} ${b.catalog_num}`,
+          "en",
+          { numeric: true }
+        );
+
+      default:
+        return 0;
+    }
+  });
+}
+
+export function filterBySort(
+  sortBy: string,
+  filters: FilterOptions,
+  courses: Course[],
+  currentGE?: string
+): Course[] {
+  const { subjects, classTypes, enrollmentStatuses, GEs, careers, prereqs } =
+    filters;
+  return sortCourses(
+    courses.filter((course) => {
+      const matchSubject =
+        !subjects.length || subjects.includes(course.subject);
+      const matchType =
+        !classTypes.length || classTypes.includes(course.class_type);
+      const matchStatus =
+        !enrollmentStatuses.length ||
+        enrollmentStatuses.includes(course.class_status);
+      const matchGEs = currentGE
+        ? course.ge === currentGE
+        : !GEs.length || GEs.includes(course.ge);
+      const matchCareers = !careers.length || careers.includes(course.career);
+      const matchPrereqs =
+        !prereqs.length ||
+        prereqs.some((p) =>
+          p === "Has Prerequisites"
+            ? course.has_enrollment_reqs
+            : !course.has_enrollment_reqs
+        );
+      return (
+        matchSubject &&
+        matchType &&
+        matchStatus &&
+        matchGEs &&
+        matchCareers &&
+        matchPrereqs
+      );
+    }),
+    sortBy
+  );
+}
+
+export function filterByText(courses: Course[], text: string): Course[] {
+  if (!text) return courses;
+  const lower = text.toLowerCase();
+  return courses.filter((course) => {
+    const code = `${course.subject} ${course.catalog_num}`.toLowerCase();
+    return (
+      course.name.toLowerCase().includes(lower) ||
+      code.includes(lower) ||
+      course.instructor.toLowerCase().includes(lower)
+    );
+  });
+}
+
+const getTimeAgo = (input?: string | Date): string => {
+  if (!input) return "Invalid date";
+
+  const date = typeof input === "string" ? new Date(input) : input;
+  if (isNaN(date.valueOf())) return "Invalid date";
+
+  const now = new Date();
+  const secondsAgo = Math.floor((now.getTime() - date.getTime()) / 1000);
+
+  if (secondsAgo < 60) return `${secondsAgo}s ago`;
+  if (secondsAgo < 3600) return `${Math.floor(secondsAgo / 60)}m ago`;
+  if (secondsAgo < 86400) return `${Math.floor(secondsAgo / 3600)}h ago`;
+  return `${Math.floor(secondsAgo / 86400)}d ago`;
+};
+
+export const getLastUpdatedText = (rawTimestamp?: string): string => {
+  if (!rawTimestamp) return "Updated just now";
+
+  const trimmed = rawTimestamp.trim().replace(" ", "T");
+  const zonedTime = toZonedTime(trimmed, "America/Los_Angeles");
+
+  return `Updated ${getTimeAgo(zonedTime)}`;
 };

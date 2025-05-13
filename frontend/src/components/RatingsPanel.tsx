@@ -1,83 +1,152 @@
 import React, { useState, useMemo } from "react";
-import {
-  Box,
-  Typography,
-  IconButton,
-  Card,
-  CardContent,
-  TextField,
-  Select,
-  MenuItem,
-  Paper,
-  Chip,
-  Stack,
-  FormControl,
-  InputLabel,
-  SelectChangeEvent,
-  Grid,
-  useTheme,
-  useMediaQuery,
-  Fade,
-  CircularProgress,
-  styled,
-  InputAdornment,
-  darken,
-  Collapse,
-  Divider,
-} from "@mui/material";
-import {
-  ThumbUpOutlined,
-  ThumbDownOutlined,
-  School,
-  Search,
-  ArrowForward,
-  LocalOffer,
-  FilterList,
-  ExpandMore,
-  ExpandLess,
-} from "@mui/icons-material";
 import he from "he";
 import { useQuery } from "@tanstack/react-query";
-import { RatingCard } from "./RatingCard";
-import { lighten } from "@mui/material/styles";
-import { Rating, RatingsPanelProps } from "../Constants";
-import LoadingSkeleton from "./LoadingComponents";
 import { format } from "date-fns-tz";
+import {
+  ChevronDown,
+  ChevronUp,
+  School,
+  Tag,
+  ThumbsDown,
+  ThumbsUp,
+  ArrowRight,
+  SlidersHorizontal,
+  Loader2,
+} from "lucide-react";
+import { Rating } from "../Constants";
 
-const BORDER_RADIUS = "8px";
+import { Card, CardContent } from "@/components/ui/card";
 
-const ContentContainer = styled(Box)({
-  display: "flex",
-  flexDirection: "column",
-  height: "100%",
-  overflow: "hidden",
-});
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
-const StatCard = styled(Card)(({ theme }) => ({
-  borderRadius: BORDER_RADIUS,
-  height: "100%",
-  boxShadow: "none",
-}));
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
 
-type SortOptions = "date" | "rating" | "difficulty_rating" | "likes";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Separator } from "@/components/ui/separator";
+import { Progress } from "@/components/ui/progress";
+import { Avatar } from "@/components/ui/avatar";
 
-export const RatingsPanel: React.FC<RatingsPanelProps> = ({
+const RatingCard = ({ overallRating, difficultyRating }) => {
+  const getRatingColor = (score, type = "rating") => {
+    if (type === "difficulty") {
+      if (score <= 3) return "text-emerald-500";
+      if (score <= 4) return "text-amber-500";
+      return "text-rose-500";
+    }
+    if (score >= 4) return "text-emerald-500";
+    if (score >= 3) return "text-amber-500";
+    return "text-rose-500";
+  };
+
+  const getRatingBg = (score, type = "rating") => {
+    if (type === "difficulty") {
+      if (score <= 3) return "bg-emerald-50";
+      if (score <= 4) return "bg-amber-50";
+      return "bg-rose-50";
+    }
+    if (score >= 4) return "bg-emerald-50";
+    if (score >= 3) return "bg-amber-50";
+    return "bg-rose-50";
+  };
+
+  return (
+    <div className="flex w-full gap-3 my-2">
+      <div
+        className={`flex-1 p-3 rounded-lg ${getRatingBg(
+          overallRating,
+          "rating"
+        )}`}
+      >
+        <div
+          className={`text-3xl font-bold ${getRatingColor(
+            overallRating,
+            "rating"
+          )}`}
+        >
+          {overallRating.toFixed(1)}
+        </div>
+        <div className="text-xs text-slate-500 font-medium">Rating</div>
+      </div>
+
+      <div
+        className={`flex-1 p-3 rounded-lg ${getRatingBg(
+          difficultyRating,
+          "difficulty"
+        )}`}
+      >
+        <div
+          className={`text-3xl font-bold ${getRatingColor(
+            difficultyRating,
+            "difficulty"
+          )}`}
+        >
+          {difficultyRating.toFixed(1)}
+        </div>
+        <div className="text-xs text-slate-500 font-medium">Difficulty</div>
+      </div>
+    </div>
+  );
+};
+
+const LoadingSkeleton = ({ courseCodes, filterBy }) => {
+  return (
+    <div className="space-y-4">
+      {[1, 2, 3].map((i) => (
+        <div
+          key={i}
+          className="p-4 border rounded-xl bg-slate-50 animate-pulse"
+        >
+          <div className="flex gap-3 mb-4">
+            <div className="flex-1 p-3 h-16 rounded-lg bg-slate-200"></div>
+            <div className="flex-1 p-3 h-16 rounded-lg bg-slate-200"></div>
+          </div>
+          <div className="h-4 bg-slate-200 rounded w-3/4 mb-3"></div>
+          <div className="h-4 bg-slate-200 rounded w-full mb-3"></div>
+          <div className="h-4 bg-slate-200 rounded w-5/6 mb-4"></div>
+          <div className="flex gap-2 mb-4">
+            <div className="h-6 bg-slate-200 rounded w-24"></div>
+            <div className="h-6 bg-slate-200 rounded w-24"></div>
+          </div>
+          <div className="h-px bg-slate-200 w-full mb-3"></div>
+          <div className="flex justify-between">
+            <div className="h-4 bg-slate-200 rounded w-20"></div>
+            <div className="flex gap-2">
+              <div className="h-4 bg-slate-200 rounded w-12"></div>
+              <div className="h-4 bg-slate-200 rounded w-12"></div>
+            </div>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+};
+
+const RatingsPanel = ({
   professorName,
   currentClass,
   courseCodes,
   onClose,
 }) => {
-  const theme = useTheme();
-
-  const [sortBy, setSortBy] = useState<SortOptions>("date");
-  const [filterBy, setFilterBy] = useState<string>(currentClass);
+  const [sortBy, setSortBy] = useState("date");
+  const [filterBy, setFilterBy] = useState(currentClass);
   const [filtersExpanded, setFiltersExpanded] = useState(true);
-  //chagne filterby when class changes
 
   React.useMemo(() => {
     setFilterBy(currentClass);
   }, [currentClass]);
-  const { data: ratings = [], isLoading } = useQuery<Rating[]>({
+
+  const { data: ratings = [], isLoading } = useQuery({
     queryKey: ["reviews", professorName, filterBy],
     queryFn: async () => {
       const response = await fetch(
@@ -157,16 +226,14 @@ export const RatingsPanel: React.FC<RatingsPanelProps> = ({
       }) ?? []
     );
   }, [ratings, sortBy]);
-  const formatDate = (dateString: string): string => {
+
+  const formatDate = (dateString) => {
     try {
       const dateWithoutTZ = dateString.replace(/ \+\d{4} UTC$/, "");
-
       const date = new Date(dateWithoutTZ);
-
       if (isNaN(date.getTime())) {
         throw new Error("Invalid date");
       }
-
       return format(date, "MM/dd/yy");
     } catch (error) {
       console.error(
@@ -179,482 +246,294 @@ export const RatingsPanel: React.FC<RatingsPanelProps> = ({
     }
   };
 
+  const getRatingColor = (score, type = "rating") => {
+    if (type === "difficulty") {
+      if (score <= 3) return "text-emerald-500";
+      if (score <= 4) return "text-amber-500";
+      return "text-rose-500";
+    }
+    if (score >= 4) return "text-emerald-500";
+    if (score >= 3) return "text-amber-500";
+    return "text-rose-500";
+  };
+
+  const getRatingBg = (score, type = "rating") => {
+    if (type === "difficulty") {
+      if (score <= 3) return "bg-emerald-50";
+      if (score <= 4) return "bg-amber-50";
+      return "bg-rose-50";
+    }
+    if (score >= 4) return "bg-emerald-50";
+    if (score >= 3) return "bg-amber-50";
+    return "bg-rose-50";
+  };
+
   return (
-    <ContentContainer>
-      <Box
-        sx={{
-          p: 2,
-          borderLeft: 1,
-
-          borderBottom: 1,
-          borderColor: "divider",
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-        }}
-      >
-        <Box>
-          <Typography variant="h6" component="div" fontWeight="bold">
+    <div className="flex flex-col h-full overflow-hidden bg-white">
+      <div className="flex justify-between items-center border-b p-4">
+        <div>
+          <h2 className="text-lg font-bold text-slate-900">
             {professorName}'s Ratings
-          </Typography>
-          <Box>
-            {isLoading ? (
-              <Stack direction="row" spacing={0.5} alignItems="center">
-                <CircularProgress size={12} />
-                <Typography
-                  variant="body2"
-                  component="div"
-                  color="text.secondary"
-                >
-                  Loading reviews...
-                </Typography>
-              </Stack>
-            ) : (
-              <Typography
-                variant="body2"
-                component="div"
-                color="text.secondary"
-              >
-                {ratings?.length ?? 0} reviews
-              </Typography>
-            )}
-          </Box>
-        </Box>
+          </h2>
+          <div>
+            <div className="flex items-center gap-1.5 text-sm text-slate-500">
+              {isLoading ? (
+                <>
+                  <Loader2 className="w-3 h-3 animate-spin" />
+                  <span>Loading reviews...</span>
+                </>
+              ) : (
+                <span className="text-sm text-slate-500">
+                  {ratings?.length ?? 0} reviews
+                </span>
+              )}
+            </div>
+          </div>
+        </div>
         {onClose && (
-          <IconButton
+          <Button
+            variant="ghost"
+            size="icon"
             onClick={onClose}
-            size="small"
-            sx={{ borderRadius: "8px" }}
+            className="rounded-lg"
           >
-            <ArrowForward />
-          </IconButton>
+            <ArrowRight className="w-5 h-5" />
+          </Button>
         )}
-      </Box>
+      </div>
 
-      <Box sx={{ flexGrow: 1, overflow: "auto", p: 2 }}>
-        <>
-          <Grid container spacing={1.5} sx={{ mb: 2 }}>
-            <Grid item xs={4} sm={4}>
-              <StatCard
-                sx={{
-                  background: lighten(
-                    getRatingColor(stats.overall, "rating"),
-                    0.9
-                  ),
-                }}
+      <div className="flex-grow overflow-auto p-4">
+        <div className="grid grid-cols-3 gap-3 mb-6">
+          <Card className={`border-0 ${getRatingBg(stats.overall, "rating")}`}>
+            <CardContent className="p-4">
+              <div
+                className={`text-2xl font-bold ${getRatingColor(
+                  stats.overall,
+                  "rating"
+                )}`}
               >
-                <CardContent>
-                  <Typography
-                    variant="h6"
-                    component="div"
-                    color={getRatingColor(stats.overall, "rating")}
-                    fontWeight="bold"
-                  >
-                    {stats.overall}
-                  </Typography>
-                  <Typography
-                    variant="caption"
-                    component="div"
-                    color="text.secondary"
-                  >
-                    Avg. Rating
-                  </Typography>
-                </CardContent>
-              </StatCard>
-            </Grid>
-            <Grid item xs={4} sm={4}>
-              <StatCard
-                sx={{
-                  background: lighten(
-                    getRatingColor(stats.difficulty, "difficulty"),
-                    0.9
-                  ),
-                }}
-              >
-                {" "}
-                <CardContent>
-                  <Typography
-                    variant="h6"
-                    component="div"
-                    color={getRatingColor(stats.difficulty, "difficulty")}
-                    fontWeight="bold"
-                  >
-                    {stats.difficulty}
-                  </Typography>
-                  <Typography
-                    variant="caption"
-                    component="div"
-                    color="text.secondary"
-                  >
-                    Avg. Difficulty
-                  </Typography>
-                </CardContent>
-              </StatCard>
-            </Grid>
-            <Grid item xs={4} sm={4}>
-              <StatCard
-                sx={{
-                  background: lighten(
-                    getRatingColor(stats.wouldTakeAgain / 20, "rating"),
-                    0.9
-                  ),
-                }}
-              >
-                {" "}
-                <CardContent>
-                  <Typography
-                    variant="h6"
-                    component="div"
-                    color={getRatingColor(stats.wouldTakeAgain / 20, "rating")}
-                    fontWeight="bold"
-                  >
-                    {stats.wouldTakeAgain}%
-                  </Typography>
-                  <Typography
-                    variant="caption"
-                    component="div"
-                    color="text.secondary"
-                  >
-                    Would Take Again
-                  </Typography>
-                </CardContent>
-              </StatCard>
-            </Grid>
-          </Grid>
+                {stats.overall}
+              </div>
+              <div className="text-xs text-slate-500 mt-1">Avg. Rating</div>
+            </CardContent>
+          </Card>
 
-          <Paper
-            elevation={0}
-            sx={{
-              borderRadius: BORDER_RADIUS,
-              mb: 2,
-              overflow: "hidden",
-              border: 1,
-              borderColor: "divider",
-            }}
+          <Card
+            className={`border-0 ${getRatingBg(
+              stats.difficulty,
+              "difficulty"
+            )}`}
           >
-            <Box
-              sx={{
-                p: 1.5,
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-                borderBottom: filtersExpanded ? 1 : 0,
-                transition: "border 0.3s",
-                borderColor: "divider",
-              }}
-              onClick={() => setFiltersExpanded(!filtersExpanded)}
-              style={{ cursor: "pointer" }}
-            >
-              <Box sx={{ display: "flex", alignItems: "center" }}>
-                <FilterList sx={{ mr: 1, color: "text.secondary" }} />
-                <Typography variant="body2" fontWeight="medium">
-                  Filters
-                </Typography>
-              </Box>
-              <IconButton size="small">
-                {filtersExpanded ? <ExpandLess /> : <ExpandMore />}
-              </IconButton>
-            </Box>
-
-            <Collapse in={filtersExpanded}>
-              <Box sx={{ p: 2 }}>
-                <Grid container spacing={2}>
-                  <Grid item xs={12} sm={6}>
-                    <Typography
-                      variant="body2"
-                      color="text.secondary"
-                      gutterBottom
-                    >
-                      Sort by
-                    </Typography>
-                    <FormControl fullWidth size="small">
-                      <Select
-                        value={sortBy}
-                        onChange={(e) =>
-                          setSortBy(e.target.value as SortOptions)
-                        }
-                        sx={{ borderRadius: "8px" }}
-                      >
-                        <MenuItem value="date">Recent</MenuItem>
-                        <MenuItem value="rating">Highest Rating</MenuItem>
-                        <MenuItem value="difficulty_rating">
-                          Highest Difficulty
-                        </MenuItem>
-                        <MenuItem value="likes">Most Likes</MenuItem>
-                      </Select>
-                    </FormControl>
-                  </Grid>
-                  <Grid item xs={12} sm={6}>
-                    <Typography
-                      variant="body2"
-                      color="text.secondary"
-                      gutterBottom
-                    >
-                      Course
-                    </Typography>
-                    <FormControl fullWidth size="small">
-                      <Select
-                        value={filterBy}
-                        onChange={(e) => setFilterBy(e.target.value)}
-                        sx={{ borderRadius: "8px" }}
-                      >
-                        <MenuItem value="all">All Courses</MenuItem>
-                        {courseCodes?.map((course) => (
-                          <MenuItem
-                            key={course.courseName}
-                            value={course.courseName}
-                          >
-                            {course.courseName} ({course.courseCount})
-                          </MenuItem>
-                        ))}
-                      </Select>
-                    </FormControl>
-                  </Grid>
-                </Grid>
-              </Box>
-            </Collapse>
-          </Paper>
-
-          <Stack spacing={1.5}>
-            {isLoading ? (
-              <LoadingSkeleton courseCodes={courseCodes} filterBy={filterBy} />
-            ) : (
-              processedRatings.map((rating, index) => {
-                const formattedDate = formatDate(rating.date);
-                return (
-                  <>
-                    <Fade in={true} key={index} timeout={300}>
-                      <Paper
-                        elevation={0}
-                        sx={{
-                          p: 2,
-                          borderRadius: BORDER_RADIUS,
-                          border: `1px solid ${theme.palette.divider}`,
-
-                          mb: 1.5,
-                        }}
-                      >
-                        <Grid container spacing={1.5}>
-                          <Grid item xs={12}>
-                            <Box
-                              sx={{
-                                display: "flex",
-                                justifyContent: "center",
-                                width: "100%",
-                              }}
-                            >
-                              <RatingCard
-                                overallRating={rating.overall_rating ?? 0}
-                                difficultyRating={rating.difficulty_rating ?? 0}
-                                getRatingColor={getRatingColor}
-                              />
-                            </Box>
-                          </Grid>
-                          <Grid item xs={12}>
-                            <Box component="div">
-                              <Typography variant="body2" component="div">
-                                {he.decode(rating.comment ?? "")}
-                              </Typography>
-                            </Box>
-                          </Grid>
-                          <Grid item xs={12}>
-                            <Box
-                              sx={{
-                                display: "flex",
-                                flexWrap: "wrap",
-                                gap: 0.75,
-                                mb: 1.5,
-                              }}
-                            >
-                              {rating.is_online && (
-                                <Chip
-                                  label="Online"
-                                  color="primary"
-                                  variant="outlined"
-                                  size="small"
-                                />
-                              )}
-                              {rating.attendance_mandatory === "mandatory" && (
-                                <Chip
-                                  label="Attendance Required"
-                                  color="secondary"
-                                  variant="outlined"
-                                  size="small"
-                                />
-                              )}
-                              {rating.would_take_again && (
-                                <Chip
-                                  label="Would Take Again"
-                                  color="success"
-                                  variant="outlined"
-                                  size="small"
-                                />
-                              )}
-                            </Box>
-                            {rating.tags && (
-                              <Box
-                                sx={{
-                                  display: "flex",
-                                  flexWrap: "wrap",
-                                  gap: 0.75,
-                                }}
-                              >
-                                {rating.tags
-                                  .split("--")
-                                  .map((tag, tagIndex) => (
-                                    <Chip
-                                      key={tagIndex}
-                                      label={tag}
-                                      size="small"
-                                      icon={<LocalOffer />}
-                                      variant="filled"
-                                      sx={{
-                                        backgroundColor: `${theme.palette.primary.main}15`,
-                                        color: "primary.main",
-                                        "& .MuiChip-icon": {
-                                          color: "primary.main",
-                                        },
-                                      }}
-                                    />
-                                  ))}
-                              </Box>
-                            )}
-                          </Grid>
-                          <Grid item xs={12}>
-                            <Box
-                              sx={{
-                                display: "flex",
-                                justifyContent: "space-between",
-                                alignItems: "center",
-                                pt: 1.5,
-                                borderTop: 1,
-                                borderColor: "divider",
-                              }}
-                            >
-                              <Stack
-                                direction="row"
-                                spacing={1.5}
-                                alignItems="center"
-                              >
-                                <Typography
-                                  variant="caption"
-                                  component="div"
-                                  color="text.secondary"
-                                >
-                                  {formattedDate}
-                                </Typography>
-                                {filterBy === "all" && (
-                                  <Stack
-                                    direction="row"
-                                    spacing={0.5}
-                                    alignItems="center"
-                                  >
-                                    <School
-                                      sx={{
-                                        fontSize: "0.875rem",
-                                        color: "text.secondary",
-                                      }}
-                                    />
-                                    <Typography
-                                      variant="caption"
-                                      component="div"
-                                      color="text.secondary"
-                                    >
-                                      {rating.class_name}
-                                    </Typography>
-                                  </Stack>
-                                )}
-                              </Stack>
-                              <Stack direction="row" spacing={1.5}>
-                                <Stack
-                                  direction="row"
-                                  spacing={0.5}
-                                  alignItems="center"
-                                >
-                                  <ThumbUpOutlined
-                                    color="success"
-                                    sx={{ fontSize: "1rem" }}
-                                  />
-                                  <Typography
-                                    variant="caption"
-                                    component="div"
-                                    color="text.secondary"
-                                  >
-                                    {rating.thumbs_up ?? 0}
-                                  </Typography>
-                                </Stack>
-                                <Stack
-                                  direction="row"
-                                  spacing={0.5}
-                                  alignItems="center"
-                                >
-                                  <ThumbDownOutlined
-                                    color="error"
-                                    sx={{ fontSize: "1rem" }}
-                                  />
-                                  <Typography
-                                    variant="caption"
-                                    component="div"
-                                    color="text.secondary"
-                                  >
-                                    {rating.thumbs_down ?? 0}
-                                  </Typography>
-                                </Stack>
-                              </Stack>
-                            </Box>
-                          </Grid>
-                        </Grid>
-                      </Paper>
-                    </Fade>
-                  </>
-                );
-              })
-            )}
-            {!isLoading && processedRatings.length === 0 && (
-              <Paper
-                sx={{
-                  p: 3,
-                  textAlign: "center",
-                  borderRadius: BORDER_RADIUS,
-                }}
-                elevation={1}
+            <CardContent className="p-4">
+              <div
+                className={`text-2xl font-bold ${getRatingColor(
+                  stats.difficulty,
+                  "difficulty"
+                )}`}
               >
-                <Typography
-                  variant="subtitle1"
-                  component="div"
-                  color="text.secondary"
-                  gutterBottom
+                {stats.difficulty}
+              </div>
+              <div className="text-xs text-slate-500 mt-1">Avg. Difficulty</div>
+            </CardContent>
+          </Card>
+
+          <Card
+            className={`border-0 ${getRatingBg(
+              stats.wouldTakeAgain / 20,
+              "rating"
+            )}`}
+          >
+            <CardContent className="p-4">
+              <div
+                className={`text-2xl font-bold ${getRatingColor(
+                  stats.wouldTakeAgain / 20,
+                  "rating"
+                )}`}
+              >
+                {stats.wouldTakeAgain}%
+              </div>
+              <div className="text-xs text-slate-500 mt-1">
+                Would Take Again
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        <Collapsible
+          open={filtersExpanded}
+          onOpenChange={setFiltersExpanded}
+          className="mb-6 border rounded-xl overflow-hidden"
+        >
+          <CollapsibleTrigger asChild>
+            <div className="flex justify-between items-center p-3 cursor-pointer hover:bg-slate-50">
+              <div className="flex items-center gap-2">
+                <SlidersHorizontal className="w-4 h-4 text-slate-500" />
+                <span className="font-medium text-sm">Filters</span>
+              </div>
+              <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                {filtersExpanded ? (
+                  <ChevronUp className="h-4 w-4" />
+                ) : (
+                  <ChevronDown className="h-4 w-4" />
+                )}
+              </Button>
+            </div>
+          </CollapsibleTrigger>
+
+          <CollapsibleContent>
+            <Separator />
+            <div className="p-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <label className="text-sm text-slate-500">Sort by</label>
+                <Select value={sortBy} onValueChange={setSortBy}>
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Sort by" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="date">Recent</SelectItem>
+                    <SelectItem value="rating">Highest Rating</SelectItem>
+                    <SelectItem value="difficulty_rating">
+                      Highest Difficulty
+                    </SelectItem>
+                    <SelectItem value="likes">Most Likes</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-sm text-slate-500">Course</label>
+                <Select value={filterBy} onValueChange={setFilterBy}>
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Select course" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Courses</SelectItem>
+                    {courseCodes?.map((course) => (
+                      <SelectItem
+                        key={course.courseName}
+                        value={course.courseName}
+                      >
+                        {course.courseName} ({course.courseCount})
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          </CollapsibleContent>
+        </Collapsible>
+
+        <div className="space-y-4">
+          {isLoading ? (
+            <LoadingSkeleton courseCodes={courseCodes} filterBy={filterBy} />
+          ) : processedRatings.length > 0 ? (
+            processedRatings.map((rating, index) => {
+              const formattedDate = formatDate(rating.date);
+              return (
+                <div
+                  key={index}
+                  className="border rounded-xl p-4 bg-white hover:shadow-sm transition-shadow duration-200"
                 >
-                  No Reviews Found
-                </Typography>
-                <Typography
-                  variant="body2"
-                  component="div"
-                  color="text.secondary"
-                >
-                  Try adjusting your search criteria
-                </Typography>
-              </Paper>
-            )}
-          </Stack>
-        </>
-      </Box>
-    </ContentContainer>
+                  <RatingCard
+                    overallRating={rating.overall_rating ?? 0}
+                    difficultyRating={rating.difficulty_rating ?? 0}
+                  />
+
+                  <p className="text-sm text-slate-700 my-3">
+                    {he.decode(rating.comment ?? "")}
+                  </p>
+
+                  <div className="flex flex-wrap gap-2 mb-4">
+                    {rating.is_online && (
+                      <Badge
+                        variant="outline"
+                        className="bg-blue-50 text-blue-700 border-blue-200"
+                      >
+                        Online
+                      </Badge>
+                    )}
+                    {rating.attendance_mandatory === "mandatory" && (
+                      <Badge
+                        variant="outline"
+                        className="bg-purple-50 text-purple-700 border-purple-200"
+                      >
+                        Attendance Required
+                      </Badge>
+                    )}
+                    {rating.would_take_again && (
+                      <Badge
+                        variant="outline"
+                        className="bg-emerald-50 text-emerald-700 border-emerald-200"
+                      >
+                        Would Take Again
+                      </Badge>
+                    )}
+                  </div>
+
+                  {rating.tags && (
+                    <div className="flex flex-wrap gap-2 mb-4">
+                      {rating.tags.split("--").map((tag, tagIndex) => (
+                        <Badge
+                          key={tagIndex}
+                          variant="secondary"
+                          className="flex items-center gap-1"
+                        >
+                          <Tag className="w-3 h-3" />
+                          {tag}
+                        </Badge>
+                      ))}
+                    </div>
+                  )}
+
+                  <Separator className="my-3" />
+
+                  <div className="flex justify-between items-center">
+                    <div className="flex items-center gap-3">
+                      <span className="text-xs text-slate-500">
+                        {formattedDate}
+                      </span>
+                      {filterBy === "all" && (
+                        <div className="flex items-center gap-1">
+                          <School className="w-3 h-3 text-slate-500" />
+                          <span className="text-xs text-slate-500">
+                            {rating.class_name}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="flex items-center gap-3">
+                      <div className="flex items-center gap-1">
+                        <ThumbsUp className="w-3 h-3 text-emerald-500" />
+                        <span className="text-xs text-slate-500">
+                          {rating.thumbs_up ?? 0}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <ThumbsDown className="w-3 h-3 text-rose-500" />
+                        <span className="text-xs text-slate-500">
+                          {rating.thumbs_down ?? 0}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              );
+            })
+          ) : (
+            <div className="border rounded-xl p-8 text-center">
+              <div className="mb-2 text-lg font-medium text-slate-700">
+                No Reviews Found
+              </div>
+              <p className="text-slate-500">
+                Try adjusting your search criteria
+              </p>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
   );
 };
 
-const getRatingColor = (
-  score: number,
-  type: "difficulty" | "rating" = "rating"
-): string => {
-  const theme = useTheme();
-  if (type === "difficulty") {
-    if (score <= 3) return theme.palette.success.main;
-    if (score <= 4) return theme.palette.warning.main;
-    return theme.palette.error.main;
-  }
-  if (score >= 4) return theme.palette.success.main;
-  if (score >= 3) return theme.palette.warning.main;
-  return theme.palette.error.main;
-};
 export default RatingsPanel;

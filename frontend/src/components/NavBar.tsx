@@ -42,49 +42,23 @@ const NavBar = () => {
           onMouseLeave={handleMouseLeave}
         >
           <NavLink
-            to={isInDropdownRoute ? location.pathname : "/all"}
+            to={"/class"}
             className={({ isActive }) =>
-              `navbar-link ${isInDropdownRoute ? "navbar-link-active" : ""}`
+              isActive ? "navbar-link navbar-link-active" : "navbar-link"
             }
           >
-            <h2>
-              Class Search
-              <StyledExpandIcon
-                expanded={isHovering}
-                sx={{ fontSize: isMobile ? "0.8rem" : "1.2rem" }}
-              />
-            </h2>
+            <h2>Class Search</h2>
           </NavLink>
-          {isDropdownOpen && (
-            <div className="dropdown-menu">
-              <NavLink
-                to="/all"
-                className={({ isActive }) =>
-                  `dropdown-item ${isActive ? "dropdown-item-active" : ""}`
-                }
-              >
-                <h2>All Courses</h2>
-              </NavLink>
-              <NavLink
-                to="/ge"
-                className={({ isActive }) =>
-                  `dropdown-item ${isActive ? "dropdown-item-active" : ""}`
-                }
-              >
-                <h2>GE Search</h2>
-              </NavLink>
-            </div>
-          )}
         </div>
-         <NavLink
+        <NavLink
           to="/major"
           className={({ isActive }) =>
             isActive ? "navbar-link navbar-link-active" : "navbar-link"
           }
         >
           <h2>Major Search</h2>
-        </NavLink> 
-        </div>
+        </NavLink>
+      </div>
       <div className="navbar-right">
         <NavLink
           to="/about"
