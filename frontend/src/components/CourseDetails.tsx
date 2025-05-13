@@ -344,7 +344,7 @@ export const CourseDetailsPanel: React.FC<CourseDetailsProps> = ({
               </div>
             </div>
 
-            <div className="flex gap-2">
+            {/* <div className="flex gap-2">
               <Button
                 variant="ghost"
                 size="icon"
@@ -373,7 +373,7 @@ export const CourseDetailsPanel: React.FC<CourseDetailsProps> = ({
               >
                 <BookmarkPlus size={16} />
               </Button>
-            </div>
+            </div> */}
           </div>
 
           <div className="flex flex-wrap gap-2 mt-4">
