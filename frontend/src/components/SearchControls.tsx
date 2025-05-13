@@ -15,6 +15,7 @@ import {
   Flower,
   Heart,
   Info,
+  Leaf,
   PanelLeft,
   Trash,
 } from "lucide-react";
@@ -143,7 +144,7 @@ export const SearchControls: React.FC<SearchControlsProps> = ({
                 {lastUpdated}
               </div>
               <div className="flex items-center text-sm text-gray-700">
-                <Flower className="w-4 h-4 mr-1" />
+                <Leaf className="w-4 h-4 mr-1" />
                 Fall 2025
               </div>
             </PopoverContent>
