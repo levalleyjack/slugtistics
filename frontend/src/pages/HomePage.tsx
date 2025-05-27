@@ -41,6 +41,7 @@ interface AddedChart {
   term: string | null;
   data: { grade: string; count: number }[];
   avgGPA: number;
+  color: string;
 }
 
 interface InstructorRatings {
@@ -73,6 +74,8 @@ const GRADE_POINTS: Record<string, number> = {
   "D-": 0.7,
   F: 0.0,
 };
+
+const CLASS_COLORS = ["#B3EBF2", "#FF6961", "#90EE90", "#FFEE8C"];
 
 async function fetchRatings(subject: string): Promise<Rating[]> {
   const res = await fetch(`${route}ratings/${subject}`);
@@ -145,16 +148,17 @@ export function HomePage() {
 
   // 4) build dropdowns
   const termOptions = React.useMemo(() => {
-    const all = classInfo
-      .filter(
-        (c) => !selectedInstructor || c.Instructors === selectedInstructor
-      )
-      .map((c) => c.Term);
-    const uniq = Array.from(new Set(all));
-    return [
+    const relevantClasses = classInfo.filter(
+      (classItem) =>
+        !selectedInstructor || classItem.Instructors === selectedInstructor
+    );
+    const allTerms = relevantClasses.map((classItem) => classItem.Term);
+    const uniqueTerms = Array.from(new Set(allTerms));
+    const options = [
       { label: "All Terms", value: "" },
-      ...uniq.map((t) => ({ label: t, value: t })),
+      ...uniqueTerms.map((term) => ({ label: term, value: term })),
     ];
+    return options;
   }, [classInfo, selectedInstructor]);
 
   const instructorOptions = React.useMemo(() => {
@@ -176,7 +180,6 @@ export function HomePage() {
     staleTime: 1000 * 60 * 5,
   });
 
-  // 5) compute gradeChartData for current selection
   const currentChartData = React.useMemo(() => {
     const buckets: Record<string, number> = {
       "A+": 0,
@@ -196,6 +199,7 @@ export function HomePage() {
       NP: 0,
       W: 0,
     };
+
     classInfo.forEach((row) => {
       const okInst =
         !selectedInstructor || row.Instructors === selectedInstructor;
@@ -206,7 +210,13 @@ export function HomePage() {
         });
       }
     });
-    return Object.entries(buckets).map(([grade, count]) => ({ grade, count }));
+
+    const total = Object.values(buckets).reduce((s, c) => s + c, 0);
+
+    return Object.entries(buckets).map(([grade, count]) => ({
+      grade,
+      count: total ? Math.round((count / total) * 1000) / 10 : 0,
+    }));
   }, [classInfo, selectedInstructor, selectedTerm]);
 
   // 6) auto-add default on first data load
@@ -218,6 +228,7 @@ export function HomePage() {
 
   // — handlers —
   const handleAddClass = () => {
+    if (addedCharts.length >= 4) return;
     if (!selectedClass) return;
     const { data } = { data: currentChartData };
     const numeric = data.filter((d) => GRADE_POINTS[d.grade] != null);
@@ -227,6 +238,7 @@ export function HomePage() {
     );
     const totalCount = numeric.reduce((s, { count }) => s + count, 0);
     const avgGPA = totalCount ? totalPts / totalCount : 0;
+    const color = CLASS_COLORS[addedCharts.length % CLASS_COLORS.length];
 
     const id = `${Date.now()}`;
     setAddedCharts((prev) => [
@@ -238,6 +250,7 @@ export function HomePage() {
         term: selectedTerm,
         data: currentChartData,
         avgGPA,
+        color,
       },
     ]);
   };
@@ -266,11 +279,16 @@ export function HomePage() {
       "NP",
       "W",
     ];
+
     return grades.map((grade) => {
       const entry: any = { grade };
+
       addedCharts.forEach((ch) => {
-        entry[ch.id] = ch.data.find((d) => d.grade === grade)?.count || 0;
+        const total = ch.data.reduce((s, d) => s + d.count, 0);
+        const rawCount = ch.data.find((d) => d.grade === grade)?.count || 0;
+        entry[ch.id] = total ? Math.round((rawCount / total) * 1000) / 10 : 0;
       });
+
       return entry;
     });
   }, [addedCharts]);
@@ -354,7 +372,11 @@ export function HomePage() {
       {/* Summary Cards */}
       <div className="flex flex-wrap gap-1">
         {addedCharts.map((ch) => (
-          <Card key={ch.id} className="w-[300px]">
+          <Card
+            key={ch.id}
+            className="w-[300px] border-t-4"
+            style={{ borderTopColor: ch.color }}
+          >
             <CardHeader className="flex justify-between items-baseline">
               <CardTitle className="text-sm">{ch.label}</CardTitle>
               <Button
@@ -401,7 +423,6 @@ export function HomePage() {
                 >
                   <CartesianGrid vertical={false} />
                   <XAxis
-                    dataKey="grade"
                     axisLine={false}
                     tickLine={false}
                     tick={{ fontSize: 10 }}
@@ -409,7 +430,12 @@ export function HomePage() {
                   <ChartTooltip content={<ChartTooltipContent />} />
                   <Legend wrapperStyle={{ fontSize: 10 }} />
                   {addedCharts.map((ch) => (
-                    <Bar key={ch.id} dataKey={ch.id} name={ch.label} />
+                    <Bar
+                      key={ch.id}
+                      dataKey={ch.id}
+                      name={ch.label}
+                      fill={ch.color}
+                    />
                   ))}
                 </BarChart>
               </ResponsiveContainer>
