@@ -229,6 +229,10 @@ export function HomePage() {
   // — handlers —
   const handleAddClass = () => {
     if (addedCharts.length >= 4) return;
+    // pick the first unused color (avoid overlaps)
+    const usedColors = addedCharts.map((c) => c.color);
+    const color =
+      CLASS_COLORS.find((col) => !usedColors.includes(col)) || CLASS_COLORS[0];
     if (!selectedClass) return;
     const { data } = { data: currentChartData };
     const numeric = data.filter((d) => GRADE_POINTS[d.grade] != null);
@@ -238,7 +242,6 @@ export function HomePage() {
     );
     const totalCount = numeric.reduce((s, { count }) => s + count, 0);
     const avgGPA = totalCount ? totalPts / totalCount : 0;
-    const color = CLASS_COLORS[addedCharts.length % CLASS_COLORS.length];
 
     const id = `${Date.now()}`;
     setAddedCharts((prev) => [
@@ -378,7 +381,7 @@ export function HomePage() {
             style={{ borderTopColor: ch.color }}
           >
             <CardHeader className="flex justify-between items-baseline">
-              <CardTitle className="text-sm">{ch.label}</CardTitle>
+              <CardTitle className="text-3xl font-bold">{ch.label}</CardTitle>
               <Button
                 size="sm"
                 variant="ghost"
@@ -387,25 +390,38 @@ export function HomePage() {
                 Delete
               </Button>
             </CardHeader>
-            <CardContent className="space-y-1">
-              <p className="text-xs">
+            <CardContent className="space-y-2">
+              <p className="text-lg font-medium text-muted-foreground">
                 {ch.instructor ?? "All"} / {ch.term ?? "All"}
               </p>
-              <p className="text-sm font-medium">
-                Avg GPA: {ch.avgGPA.toFixed(2)}
-              </p>
-              {ch.instructor &&
-                instrRatings &&
-                ch.instructor === selectedInstructor && (
-                  <div className="space-y-0.5 mt-1 text-xs">
-                    <p>Overall Rating: {instrRatings.avg_rating.toFixed(1)}</p>
-                    <p>
-                      Difficulty: {instrRatings.difficulty_level.toFixed(1)}
-                    </p>
-                    <p>Take Again: {instrRatings.would_take_again_percent}%</p>
-                    <p>Num Ratings: {instrRatings.num_ratings}</p>
-                  </div>
-                )}
+
+              <div className="grid grid-cols-2 gap-2 text-sm">
+                <div className="bg-muted p-2 rounded">
+                  <p className="font-semibold">Avg GPA</p>
+                  <p>{ch.avgGPA.toFixed(2)}</p>
+                </div>
+
+                {ch.instructor &&
+                  instrRatings &&
+                  ch.instructor === selectedInstructor && (
+                    <>
+                      <div className="bg-muted p-2 rounded">
+                        <p className="font-semibold">Overall Rating</p>
+                        <p>{instrRatings.avg_rating.toFixed(1)}</p>
+                      </div>
+                      <div className="bg-muted p-2 rounded">
+                        <p className="font-semibold">Difficulty</p>
+                        <p>{instrRatings.difficulty_level.toFixed(1)}</p>
+                      </div>
+                      <div className="bg-muted p-2 rounded">
+                        <p className="font-semibold">Take Again</p>
+                        <p>
+                          {instrRatings.would_take_again_percent.toFixed(1)}%
+                        </p>
+                      </div>
+                    </>
+                  )}
+              </div>
             </CardContent>
           </Card>
         ))}
@@ -423,9 +439,10 @@ export function HomePage() {
                 >
                   <CartesianGrid vertical={false} />
                   <XAxis
+                    dataKey="grade"
                     axisLine={false}
                     tickLine={false}
-                    tick={{ fontSize: 10 }}
+                    tick={{ fontSize: 15 }}
                   />
                   <ChartTooltip content={<ChartTooltipContent />} />
                   <Legend wrapperStyle={{ fontSize: 10 }} />

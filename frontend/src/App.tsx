@@ -69,7 +69,6 @@ const AppContent = () => {
   //const showChatbot = location.pathname === '/ge' || location.pathname === '/all';
 
   return (
-    
     <div className="App">
       <NavBar />
       {/*showChatbot && <Chatbot />*/}
