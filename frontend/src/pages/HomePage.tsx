@@ -372,94 +372,152 @@ export function HomePage() {
         </CardContent>
       </Card>
 
-      {/* Summary Cards */}
-      <div className="flex flex-wrap gap-1">
-        {addedCharts.map((ch) => (
-          <Card
-            key={ch.id}
-            className="w-[300px] border-t-4"
-            style={{ borderTopColor: ch.color }}
-          >
-            <CardHeader className="flex justify-between items-baseline">
-              <CardTitle className="text-3xl font-bold">{ch.label}</CardTitle>
-              <Button
-                size="sm"
-                variant="ghost"
-                onClick={() => handleRemove(ch.id)}
-              >
-                Delete
-              </Button>
-            </CardHeader>
-            <CardContent className="space-y-2">
-              <p className="text-lg font-medium text-muted-foreground">
-                {ch.instructor ?? "All"} / {ch.term ?? "All"}
-              </p>
-
-              <div className="grid grid-cols-2 gap-2 text-sm">
-                <div className="bg-muted p-2 rounded">
-                  <p className="font-semibold">Avg GPA</p>
-                  <p>{ch.avgGPA.toFixed(2)}</p>
-                </div>
-
-                {ch.instructor &&
-                  instrRatings &&
-                  ch.instructor === selectedInstructor && (
-                    <>
-                      <div className="bg-muted p-2 rounded">
-                        <p className="font-semibold">Overall Rating</p>
-                        <p>{instrRatings.avg_rating.toFixed(1)}</p>
-                      </div>
-                      <div className="bg-muted p-2 rounded">
-                        <p className="font-semibold">Difficulty</p>
-                        <p>{instrRatings.difficulty_level.toFixed(1)}</p>
-                      </div>
-                      <div className="bg-muted p-2 rounded">
-                        <p className="font-semibold">Take Again</p>
-                        <p>
-                          {instrRatings.would_take_again_percent.toFixed(1)}%
-                        </p>
-                      </div>
-                    </>
-                  )}
+      {/* Combined Bar Chart */}
+      <div className="flex flex-col lg:flex-row gap-4">
+        <div className="flex-1 lg:w-7/10">
+          <Card className="h-full">
+            <CardContent className="px-2 py-1">
+              <div className="h-[400px] w-full">
+                <ChartContainer config={chartConfig} className="h-full w-full">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart
+                      data={combinedData}
+                      margin={{ top: 5, bottom: 5, left: 12, right: 12 }}
+                    >
+                      <CartesianGrid vertical={false} />
+                      <XAxis
+                        dataKey="grade"
+                        axisLine={false}
+                        tickLine={false}
+                        tick={{ fontSize: 15 }}
+                      />
+                      <ChartTooltip content={<ChartTooltipContent />} />
+                      <Legend wrapperStyle={{ fontSize: 10 }} />
+                      {addedCharts.map((ch) => (
+                        <Bar
+                          key={ch.id}
+                          dataKey={ch.id}
+                          name={ch.label}
+                          fill={ch.color}
+                        />
+                      ))}
+                    </BarChart>
+                  </ResponsiveContainer>
+                </ChartContainer>
               </div>
             </CardContent>
           </Card>
-        ))}
-      </div>
+        </div>
+        {/* Summary Cards */}
+        <div className="flex flex-wrap gap-4 w-[30%]">
+          {addedCharts.map((ch) => {
+            // helper to get a hue between red (0) and green (120) based on [0…max]
+            const getHue = (value: number, max: number) =>
+              Math.round((value / max) * 120);
+            return (
+              <Card
+                key={ch.id}
+                className="w-full border-t-4"
+                style={{ borderTopColor: ch.color }}
+              >
+                <CardHeader className="flex justify-between items-baseline">
+                  <CardTitle className="text-3xl font-bold">
+                    {ch.label}
+                  </CardTitle>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => handleRemove(ch.id)}
+                  >
+                    Delete
+                  </Button>
+                </CardHeader>
+                <CardContent className="space-y-2 flex-1">
+                  <p className="text-lg font-medium text-muted-foreground">
+                    {ch.instructor ?? "All"} / {ch.term ?? "All"}
+                  </p>
 
-      {/* Combined Bar Chart */}
-      <Card className="p-2">
-        <CardContent className="px-2 py-1">
-          <div className="h-[400px] w-full">
-            <ChartContainer config={chartConfig} className="h-full w-full">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart
-                  data={combinedData}
-                  margin={{ top: 5, bottom: 5, left: 12, right: 12 }}
-                >
-                  <CartesianGrid vertical={false} />
-                  <XAxis
-                    dataKey="grade"
-                    axisLine={false}
-                    tickLine={false}
-                    tick={{ fontSize: 15 }}
-                  />
-                  <ChartTooltip content={<ChartTooltipContent />} />
-                  <Legend wrapperStyle={{ fontSize: 10 }} />
-                  {addedCharts.map((ch) => (
-                    <Bar
-                      key={ch.id}
-                      dataKey={ch.id}
-                      name={ch.label}
-                      fill={ch.color}
-                    />
-                  ))}
-                </BarChart>
-              </ResponsiveContainer>
-            </ChartContainer>
-          </div>
-        </CardContent>
-      </Card>
+                  {/* stat boxes flow across, wrap as needed */}
+                  <div className="flex flex-wrap gap-2 mt-2">
+                    {/* Avg GPA (0–4) */}
+                    <div
+                      className="flex-1 min-w-[100px] p-2 rounded border-l-4"
+                      style={{
+                        borderLeftColor: `hsl(${getHue(
+                          ch.avgGPA,
+                          4
+                        )}, 90%, 50%)`,
+                      }}
+                    >
+                      <p className="font-semibold text-sm">Avg GPA</p>
+                      <p className="text-lg">{ch.avgGPA.toFixed(2)}</p>
+                    </div>
+
+                    {ch.instructor &&
+                      instrRatings &&
+                      ch.instructor === selectedInstructor && (
+                        <>
+                          {/* Overall Rating (0–5) */}
+                          <div
+                            className="flex-1 min-w-[100px] p-2 rounded border-l-4"
+                            style={{
+                              borderLeftColor: `hsl(${getHue(
+                                instrRatings.avg_rating,
+                                5
+                              )}, 90%, 50%)`,
+                            }}
+                          >
+                            <p className="font-semibold text-sm">
+                              Overall Rating
+                            </p>
+                            <p className="text-lg">
+                              {instrRatings.avg_rating.toFixed(1)}
+                            </p>
+                          </div>
+
+                          {/* Difficulty (0–5, inverted: higher difficulty = red) */}
+                          <div
+                            className="flex-1 min-w-[100px] p-2 rounded border-l-4"
+                            style={{
+                              // invert: difficulty 0 → green, 5 → red
+                              borderLeftColor: `hsl(${
+                                120 - getHue(instrRatings.difficulty_level, 5)
+                              }, 90%, 50%)`,
+                            }}
+                          >
+                            <p className="font-semibold text-sm">
+                              Level of Difficulty
+                            </p>
+                            <p className="text-lg">
+                              {instrRatings.difficulty_level.toFixed(1)}
+                            </p>
+                          </div>
+
+                          {/* Take Again % (0–100) */}
+                          <div
+                            className="flex-1 min-w-[100px] p-2 rounded border-l-4"
+                            style={{
+                              borderLeftColor: `hsl(${getHue(
+                                instrRatings.would_take_again_percent,
+                                100
+                              )}, 90%, 50%)`,
+                            }}
+                          >
+                            <p className="font-semibold text-sm">Take Again</p>
+                            <p className="text-lg">
+                              {instrRatings.would_take_again_percent.toFixed(1)}
+                              %
+                            </p>
+                          </div>
+                        </>
+                      )}
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })}
+        </div>
+      </div>
     </div>
   );
 }
