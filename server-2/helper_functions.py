@@ -5,10 +5,10 @@ import requests
 
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
-from typing import Optional, Tuple, Sequence
+from typing import Any, Optional, Sequence
 from venv import logger
 
-# unused imports
+### unused imports
 # import os
 # from click import File
 # import pdfplumber
@@ -36,7 +36,7 @@ def get_initials(name: str) -> list:
     return [part[0].upper() for part in parts[:-1]]
 
 
-def calculate_gpa(grade_distribution: Optional[dict]):
+def calculate_gpa(grade_distribution: Optional[dict]) -> str:
     if not grade_distribution:
         return "N/A"
 
@@ -169,7 +169,7 @@ def find_matching_instructor(instructor: str, historical_instructors: list) -> s
     return instructor
 
 
-def split_course_code(course_code: str) -> Tuple[str, str]:
+def split_course_code(course_code: str) -> tuple[str, str]:
     """Split course code into subject and catalog number, handling both space and dash formats"""
     parts = course_code.split(" ", 1)
     if len(parts) == 2:
@@ -265,7 +265,7 @@ def fetch_course_from_api(subject: str, catalog_nbr: Optional[str] = None) -> di
         return None
 
 
-def get_majors() -> dict[str: any]:
+def get_majors() -> dict[str, Any]:
     majors_path = Path("scraping", "majors")
     majors_data = dict()
 
