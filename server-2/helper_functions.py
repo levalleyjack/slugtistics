@@ -1,14 +1,17 @@
 import base64
-from concurrent.futures import ThreadPoolExecutor, as_completed
-import os
-import re
-from typing import Dict, List, Optional, Tuple
-from venv import logger
-from click import File
-import pdfplumber
-import requests
 import json
+import re
 import requests
+
+from concurrent.futures import ThreadPoolExecutor, as_completed
+from pathlib import Path
+from typing import Any, Optional, Sequence
+from venv import logger
+
+### unused imports
+# import os
+# from click import File
+# import pdfplumber
 
 quarter = 2252
 
@@ -33,7 +36,7 @@ def get_initials(name: str) -> list:
     return [part[0].upper() for part in parts[:-1]]
 
 
-def calculate_gpa(grade_distribution):
+def calculate_gpa(grade_distribution: Optional[dict]) -> str:
     if not grade_distribution:
         return "N/A"
 
@@ -117,7 +120,7 @@ def get_course_gpa(cursor, course_code: str, instructor: str = None) -> float:
 
         return None
 
-    except Exception as e:
+    except Exception:  # as e
         return None
 
 
@@ -166,7 +169,7 @@ def find_matching_instructor(instructor: str, historical_instructors: list) -> s
     return instructor
 
 
-def split_course_code(course_code: str) -> Tuple[str, str]:
+def split_course_code(course_code: str) -> tuple[str, str]:
     """Split course code into subject and catalog number, handling both space and dash formats"""
     parts = course_code.split(" ", 1)
     if len(parts) == 2:
@@ -180,11 +183,11 @@ def split_course_code(course_code: str) -> Tuple[str, str]:
 
 
 def fetch_courses_parallel(
-    course_codes: List[str], max_workers: int = 10
-) -> Dict[str, dict]:
+    course_codes: list[str], max_workers: int = 10
+) -> dict[str, dict]:
     api_cache = {}
 
-    def fetch_single_course(course_code: str) -> Tuple[str, dict]:
+    def fetch_single_course(course_code: str) -> tuple[str, dict]:
         try:
             result = None
             subject, catalog_num = split_course_code(course_code)
@@ -228,6 +231,7 @@ def generate_class_url(class_nbr: int):
 
     return f"https://pisa.ucsc.edu/class_search/index.php?action=detail&class_data={encoded_class_data}"
 
+
 def fetch_course_from_api(subject: str, catalog_nbr: Optional[str] = None) -> dict:
     try:
         url = f"https://my.ucsc.edu/PSIGW/RESTListeningConnector/PSFT_CSPRD/SCX_CLASS_LIST.v1/{quarter}"
@@ -260,20 +264,62 @@ def fetch_course_from_api(subject: str, catalog_nbr: Optional[str] = None) -> di
         logger.error(f"Error type: {type(e)}")
         return None
 
-def get_majors():
-    
-    with open("scraping/majors/cs_bs_2024.json", "r") as file:
-        cs_bs_data = json.load(file)
 
-    majors_data = {
-        cs_bs_data["program"]["name"]: cs_bs_data
-    }
+def get_majors() -> dict[str, Any]:
+    majors_path = Path("scraping", "majors")
+    majors_data = dict()
+
+    for majorfp in majors_path.iterdir():
+        if majorfp.is_dir():
+            continue
+        
+        with open(majorfp, "r") as fp:
+            major_data = json.load(fp)
+            
+        if not json_path_exists(json_obj=major_data, json_path=["program", "name"]):
+            continue
+
+        majors_data[major_data["program"]["name"]] = major_data
+
     return majors_data
 
 
-import re
+def json_path_exists(json_obj: dict | list, json_path: Sequence[str | int]) -> bool:
+    """ Validate multi-layer deep indexing operations on JSON objects ahead of time """
 
-def parse_prerequisites(prereq_text):
+    json_obj_trace = "json_obj"
+
+    for field in json_path:
+        # handle when json_obj is an invalid type & when nesting list exceeds json_obj
+        if not isinstance(json_obj, (dict, list)):
+            logger.error(f"Typing: expected {json_obj_trace} to be dict or list, got {type(json_obj).__name__}")
+            return False
+        
+        # handle when json_obj is a list
+        if isinstance(json_obj, list):
+            if not isinstance(field, int):
+                logger.error(f"Typing: expected {json_obj_trace} (dtype=list) to be indexed with int, instead got {field}")
+                return False
+            if field >= len(json_obj):
+                logger.error(f"Indexing: index {field} out of bounds for {json_obj_trace} (dtype=list) of len={len(json_obj)}")
+                return False
+
+        # handle when json_obj is a dict
+        if isinstance(json_obj, dict):
+            if not isinstance(field, str):
+                logger.error(f"Typing: expected {json_obj_trace} (dtype=dict) to be indexed with str, instead got {field}")
+                return False
+            if field not in json_obj.keys():
+                logger.error(f"Indexing: key {field} not in {json_obj_trace} (dtype=dict) keys")
+                return False
+
+        json_obj_trace += f'[{repr(field)}]'
+        json_obj = json_obj[field]
+
+    return True
+
+
+def parse_prerequisites(prereq_text: str) -> list:
     if "Prerequisite(s):" not in prereq_text:
         return []
 
@@ -354,10 +400,13 @@ def parse_prerequisites(prereq_text):
 
     return prereq_list
 
-def get_major_courses(major: str) -> List[str]:
+
+def get_major_courses(major: str) -> list[str]:
     major_files = get_majors()
     return major_files[major]
-def compute_recommendations(classes_taken: List[str], major: str, prereq_dict: Dict):
+
+
+def compute_recommendations(classes_taken: list[str], major: str, prereq_dict: dict):
     data = get_major_courses(major)
     needed_classes = data.get("needed_classes", {})
 

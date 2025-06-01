@@ -6,28 +6,6 @@ import {
   Pin,
 } from "@vis.gl/react-google-maps";
 import { Loader } from "@googlemaps/js-api-loader";
-import { useQuery } from "@tanstack/react-query";
-
-const useGoogleMapsApiKey = () => {
-  return useQuery({
-    queryKey: ["googleMapsApiKey"],
-    queryFn: async () => {
-      const response = await fetch(
-        "https://api.slugtistics.com/api/pyback/google_maps_api_key"
-      );
-
-      if (!response.ok) {
-        throw new Error("Network response was not ok");
-      }
-
-      const data = await response.json();
-      return data.key;
-    },
-    staleTime: Infinity,
-    gcTime: Infinity,
-    retry: 2,
-  });
-};
 
 const BORDER_RADIUS = "12px";
 
@@ -57,9 +35,8 @@ const LocationMap: React.FC<LocationMapProps> = ({
 }) => {
   const [position, setPosition] = React.useState<GeocodeResult | null>(null);
   const [mapsLoaded, setMapsLoaded] = React.useState(false);
-  const { data: GOOGLE_MAPS_API_KEY, isLoading: isKeyLoading } =
-    useGoogleMapsApiKey();
 
+  const GOOGLE_MAPS_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
   React.useEffect(() => {
     if (!GOOGLE_MAPS_API_KEY) return;
 
@@ -134,12 +111,7 @@ const LocationMap: React.FC<LocationMapProps> = ({
     }
   }, [location, mapsLoaded]);
 
-  if (
-    !isValidLocation(location) ||
-    !position ||
-    !GOOGLE_MAPS_API_KEY ||
-    isKeyLoading
-  ) {
+  if (!isValidLocation(location) || !position || !GOOGLE_MAPS_API_KEY) {
     return null;
   }
 
