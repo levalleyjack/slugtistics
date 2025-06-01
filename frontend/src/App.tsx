@@ -6,7 +6,6 @@ import HomePage from "./pages/HomePage";
 import AboutPage from "./pages/AboutPage";
 import NotFoundPage from "./pages/NotFoundPage";
 import GeSearch from "./pages/class-search/GeSearch";
-import AllCourses from "./pages/class-search/AllCourses";
 import { ReactNode } from "react";
 import { Chatbot } from "./components/ChatBot";
 import MajorSearch from "./pages/major-search/MajorSearch";

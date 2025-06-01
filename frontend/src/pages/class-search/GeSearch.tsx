@@ -8,13 +8,11 @@ import React, {
 import {
   useTheme,
   useMediaQuery,
-  styled,
   Typography,
   Box,
 } from "@mui/material";
 import {
   calculateCourseScoreOutOf10,
-  COLORS,
   Course,
   FilterOptions,
   getLastUpdatedText,
