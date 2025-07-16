@@ -53,6 +53,7 @@
   src: url("../../Geist[wght].woff2") format("woff2"),
     url("/fonts/mycustomfont.woff") format("woff"),
     url("/fonts/mycustomfont.ttf") format("truetype");
+  font-family: inherit;
   font-weight: normal;
   font-style: normal;
 }
@@ -145,7 +146,7 @@
 .dark {
   --background: oklch(0.145 0 0);
   --foreground: oklch(0.985 0 0);
-  --card: oklch(0.145 0 0);
+  --card: oklch(0.205 0 0);
   --card-foreground: oklch(0.985 0 0);
   --popover: oklch(0.269 0 0);
   --popover-foreground: oklch(0.985 0 0);
@@ -178,10 +179,9 @@
 
 /* App Structure from your CSS */
 .App {
-  height: calc(100dvh - 64px);
   display: flex;
   flex-direction: column;
-  margin-top: 64px;
+  margin-top: 64px; /* for navbar*/
 }
 
 /* MUI Component Overrides */
@@ -318,70 +318,6 @@ textarea::placeholder,
   border-radius: var(--radius);
   border: 1px solid var(--border);
 }
-
-/* Media Queries */
-@media (max-width: 768px) {
-  .filters-container {
-    flex-direction: column;
-    align-items: flex-start;
-  }
-}
-
-@media (max-width: 480px) {
-  .nav {
-    height: 10px;
-  }
-
-  .navbar-title {
-    font-size: 20px;
-  }
-
-  .navbar-logo {
-    height: 20px;
-  }
-
-  .navbar-left,
-  .navbar-right {
-    font-size: 16px;
-  }
-
-  #page-body {
-    max-width: 100vw;
-  }
-}
-
-@media (min-width: 480px) and (max-width: 768px) {
-  .navbar-title {
-    font-size: 24px;
-  }
-
-  #page-body {
-    max-width: 100vw;
-  }
-}
-
-@media (min-width: 768px) and (max-width: 1000px) {
-  .navbar-title {
-    font-size: 20px;
-  }
-
-  #page-body {
-    max-width: 100vw;
-  }
-}
-
-@media (min-width: 1000px) and (max-width: 1280px) {
-  .navbar-title {
-    font-size: 24px;
-  }
-
-  .instructor-select-field,
-  .term-select-field,
-  .percentage-select-field {
-    max-width: 300px;
-  }
-}
-
 /* Animation for loading dots */
 @keyframes dotBlink {
   0% {
