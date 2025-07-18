@@ -39,7 +39,7 @@ import {
   Tooltip,
   Legend,
 } from "recharts";
-import { AppSidebar } from "@/components/app-sidebar";
+import { AppSidebar } from "@/components/Slugtistics/app-sidebar";
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -55,10 +55,13 @@ import {
   SidebarTrigger,
 } from "@/components/ui/sidebar";
 
-import { SummaryCards } from "@/components/SummaryCards";
+import SummaryCard from "@/components/Slugtistics/SummaryCard";
 import ReactSelect from "react-select";
 import { useQuery } from "@tanstack/react-query";
-import { createSelectStyles } from "@/components/reactSelectStyles";
+import { createSelectStyles } from "@/components/Slugtistics/reactSelectStyles";
+
+import html2canvas from "html2canvas-pro";
+import { Download } from "lucide-react";
 
 const route = "http://127.0.0.1:8080/";
 
@@ -109,7 +112,9 @@ const GRADE_POINTS = {
   F: 0.0,
 };
 
-const CLASS_COLORS = ["#3b82f6", "#ef4444", "#10b981", "#f59e0b"];
+//const CLASS_COLORS = ["#3b82f6", "#ef4444", "#10b981", "#f59e0b"];
+//const CLASS_COLORS = ["#8dd3c7", "##ffff99", "#bebada", "#fb8072"];
+const CLASS_COLORS = ["#7fc97f", "#beaed4", "#fdc086", "#ffff99"];
 
 // API Functions
 async function fetchClasses(): Promise<ClassOption[]> {
@@ -152,114 +157,8 @@ async function fetchInstructorRatings(
   }
 }
 
-function SummaryCard({ chart, onRemove }) {
-  const getColorHue = (value, metric) => {
-    switch (metric) {
-      case "gpa":
-        return Math.max(0, Math.min(120, ((value - 2) / 2) * 120));
-      case "rating":
-        return Math.max(0, Math.min(120, (value / 5) * 120));
-      case "difficulty":
-        return Math.max(0, Math.min(120, (1 - value / 5) * 120));
-      case "takeAgain":
-        return Math.max(0, Math.min(120, (value / 100) * 120));
-      default:
-        return 60;
-    }
-  };
-
-  return (
-    <Card className="relative">
-      <div
-        className="absolute top-0 left-0 right-0 h-1 rounded-t-lg"
-        style={{ backgroundColor: chart.color }}
-      />
-      <CardHeader className="pb-2">
-        <div className="flex items-center justify-between">
-          <CardTitle className="text-lg font-semibold">{chart.label}</CardTitle>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => onRemove(chart.id)}
-            className="h-8 w-8 p-0"
-          >
-            <X className="h-4 w-4" />
-          </Button>
-        </div>
-        <CardDescription className="text-sm">
-          {chart.instructor || "All Instructors"} • {chart.term || "All Terms"}
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        <div className="grid grid-cols-2 gap-4">
-          <div
-            className="p-3 rounded-lg border-l-4 bg-muted/50"
-            style={{
-              borderLeftColor: `hsl(${getColorHue(
-                chart.avgGPA,
-                "gpa"
-              )}, 70%, 50%)`,
-            }}
-          >
-            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-              Avg GPA
-            </p>
-            <p className="text-2xl font-bold">
-              {chart.avgGPA.toFixed(2)}
-              <span className="text-sm text-muted-foreground ml-1">/ 4.0</span>
-            </p>
-          </div>
-
-          {chart.ratingSnapshot && (
-            <div
-              className="p-3 rounded-lg border-l-4 bg-muted/50"
-              style={{
-                borderLeftColor: `hsl(${getColorHue(
-                  chart.ratingSnapshot.avg_rating,
-                  "rating"
-                )}, 70%, 50%)`,
-              }}
-            >
-              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-                Rating
-              </p>
-              <p className="text-2xl font-bold">
-                {chart.ratingSnapshot.avg_rating.toFixed(1)}
-                <span className="text-sm text-muted-foreground ml-1">
-                  / 5.0
-                </span>
-              </p>
-            </div>
-          )}
-        </div>
-
-        {chart.ratingSnapshot && (
-          <div className="grid grid-cols-2 gap-2">
-            <div className="p-2 rounded bg-muted/30">
-              <p className="text-xs font-medium text-muted-foreground">
-                Difficulty
-              </p>
-              <p className="text-lg font-semibold">
-                {chart.ratingSnapshot.difficulty_level.toFixed(1)}/5
-              </p>
-            </div>
-            <div className="p-2 rounded bg-muted/30">
-              <p className="text-xs font-medium text-muted-foreground">
-                Take Again
-              </p>
-              <p className="text-lg font-semibold">
-                {chart.ratingSnapshot.would_take_again_percent}%
-              </p>
-            </div>
-          </div>
-        )}
-      </CardContent>
-    </Card>
-  );
-}
-
 export default function Dashboard() {
-  const [isDarkMode, setIsDarkMode] = useState(true);
+  const [isDarkMode, setIsDarkMode] = useState(false);
 
   // — selection state —
   const [selectedClass, setSelectedClass] = React.useState<ClassOption | null>(
@@ -292,35 +191,50 @@ export default function Dashboard() {
 
   // 4) build dropdowns
   const termOptions = React.useMemo(() => {
-    const relevantClasses = classInfo.filter(
-      (classItem) =>
-        !selectedInstructor ||
-        selectedInstructor === "" ||
-        classItem.Instructors === selectedInstructor
-    );
-    const allTerms = relevantClasses.map((classItem) => classItem.Term);
+    // When sorting by term, don't filter by instructor
+    // When sorting by instructor, filter by the selected instructor
+    const filteredClasses =
+      sortBy === "term"
+        ? classInfo // Don't filter by instructor when selecting by term
+        : classInfo.filter(
+            (classItem) =>
+              !selectedInstructor ||
+              selectedInstructor === "" ||
+              classItem.Instructors === selectedInstructor
+          );
+
+    const allTerms = filteredClasses.map((classItem) => classItem.Term);
     const uniqueTerms = Array.from(new Set(allTerms));
-    uniqueTerms.reverse();
-    const options = [
+    uniqueTerms.reverse(); // Keep the reverse order as in original
+
+    return [
       { label: "All Terms", value: "" },
       ...uniqueTerms.map((term) => ({ label: term, value: term })),
     ];
-    return options;
-  }, [classInfo, selectedInstructor]);
+  }, [classInfo, selectedInstructor, sortBy]); // Added sortBy as dependency
 
   const instructorOptions = React.useMemo(() => {
-    const all = classInfo
-      .filter(
-        (c) => !selectedTerm || selectedTerm === "" || c.Term === selectedTerm
-      )
-      .map((c) => c.Instructors);
-    const uniq = Array.from(new Set(all));
+    // When sorting by instructor, don't filter by term
+    // When sorting by term, filter by the selected term
+    const filteredClasses =
+      sortBy === "instructor"
+        ? classInfo // Don't filter by term when selecting by instructor
+        : classInfo.filter(
+            (c) =>
+              !selectedTerm || selectedTerm === "" || c.Term === selectedTerm
+          );
+
+    const allInstructors = filteredClasses.map((c) => c.Instructors);
+    const uniqueInstructors = Array.from(new Set(allInstructors));
+
     return [
       { label: "All Instructors", value: "" },
-      ...uniq.map((i) => ({ label: i, value: i })),
+      ...uniqueInstructors.map((instructor) => ({
+        label: instructor,
+        value: instructor,
+      })),
     ];
-  }, [classInfo, selectedTerm]);
-
+  }, [classInfo, selectedTerm, sortBy]);
   // fetch instructor ratings - only when a specific instructor is selected
   const { data: instrRatings } = useQuery({
     queryKey: ["instructorRatings", selectedInstructor],
@@ -463,6 +377,46 @@ export default function Dashboard() {
     setAddedCharts((prev) => prev.filter((chart) => chart.id !== id));
   };
 
+  const CustomLegend = ({ payload }) => {
+    return (
+      <div className="flex flex-wrap gap-4 justify-center mt-4">
+        {payload.map((entry, index) => {
+          const chart = addedCharts.find((c) => c.id === entry.dataKey);
+          return (
+            <div key={index} className="flex items-center gap-2">
+              <div
+                className="w-3 h-3 rounded-sm"
+                style={{ backgroundColor: entry.color }}
+              />
+              <div className="flex flex-col">
+                <span className="text-sm font-medium">{chart?.label}</span>
+                <span className="text-xs text-muted-foreground">
+                  {chart?.instructor && chart.instructor !== ""
+                    ? chart.instructor
+                    : "All Instructors"}
+                  {chart?.term && chart.term !== ""
+                    ? ` • ${chart.term}`
+                    : " • All Terms"}
+                </span>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    );
+  };
+
+  const screenshotRef = React.useRef<HTMLDivElement>(null);
+
+  const handleScreenshot = async () => {
+    if (!screenshotRef.current) return;
+    const canvas = await html2canvas(screenshotRef.current);
+    const link = document.createElement("a");
+    link.download = "slugtistics-screenshot.png";
+    link.href = canvas.toDataURL();
+    link.click();
+  };
+
   return (
     <div className={` ${isDarkMode ? "dark" : ""}`}>
       <div className="flex bg-background ">
@@ -499,12 +453,23 @@ export default function Dashboard() {
                         <Moon className="h-4 w-4 text-foreground" />
                       )}
                     </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleScreenshot}
+                      title="Download Screenshot"
+                    >
+                      <Download className="h-4 w-4 text-foreground" />
+                    </Button>
                   </div>
                 </div>
               </header>
 
               {/* Main Content Area */}
-              <div className="flex-1 p-6 flex flex-col overflow-y-auto h-[calc(100%-1328px)]">
+              <div
+                ref={screenshotRef}
+                className="flex-1 p-6 flex flex-col overflow-y-auto h-[calc(100%-1328px)]"
+              >
                 <div className="space-y-6 flex-1 flex flex-col">
                   {/* Controls */}
                   <Card>
@@ -574,6 +539,7 @@ export default function Dashboard() {
                               placeholder="Instructor"
                               isDisabled={instructorOptions.length === 0}
                               styles={createSelectStyles(isDarkMode)}
+                              isClearable={true}
                             />
                           </div>
                         ) : (
@@ -595,6 +561,7 @@ export default function Dashboard() {
                               placeholder="Term"
                               isDisabled={termOptions.length === 0}
                               styles={createSelectStyles(isDarkMode)}
+                              isClearable={true}
                             />
                           </div>
                         )}
@@ -622,6 +589,7 @@ export default function Dashboard() {
                                 termOptions.length === 0
                               }
                               styles={createSelectStyles(isDarkMode)}
+                              isClearable={true}
                             />
                           </div>
                         ) : (
@@ -646,6 +614,7 @@ export default function Dashboard() {
                                 instructorOptions.length === 0
                               }
                               styles={createSelectStyles(isDarkMode)}
+                              isClearable={true}
                             />
                           </div>
                         )}
@@ -694,7 +663,8 @@ export default function Dashboard() {
                                   borderRadius: "6px",
                                 }}
                               />
-                              <Legend />
+                              <Legend content={<CustomLegend />} />
+                              // And simplify the Bar components back to:
                               {addedCharts.map((chart) => (
                                 <Bar
                                   key={chart.id}
@@ -708,10 +678,11 @@ export default function Dashboard() {
                         </div>
                       </CardContent>
                     </Card>
+
                     {/* Summary Cards */}
                     <div className="space-y-4">
                       <div className="flex items-center justify-between">
-                        <h3 className="text-lg font-semibold">
+                        <h3 className="text-lg text-foreground font-semibold">
                           Course Summary
                         </h3>
                         <Badge variant="secondary">

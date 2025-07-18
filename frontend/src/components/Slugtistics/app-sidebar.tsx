@@ -15,6 +15,11 @@ import {
 
 const sidebarItems = [
   { id: "overview", icon: BarChart3, label: "Overview", active: true },
+  { id: "classes", icon: GraduationCap, label: "Compare" },
+  /*
+  { id: "instructors", icon: Users, label: "Instructors" },
+  { id: "trends", icon: TrendingUp, label: "Trends" },
+  { id: "settings", icon: Settings, label: "Settings" }, */
 ];
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
