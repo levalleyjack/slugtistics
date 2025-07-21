@@ -6,7 +6,7 @@ import {
 } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/Slugtistics/app-sidebar";
 import GradesPage from "@/pages/Grades";
-import ComparePage from "@/pages/Compare";
+import SchedulePage from "@/pages/Schedule";
 
 export default function Dashboard() {
   const [isDarkMode, setIsDarkMode] = useState(false);
@@ -18,9 +18,9 @@ export default function Dashboard() {
         return (
           <GradesPage isDarkMode={isDarkMode} setIsDarkMode={setIsDarkMode} />
         );
-      case "compare":
+      case "schedule":
         return (
-          <ComparePage isDarkMode={isDarkMode} setIsDarkMode={setIsDarkMode} />
+          <SchedulePage isDarkMode={isDarkMode} setIsDarkMode={setIsDarkMode} />
         );
       default:
         return (

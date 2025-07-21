@@ -55,16 +55,14 @@ export default function ComparePage({
         <div className="space-y-6 flex-1 flex flex-col">
           <Card>
             <CardHeader>
-              <CardTitle>Course Comparison Tools</CardTitle>
-              <CardDescription>
-                Advanced comparison features coming soon
-              </CardDescription>
+              <CardTitle>Scheduler</CardTitle>
+              <CardDescription>Coming Soon</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="min-h-[400px] flex items-center justify-center">
                 <div className="text-center text-muted-foreground">
-                  <h3 className="text-lg font-semibold mb-2">Compare Page</h3>
-                  <p>This page will contain advanced comparison features</p>
+                  <h3 className="text-lg font-semibold mb-2">Scheduler Page</h3>
+                  <p>This page will contain a scheduler</p>
                 </div>
               </div>
             </CardContent>
