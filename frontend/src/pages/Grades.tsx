@@ -237,7 +237,7 @@ export default function OverviewPage({
   }, [classInfo, selectedInstructor, selectedTerm]);
 
   const handleAddClass = () => {
-    if (addedCharts.length >= 4) return;
+    if (addedCharts.length >= 3) return;
     const usedColors = addedCharts.map((c) => c.color);
     const color =
       CLASS_COLORS.find((col) => !usedColors.includes(col)) || CLASS_COLORS[0];
