@@ -583,7 +583,7 @@ export default function OverviewPage({
                 <h3 className="text-lg text-foreground font-semibold">
                   Course Summary
                 </h3>
-                <Badge variant="secondary">{addedCharts.length}/4</Badge>
+                <Badge variant="secondary">{addedCharts.length}/3</Badge>
               </div>
               {addedCharts.map((chart) => (
                 <SummaryCard
