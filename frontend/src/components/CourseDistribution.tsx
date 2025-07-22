@@ -1,5 +1,13 @@
 import React, { useState, useMemo } from "react";
-import { Bar } from "react-chartjs-2";
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+} from "recharts";
 import { useQuery } from "@tanstack/react-query";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
@@ -12,7 +20,6 @@ import {
   SelectItem,
 } from "@/components/ui/select";
 import {
-  ChartData,
   CourseDistributionProps,
   distributionAPIResponse,
   GradeDistribution,
@@ -77,6 +84,7 @@ export const CourseDistribution: React.FC<CourseDistributionProps> = ({
   const [term, setTerm] = useState<string>("All");
   const [showPct, setShowPct] = useState(false);
   const [selInst, setSelInst] = useState<string>(professorName);
+
   const { data: instructors = [], isLoading: loadingInst } = useQuery({
     queryKey: ["instructors", courseCode],
     queryFn: () => fetchInstructors(courseCode),
@@ -117,40 +125,44 @@ export const CourseDistribution: React.FC<CourseDistributionProps> = ({
     "D-",
     "F",
   ];
+
   const totalStudents = distribution
     ? Object.values(distribution).reduce((a, b) => a + b, 0)
     : 0;
 
-  const chartData = useMemo<ChartData>(
-    () => ({
-      labels: grades,
-      datasets: [
-        {
-          label: "Students",
-          data: grades.map((g) => {
-            const c = distribution?.[g] || 0;
-            return showPct ? Number(((c / totalStudents) * 100).toFixed(1)) : c;
-          }),
-          borderRadius: 2,
-          backgroundColor: "var(--shadcn-primary)",
-        },
-      ],
-    }),
-    [distribution, showPct, totalStudents]
-  );
+  const chartData = useMemo(() => {
+    return grades.map((grade) => {
+      const count = distribution?.[grade] || 0;
+      const value = showPct
+        ? Number(((count / totalStudents) * 100).toFixed(1))
+        : count;
+      return {
+        grade,
+        value,
+        count, // Keep original count for tooltip
+      };
+    });
+  }, [distribution, showPct, totalStudents, grades]);
 
-  const chartOpts = {
-    responsive: true,
-    maintainAspectRatio: false,
-    scales: {
-      y: {
-        beginAtZero: true,
-        ticks: {
-          callback: (val: any) => (showPct ? `${val}%` : (val as number)),
-        },
-      },
-    },
-    plugins: { legend: { display: false } },
+  const CustomTooltip = ({ active, payload, label }: any) => {
+    if (active && payload && payload.length) {
+      const data = payload[0].payload;
+      return (
+        <div className="bg-card border border-border rounded-lg p-3 shadow-lg">
+          <p className="font-semibold">{`Grade: ${label}`}</p>
+          <p className="text-primary">
+            {showPct
+              ? `${data.value}% (${data.count} students)`
+              : `${data.count} students`}
+          </p>
+        </div>
+      );
+    }
+    return null;
+  };
+
+  const formatYAxisTick = (value: number) => {
+    return showPct ? `${value}%` : value.toString();
   };
 
   return (
@@ -251,7 +263,30 @@ export const CourseDistribution: React.FC<CourseDistributionProps> = ({
 
             {/* Chart */}
             <div className="h-64 w-full">
-              <Bar data={chartData} options={chartOpts as any} />
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart
+                  data={chartData}
+                  margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
+                >
+                  <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
+                  <XAxis
+                    dataKey="grade"
+                    tick={{ fontSize: 12 }}
+                    axisLine={false}
+                  />
+                  <YAxis
+                    tickFormatter={formatYAxisTick}
+                    tick={{ fontSize: 12 }}
+                    axisLine={false}
+                  />
+                  <Tooltip content={<CustomTooltip />} />
+                  <Bar
+                    dataKey="value"
+                    fill="hsl(var(--primary))"
+                    radius={[2, 2, 0, 0]}
+                  />
+                </BarChart>
+              </ResponsiveContainer>
             </div>
           </motion.div>
         )}

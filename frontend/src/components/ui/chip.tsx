@@ -24,7 +24,7 @@ const chipVariants = cva(
       },
       size: {
         sm: "h-6 text-xs", // Removed px-2
-        md: "h-8 text-sm",  // Removed px-3
+        md: "h-8 text-sm", // Removed px-3
         lg: "h-10 text-base", // Removed px-4
       },
       padding: {
@@ -53,25 +53,24 @@ export interface ChipProps
   noPadding?: boolean; // Add convenience prop
 }
 
-export function Chip({
-  className,
-  variant,
-  size,
-  padding,
-  interactive,
-  noPadding,
-  ...props
-}: ChipProps) {
+export const Chip = React.forwardRef<HTMLDivElement, ChipProps>(function Chip(
+  { className, variant, size, padding, interactive, noPadding, ...props },
+  ref
+) {
   // If noPadding is true, override padding to 'none'
   const actualPadding = noPadding ? "none" : padding;
-  
+
   return (
     <div
-      className={cn(chipVariants({ variant, size, padding: actualPadding, interactive }), className)}
+      ref={ref}
+      className={cn(
+        chipVariants({ variant, size, padding: actualPadding, interactive }),
+        className
+      )}
       {...props}
     />
   );
-}
+});
 
 interface CourseCodeChipProps extends ChipProps {
   courseCode: string;
@@ -103,11 +102,11 @@ interface RatingChipProps extends ChipProps {
   compact?: boolean; // Add option for compact display
 }
 
-export function RatingChip({ 
-  rating, 
-  className, 
-  compact = false, 
-  ...props 
+export function RatingChip({
+  rating,
+  className,
+  compact = false,
+  ...props
 }: RatingChipProps) {
   if (
     rating === undefined ||
@@ -149,9 +148,9 @@ export function RatingChip({
       padding={compact ? "none" : "sm"}
       interactive={false}
       className={cn(
-        getRatingColor(rating), 
+        getRatingColor(rating),
         "font-semibold border",
-        compact ? "mr-2" : "px-2", 
+        compact ? "mr-2" : "px-2",
         className
       )}
       {...props}
@@ -213,15 +212,16 @@ export function DifficultyChip({
       padding={compact ? "none" : "sm"}
       interactive={false}
       className={cn(
-        getDifficultyColor(difficulty), 
+        getDifficultyColor(difficulty),
         "font-semibold",
-        compact ? "mr-2" : "px-2", 
+        compact ? "mr-2" : "px-2",
         className
       )}
       {...props}
     >
       <AlertCircle className="mr-1 h-3.5 w-3.5" />
-      {difficulty.toFixed(1)}{" difficulty"}
+      {difficulty.toFixed(1)}
+      {" difficulty"}
     </Chip>
   );
 }
@@ -261,70 +261,72 @@ interface GradeChipProps extends ChipProps {
   interactive?: boolean;
 }
 
-export function GradeChip({
-  grade,
-  letterGrade,
-  interactive = true,
-  className,
-  ...props
-}: GradeChipProps) {
-  if (grade === undefined || grade === null || isNaN(grade)) {
+// Fix: Wrap GradeChip with forwardRef
+export const GradeChip = React.forwardRef<HTMLDivElement, GradeChipProps>(
+  function GradeChip(
+    { grade, letterGrade, interactive = true, className, ...props },
+    ref
+  ) {
+    if (grade === undefined || grade === null || isNaN(grade)) {
+      return (
+        <Chip
+          ref={ref}
+          variant="outline"
+          size="sm"
+          interactive={false}
+          className={cn(
+            "text-muted-foreground border border-dashed border-slate-300 font-normal",
+            className
+          )}
+          {...props}
+        >
+          No GPA
+        </Chip>
+      );
+    }
+
+    const getGradeStyle = (grade: number) => {
+      if (grade >= 3.7)
+        return "bg-gradient-to-r from-emerald-400 to-emerald-600 text-white";
+      if (grade >= 3.0)
+        return "bg-gradient-to-r from-amber-400 to-amber-600 text-white";
+      if (grade >= 2.7)
+        return "bg-gradient-to-r from-orange-400 to-orange-600 text-white";
+      return "bg-gradient-to-r from-rose-500 to-rose-700 text-white";
+    };
+
+    const getOutlineStyle = (grade: number) => {
+      if (grade >= 3.7)
+        return "border-emerald-200 text-emerald-700 bg-emerald-50";
+      if (grade >= 3.3) return "border-teal-200 text-teal-700 bg-teal-50";
+      if (grade >= 3.0) return "border-blue-200 text-blue-700 bg-blue-50";
+      if (grade >= 2.7) return "border-amber-300 text-amber-700 bg-amber-50";
+      return "border-rose-300 text-rose-700 bg-rose-50";
+    };
+
     return (
       <Chip
-        variant="outline"
+        ref={ref}
+        variant={interactive ? "solid" : "outline"}
         size="sm"
-        interactive={false}
+        interactive={interactive}
         className={cn(
-          "text-muted-foreground border border-dashed border-slate-300 font-normal",
+          interactive ? getGradeStyle(grade) : getOutlineStyle(grade),
+          "font-bold px-2 transition-all group",
           className
         )}
         {...props}
       >
-        No GPA
+        {letterGrade}
+        {interactive && (
+          <span className="inline-flex w-0 overflow-hidden transition-all duration-200 ease-out group-hover:w-4">
+            <ChevronRight className="ml-1 h-3.5 w-3.5 opacity-0 group-hover:opacity-100 transition-opacity duration-150" />
+          </span>
+        )}
       </Chip>
     );
   }
-
-  const getGradeStyle = (grade: number) => {
-    if (grade >= 3.7)
-      return "bg-gradient-to-r from-emerald-400 to-emerald-600 text-white";
-    if (grade >= 3.0)
-      return "bg-gradient-to-r from-amber-400 to-amber-600 text-white";
-    if (grade >= 2.7)
-      return "bg-gradient-to-r from-orange-400 to-orange-600 text-white";
-    return "bg-gradient-to-r from-rose-500 to-rose-700 text-white";
-  };
-
-  const getOutlineStyle = (grade: number) => {
-    if (grade >= 3.7)
-      return "border-emerald-200 text-emerald-700 bg-emerald-50";
-    if (grade >= 3.3) return "border-teal-200 text-teal-700 bg-teal-50";
-    if (grade >= 3.0) return "border-blue-200 text-blue-700 bg-blue-50";
-    if (grade >= 2.7) return "border-amber-300 text-amber-700 bg-amber-50";
-    return "border-rose-300 text-rose-700 bg-rose-50";
-  };
-
-  return (
-    <Chip
-      variant={interactive ? "solid" : "outline"}
-      size="sm"
-      interactive={interactive}
-      className={cn(
-        interactive ? getGradeStyle(grade) : getOutlineStyle(grade),
-        "font-bold px-2 transition-all group",
-        className
-      )}
-      {...props}
-    >
-      {letterGrade}
-      {interactive && (
-        <span className="inline-flex w-0 overflow-hidden transition-all duration-200 ease-out group-hover:w-4">
-          <ChevronRight className="ml-1 h-3.5 w-3.5 opacity-0 group-hover:opacity-100 transition-opacity duration-150" />
-        </span>
-      )}
-    </Chip>
-  );
-}
+);
 
 interface GECategoryChipProps extends ChipProps {
   category: string;

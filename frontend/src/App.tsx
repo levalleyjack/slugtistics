@@ -97,7 +97,7 @@ const AppContent = () => {
               </PageLayout>
             }
           />
-          
+
           <Route
             path="/major"
             element={

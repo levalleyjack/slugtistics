@@ -8,12 +8,17 @@ const buttonVariants = cva(
   {
     variants: {
       variant: {
-        default: "bg-primary text-primary-foreground hover:bg-primary/85 shadow-md rounded-xl",
-        secondary: "bg-secondary text-secondary-foreground hover:bg-secondary/90 rounded-xl",
-        outline: "border border-border bg-background text-foreground hover:bg-muted/40 dark:hover:bg-muted/60 rounded-xl",
-        ghost: "hover:bg-muted hover:text-foreground dark:hover:bg-muted/50 rounded-md",
+        default:
+          "bg-primary text-primary-foreground hover:bg-primary/85 shadow-md rounded-xl",
+        secondary:
+          "bg-secondary text-secondary-foreground hover:bg-secondary/90 rounded-xl",
+        outline:
+          "border border-border bg-background text-foreground hover:bg-muted/40 dark:hover:bg-muted/60 rounded-xl",
+        ghost:
+          "hover:bg-muted hover:text-foreground dark:hover:bg-muted/50 rounded-md",
         link: "text-primary underline underline-offset-4 hover:text-primary-foreground",
-        destructive: "bg-destructive text-destructive-foreground hover:bg-destructive/85 focus-visible:ring-destructive/40 rounded-xl shadow",
+        destructive:
+          "bg-destructive text-destructive-foreground hover:bg-destructive/85 focus-visible:ring-destructive/40 rounded-xl shadow",
       },
       size: {
         default: "h-9 px-4 py-2",
@@ -28,7 +33,6 @@ const buttonVariants = cva(
     },
   }
 );
-
 
 export interface ButtonProps
   extends React.ButtonHTMLAttributes<HTMLButtonElement>,
