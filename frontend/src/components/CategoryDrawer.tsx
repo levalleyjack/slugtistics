@@ -1,299 +1,162 @@
-import React, { useCallback, memo, useRef } from "react";
-import {
-  Box,
-  Divider,
-  Drawer,
-  IconButton,
-  List,
-  ListItem,
-  ListItemIcon,
-  ListItemText,
-  Typography,
-  useMediaQuery,
-  useTheme,
-} from "@mui/material";
-import { styled } from "@mui/material/styles";
-import {
-  categories,
-  CategoryDrawerProps,
-  CategoryItemProps,
-  CategorySidebarProps,
-  COLORS,
-} from "../Constants";
-import { ArrowForward } from "@mui/icons-material";
+import React, { useCallback, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { ChevronLeft, Menu } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Separator } from "@/components/ui/separator";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
+import { categories } from "../Constants";
 
-const StyledListItem = styled(ListItem)(({ theme }) => ({
-  borderRadius: "8px",
-  margin: theme.spacing(0.5, 1),
-  padding: theme.spacing(1.5, 2),
-  transition: "all 0.2s ease",
-  width: "auto",
-  "& .MuiListItemIcon-root": {
-    transition: "0.2s transform ease-in-out",
-  },
+interface CategoryType {
+  id: string;
+  name?: string;
+  icon: React.ReactNode;
+}
 
-  "&:hover": {
-    backgroundColor: theme.palette.action.hover,
-    cursor: "pointer",
-    "& .MuiListItemIcon-root": {
-      transform: "scale(1.1)",
-    },
-  },
-  "&.selected": {
-    backgroundColor: theme.palette.primary.main,
-    color: theme.palette.primary.contrastText,
-    "& .MuiListItemIcon-root": {
-      transform: "scale(1.05)",
-      color: theme.palette.primary.contrastText,
-    },
-    "& .MuiTypography-root": {
-      color: theme.palette.primary.contrastText,
-    },
-    "&:hover": {
-      backgroundColor: theme.palette.primary.dark,
-    },
-  },
-  [theme.breakpoints.down("sm")]: {
-    padding: theme.spacing(1, 1.5),
-    margin: theme.spacing(0.3, 0.5),
-  },
-}));
+interface CategoryItemProps {
+  category: CategoryType;
+  isSelected: boolean;
+  onSelect: (id: string) => void;
+}
 
-const CategoryContent = styled("div")({
-  width: "100%",
-  display: "flex",
-  flexDirection: "column",
-  overflow: "hidden",
-});
+const CategoryItem = ({
+  category,
+  isSelected,
+  onSelect,
+}: CategoryItemProps) => (
+  <button
+    onClick={() => onSelect(category.id)}
+    className={cn(
+      "w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-all duration-200 cursor-pointer",
+      isSelected
+        ? "bg-blue-50 text-blue-700 shadow-sm"
+        : "hover:bg-gray-50 text-gray-700"
+    )}
+  >
+    <div
+      className={cn(
+        "flex items-center justify-center w-8 h-8 rounded-md transition-colors",
+        isSelected ? "bg-blue-100 text-blue-600" : "bg-gray-100 text-gray-500"
+      )}
+    >
+      {category.icon}
+    </div>
 
-const DrawerHeader = styled(Box)(({ theme }) => ({
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "space-between",
-
-  padding: `calc(${theme.spacing(2)} + 2px)`,
-  borderBottom: `1px solid ${theme.palette.divider}`,
-  backgroundColor: COLORS.WHITE,
-}));
-
-const HoverTrigger = styled(Box)(({ theme }) => ({
-  position: "fixed",
-  left: 0,
-  top: 0,
-  width: "8px",
-  height: "100dvh",
-  backgroundColor: "transparent",
-  "&:hover": {
-    backgroundColor: theme.palette.action.hover,
-  },
-  transition: "background-color 200ms",
-  zIndex: 100,
-  display: "block",
-}));
-
-const StyledList = styled(List)(({ theme }) => ({
-  padding: theme.spacing(1, 0),
-
-  flex: 1,
-  overflowY: "auto",
-  overflowX: "hidden",
-
-}));
-
-const CategoryItem = memo(
-  ({ category, isSelected, onSelect }: CategoryItemProps) => {
-    const navigate = useNavigate();
-    const handleClick = useCallback(() => {
-      onSelect(category.id);
-    }, [category.id, onSelect, navigate]);
-
-    const theme = useTheme();
-    const isSmallScreen = useMediaQuery(theme.breakpoints.down("sm"));
-
-    return (
-      <StyledListItem
-        className={isSelected ? "selected" : ""}
-        onClick={handleClick}
-        dense={isSmallScreen}
-        sx={{}}
+    <div className="flex flex-col items-start text-left">
+      <span
+        className={cn(
+          "font-medium text-sm",
+          isSelected ? "text-blue-700" : "text-gray-800"
+        )}
       >
-        <ListItemIcon
-          sx={{
-            minWidth: 40,
-            color: theme.palette.text.secondary,
-          }}
-        >
-          {category.icon}
-        </ListItemIcon>
-        <ListItemText
-          primary={
-            <Typography
-              variant="body2"
-              sx={{
-                fontWeight: 500,
-                color: theme.palette.text.primary,
-                whiteSpace: "normal",
-                wordBreak: "break-word",
-              }}
-            >
-              {category.id}
-              {category.name ? ` - ${category.name}` : ""}
-            </Typography>
-          }
-          sx={{ margin: 0 }}
-        />
-      </StyledListItem>
-    );
-  }
+
+        {category.id === "AnyGE" ? category.name : category.id}
+      </span>
+
+      {category.name !=="All Courses" &&  (
+        <span className="text-xs text-gray-500 line-clamp-1">
+          {category.name}
+        </span>
+      )}
+    </div>
+  </button>
 );
 
-const CategoriesList = memo(({ selectedCategory, onCategorySelect }: any) => (
-  <StyledList>
-    {categories.map((category, index) => (
-      <React.Fragment key={category.id}>
-        <CategoryItem
-          category={category}
-          isSelected={selectedCategory === category.id}
-          onSelect={onCategorySelect}
-        />
-        {index === 0 && <Divider sx={{ my: 1, mx: 2 }} />}
-      </React.Fragment>
-    ))}
-  </StyledList>
-));
+interface CategoryDrawerProps {
+  isOpen: boolean;
+  setIsOpen: (open: boolean) => void;
+  selectedGE: string;
+  setSelectedGE: (id: string) => void;
+}
 
-const CategorySidebar = memo(
-  ({ selectedCategory, onCategorySelect }: CategorySidebarProps) => {
-    return (
-      <CategoryContent>
-        <CategoriesList
-          selectedCategory={selectedCategory}
-          onCategorySelect={onCategorySelect}
-        />
-      </CategoryContent>
-    );
-  }
-);
-const CategoryDrawer = ({
+const CategoryDrawer: React.FC<CategoryDrawerProps> = ({
   isOpen,
-  isCategoriesVisible,
-  isCategoryDrawer,
-  isDistributionDrawer,
+  setIsOpen,
   selectedGE,
   setSelectedGE,
-  setIsOpen,
-  setIsCategoriesVisible,
-  activePanel,
-}: CategoryDrawerProps) => {
-  const theme = useTheme();
-
+}) => {
+  const navigate = useNavigate();
   const timeoutRef = useRef<NodeJS.Timeout>();
-  const isMediumScreen = useMediaQuery(theme.breakpoints.down("md"));
 
-  const handleClose = () => {
-    setIsCategoriesVisible(false);
-    setIsOpen(false);
-  };
+  const handleClose = useCallback(() => setIsOpen(false), [setIsOpen]);
 
-  const handleMouseEnter = useCallback(() => {
-    if (timeoutRef.current) {
-      clearTimeout(timeoutRef.current);
-    }
-    setIsOpen(true);
-  }, [setIsOpen]);
+  useEffect(() => () => clearTimeout(timeoutRef.current), []);
 
-  const handleMouseLeave = useCallback(() => {
-    if (!isCategoryDrawer) {
-      timeoutRef.current = setTimeout(() => {
-        setIsOpen(false);
-        timeoutRef.current = undefined;
-      }, 150);
-    }
-  }, [isCategoryDrawer, setIsOpen]);
-
-  const isTemporary = !isCategoriesVisible || isCategoryDrawer;
-
-  React.useEffect(() => {
-    return () => {
-      if (timeoutRef.current) {
-        clearTimeout(timeoutRef.current);
-      }
-    };
-  }, []);
+  const featuredCategories = categories?.slice?.(0, 1) || [];
+  const remainingCategories = categories?.slice?.(1) || [];
 
   return (
-    <Box sx={{ position: "relative" }}>
-      {!isCategoryDrawer && (
-        <HoverTrigger
-          onMouseEnter={handleMouseEnter}
-          sx={{ display: isCategoryDrawer ? "none" : "block" }}
-        />
-      )}
-      <Drawer
-        variant={isTemporary ? "temporary" : "persistent"}
-        anchor="left"
-        open={Boolean(
-          (isOpen || isCategoriesVisible) &&
-            (!isDistributionDrawer || !activePanel)
-        )}
-        onClose={handleClose}
-        SlideProps={{
-          onMouseEnter: handleMouseEnter,
-          onMouseLeave: handleMouseLeave,
-        }}
-        sx={{
-          width:
-            isOpen || isCategoriesVisible
-              ? isCategoryDrawer
-                ? "240px"
-                : "300px"
-              : 0,
-
-          transition: "width 0.3s",
-          flexShrink: 0,
-
-          "& .MuiDrawer-paper": {
-            marginTop: "64px",
-            width: isCategoryDrawer ? "240px" : "300px",
-            height: "calc(100dvh - 64px)",
-            boxSizing: "border-box",
-            borderTopRightRadius: !isTemporary ? 0 : "8px",
-            borderBottomRightRadius: !isTemporary ? 0 : "8px",
-            opacity: 0.96,
-            backdropFilter: "blur(8px)",
-            backgroundColor: "rgba(255, 255, 255, 0.8)",
-            WebkitBackdropFilter: "blur(8px)",
-            overflow: "hidden",
-          },
-          "& .MuiDrawer-root": {
-            overflowX: "hidden",
-          },
-        }}
+    <Sheet open={isOpen} onOpenChange={setIsOpen}>
+      <SheetContent
+        side="left"
+        className="w-64 backdrop-blur-md bg-white/95 dark:bg-slate-900/95 p-0 shadow-lg flex flex-col"
       >
-        <DrawerHeader>
-          <Typography variant="h6" fontWeight="500">
-            Categories
-          </Typography>
-          {isCategoryDrawer && (
-            <IconButton
-              edge="end"
-              onClick={handleClose}
-              size="small"
-              sx={{ borderRadius: "8px" }}
-            >
-              <ArrowForward />
-            </IconButton>
-          )}
-        </DrawerHeader>
+        <SheetHeader className="px-4 pt-4 pb-2 flex-shrink-0">
+          <div className="flex items-center justify-between">
+            <SheetTitle className="text-base font-semibold">
+              GE Categories
+            </SheetTitle>
+          </div>
+        </SheetHeader>
 
-        <CategorySidebar
-          selectedCategory={selectedGE}
-          onCategorySelect={setSelectedGE}
-          isOpen={isCategoriesVisible}
-        />
-      </Drawer>
-    </Box>
+        <div className="flex-grow overflow-hidden">
+          <ScrollArea className="h-full py-1">
+            {featuredCategories.length > 0 && (
+              <div className="mb-1">
+                <div className="px-4 py-1">
+                  <p className="text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Featured
+                  </p>
+                </div>
+                <div className="px-2 space-y-1">
+                  {featuredCategories.map((cat) => (
+                    <CategoryItem
+                      key={cat.id}
+                      category={cat}
+                      isSelected={selectedGE === cat.id}
+                      onSelect={(id) => {
+                        setSelectedGE(id);
+                        navigate(`?ge=${id}`);
+                        handleClose();
+                      }}
+                    />
+                  ))}
+                </div>
+                <Separator className="my-2 mx-2" />
+              </div>
+            )}
+
+            <div className="px-4 py-1">
+              <p className="text-xs font-medium text-gray-500 uppercase tracking-wider">
+                General Education
+              </p>
+            </div>
+
+            <div className="px-2 py-1 grid grid-cols-1 gap-1">
+              {remainingCategories.map((cat) => (
+                <CategoryItem
+                  key={cat.id}
+                  category={cat}
+                  isSelected={selectedGE === cat.id}
+                  onSelect={(id) => {
+                    setSelectedGE(id);
+                    navigate(`?ge=${id}`);
+                    handleClose();
+                  }}
+                />
+              ))}
+            </div>
+          </ScrollArea>
+        </div>
+      </SheetContent>
+    </Sheet>
   );
 };
 

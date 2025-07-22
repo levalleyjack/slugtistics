@@ -7,12 +7,16 @@ import React, {
 } from "react";
 import { Virtuoso } from "react-virtuoso";
 import { Box, Divider, styled, Typography } from "@mui/material";
-import { CourseCard } from "../components/CourseCard";
+import { CourseCard } from "./CourseCard";
 import { COLORS, Course, CourseCode } from "../Constants";
-import { LoadingCourseCard } from "../components/LoadingComponents";
+import { LoadingCourseCard } from "./LoadingComponents";
 import SentimentVeryDissatisfiedIcon from "@mui/icons-material/SentimentVeryDissatisfied";
+import { Button } from "./ui/button";
+import { ArrowDown, ArrowUp } from "lucide-react";
+import { AnimatePresence, motion } from "framer-motion";
 
 interface DynamicCourseListProps {
+  virtuosoRef: any;
   filteredCourses: Course[];
   isSmallScreen: boolean;
   selectedCourse: string;
@@ -28,7 +32,7 @@ interface DynamicCourseListProps {
   ) => void;
   onCourseDetailsOpen: (course: Course) => void;
   handleAddToFavorites?: (course: Course) => void;
-  onScrollPositionChange?: (position: number) => void;
+  onRangeChange: (range: { startIndex: number; endIndex: number }) => void;
 }
 
 const ListWrapper = styled("div")({
@@ -59,6 +63,7 @@ const ItemWrapper = styled("div")<{
   width: "100%",
 }));
 export const DynamicCourseList: React.FC<DynamicCourseListProps> = ({
+  virtuosoRef,
   filteredCourses,
   isSmallScreen,
   selectedCourse,
@@ -69,23 +74,22 @@ export const DynamicCourseList: React.FC<DynamicCourseListProps> = ({
   onRatingsOpen,
   onCourseDetailsOpen,
   handleAddToFavorites,
-  onScrollPositionChange,
+  onRangeChange,
 }) => {
-  const virtuosoRef = useRef<any>(null);
+  const clickScrollRef = useRef(false);
+
+  // wrap the passed‐in handler so we can set our flag
+  const onSelect = useCallback(
+    (id: string) => {
+      clickScrollRef.current = true;
+      handleSelectedCourse(id);
+    },
+    [handleSelectedCourse]
+  );
   const scrollTimeoutRef = useRef<NodeJS.Timeout>();
   const [lastScrolledId, setLastScrolledId] = useState<string | null>(null);
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const previousFilteredCoursesRef = useRef<Course[]>(filteredCourses);
-  const handleScroll = (event: any) => {
-    const scrollTop =
-      typeof event.scrollTop !== "undefined"
-        ? event.scrollTop
-        : event.target?.scrollTop || event.currentTarget?.scrollTop || 0;
-
-    if (onScrollPositionChange) {
-      onScrollPositionChange(scrollTop);
-    }
-  };
 
   useEffect(() => {
     previousFilteredCoursesRef.current = filteredCourses;
@@ -116,8 +120,10 @@ export const DynamicCourseList: React.FC<DynamicCourseListProps> = ({
         virtuosoRef.current?.scrollToIndex({
           index: courseIndex,
           align: "center",
-          behavior: "smooth",
+          behavior: clickScrollRef.current ? "smooth" : "auto",
         });
+        clickScrollRef.current = false;
+
         setLastScrolledId(selectedCourse);
       }, 100);
     }
@@ -157,9 +163,7 @@ export const DynamicCourseList: React.FC<DynamicCourseListProps> = ({
               course={course}
               isSmallScreen={isSmallScreen}
               expanded={!!isExpanded}
-              onExpandChange={() => {
-                handleSelectedCourse(course.id);
-              }}
+              onExpandChange={() => onSelect(course.id)}
               isFavorited={favorited}
               {...(setSelectedGE ? { setSelectedGE } : {})} //conditionally adds selectge
               onDistributionOpen={onDistributionOpen}
@@ -192,7 +196,7 @@ export const DynamicCourseList: React.FC<DynamicCourseListProps> = ({
   );
 
   return (
-    <ListWrapper>
+    <div className="virtuoso-wrapper pl-1">
       <Virtuoso
         fixedItemHeight={160}
         ref={virtuosoRef}
@@ -204,16 +208,19 @@ export const DynamicCourseList: React.FC<DynamicCourseListProps> = ({
           (index) => filteredCourses[index].id,
           [filteredCourses]
         )}
-        onScroll={handleScroll}
         scrollerRef={(ref) => {
           scrollRef.current = ref as HTMLDivElement | null;
         }}
+        rangeChanged={({ startIndex, endIndex }) => {
+          onRangeChange?.({ startIndex, endIndex });
+        }}
       />
-    </ListWrapper>
+    </div>
   );
 };
 
 interface CourseListProps {
+  virtuosoRef: any;
   isFetchLoading: boolean;
   filteredCourses: Course[];
   isSmallScreen: boolean;
@@ -229,10 +236,11 @@ interface CourseListProps {
   ) => void;
   handleClearFilters: () => void;
   handleAddToFavorites: (course: Course) => void;
-  onScrollPositionChange?: (position: number) => void;
+  onRangeChange: (range: { startIndex: number; endIndex: number }) => void;
 }
 
 export const CourseList: React.FC<CourseListProps> = ({
+  virtuosoRef,
   isFetchLoading,
   filteredCourses,
   isSmallScreen,
@@ -245,7 +253,7 @@ export const CourseList: React.FC<CourseListProps> = ({
   setActivePanel,
   handleClearFilters,
   handleAddToFavorites,
-  onScrollPositionChange,
+  onRangeChange,
 }) => {
   if (isFetchLoading) {
     return (
@@ -293,6 +301,7 @@ export const CourseList: React.FC<CourseListProps> = ({
   return (
     <>
       <DynamicCourseList
+        virtuosoRef={virtuosoRef}
         filteredCourses={filteredCourses}
         isSmallScreen={isSmallScreen}
         selectedCourse={selectedCourse}
@@ -315,8 +324,8 @@ export const CourseList: React.FC<CourseListProps> = ({
           setActivePanel("courseDetails");
         }}
         handleAddToFavorites={handleAddToFavorites}
-        onScrollPositionChange={onScrollPositionChange}
         comparisonCourses={comparisonCourses}
+        onRangeChange={onRangeChange}
       />
     </>
   );

@@ -1,348 +1,136 @@
 import React, { useState } from "react";
-import {
-  Box,
-  Typography,
-  Button,
-  Collapse,
-  Chip,
-  Stack,
-  Paper,
-  Fade,
-  IconButton,
-  styled,
-  useTheme,
-  Divider,
-  Tooltip,
-} from "@mui/material";
-import {
-  List as ListIcon,
-  FormatAlignLeft as TextIcon,
-  KeyboardArrowDown as ArrowDownIcon,
-  KeyboardArrowUp as ArrowUpIcon,
-  School as SchoolIcon,
-} from "@mui/icons-material";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
-const PrereqChip = styled(Chip)<{ courseType: string }>(
-  ({ theme, courseType = "regular" }) => ({
-    margin: theme.spacing(0.5),
-    borderRadius: "8px",
-    fontWeight: 500,
-    backgroundColor:
-      courseType === "concurrent"
-        ? theme.palette.secondary.light
-        : courseType === "or"
-        ? theme.palette.info.light
-        : theme.palette.primary.light,
-    color:
-      courseType === "concurrent"
-        ? theme.palette.secondary.contrastText
-        : courseType === "or"
-        ? theme.palette.info.contrastText
-        : theme.palette.primary.contrastText,
-    transition: "all 0.2s ease",
-  })
-);
+type PrerequisitesSectionProps = {
+  enrollmentReqs: string;
+  coursesReq: string[][];
+};
 
-const RequirementGroup = ({
-  group,
-  index,
-  relationType,
-}: {
-  group: string[];
-  index: number;
-  relationType?: "and" | "or" | "with";
-}) => {
-  const theme = useTheme();
-  const isConcurrent = group.some(
-    (course) =>
-      typeof course === "string" && course.toLowerCase().includes("concurrent")
+const getRelationType = (
+  prevGroup: string[],
+  currGroup: string[],
+  fullText: string
+): "and" | "or" => {
+  const pattern = new RegExp(
+    `(${prevGroup.join("|")})\\s*(or|OR)\\s*(${currGroup.join("|")})`,
+    "i"
   );
+  return pattern.test(fullText) ? "or" : "and";
+};
 
-  const actualRelationType = isConcurrent ? "with" : relationType || "and";
-
-  const getRelationColor = () => {
-    switch (actualRelationType) {
-      case "or":
-        return theme.palette.info.main;
-      case "with":
-        return theme.palette.secondary.main;
-      default:
-        return theme.palette.primary.main;
-    }
+const PrereqChip: React.FC<{ course: string; type?: string }> = ({
+  course,
+  type = "regular",
+}) => {
+  const styles = {
+    regular: "bg-primary/10 text-primary px-2 py-0.5 text-xs",
+    or: "bg-sky-100 text-sky-800 border border-sky-300 px-2 py-0.5 text-xs",
+    concurrent:
+      "bg-purple-100 text-purple-800 border border-purple-300 px-2 py-0.5 text-xs",
   };
 
-  return (
-    <Box>
-      {index > 0 && (
-        <Box sx={{ position: "relative", height: "40px", my: 1 }}>
-          <Box
-            sx={{
-              position: "absolute",
-              top: "50%",
-              left: "50%",
-              transform: "translate(-50%, -50%)",
-              zIndex: 2,
-              backgroundColor: "white",
-              px: 1.5,
-              borderRadius: "12px",
-              border: `1px solid ${getRelationColor()}`,
-            }}
-          >
-            <Typography
-              variant="subtitle2"
-              sx={{
-                fontWeight: 600,
-                color: getRelationColor(),
-              }}
-            >
-              {actualRelationType.toUpperCase()}
-            </Typography>
-          </Box>
-          <Divider
-            sx={{
-              borderColor: getRelationColor(),
-              borderWidth: 1,
-            }}
-          />
-        </Box>
-      )}
-      <Paper
-        elevation={0}
-        sx={{
-          p: 1.5,
-          borderRadius: "12px",
-          backgroundColor: theme.palette.background.default,
-          border: `1px solid ${theme.palette.divider}`,
-          transition: "all 0.2s ease",
-        }}
-      >
-        <Stack direction="row" flexWrap="wrap" spacing={0}>
-          {group.map((course, i) => {
-            const courseType = course.toLowerCase().includes("concurrent")
-              ? "concurrent"
-              : index > 0 && i === 0 && actualRelationType === "or"
-              ? "or"
-              : "regular";
+  const chipType = course.toLowerCase().includes("concurrent")
+    ? "concurrent"
+    : type;
 
-            return (
-              <Box sx={{ display: "inline-block" }}>
-                <PrereqChip
-                  label={
-                    <Box sx={{ display: "flex", alignItems: "center" }}>
-                      {courseType === "concurrent" && (
-                        <SchoolIcon sx={{ mr: 0.5, fontSize: "0.875rem" }} />
-                      )}
-                      {course}
-                    </Box>
-                  }
-                  size="medium"
-                  courseType={courseType}
-                />
-              </Box>
-            );
-          })}
-        </Stack>
-      </Paper>
-    </Box>
+  return (
+    <Badge variant="outline" className={cn("rounded-md", styles[chipType])}>
+      {course}
+    </Badge>
   );
 };
 
-const PrerequisitesSection = ({
-  enrollmentReqs,
-  coursesReq,
-}: {
+const RelationDivider: React.FC<{ label: string }> = ({ label }) => (
+  <div className="relative w-full flex items-center justify-center my-2">
+    <div className="absolute inset-0 flex items-center">
+      <div className="w-full border-t border-muted" />
+    </div>
+    <span className="z-10 px-1.5 text-[11px] font-medium bg-background text-muted-foreground border border-muted rounded-full">
+      {label.toUpperCase()}
+    </span>
+  </div>
+);
+
+const RequirementGroup: React.FC<{
+  group: string[];
+  index: number;
+  allCourses: string[][];
   enrollmentReqs: string;
-  coursesReq: string[][];
-}) => {
-  const [viewMode, setViewMode] = useState("expanded");
-  const theme = useTheme();
+}> = ({ group, index, allCourses, enrollmentReqs }) => {
+  const isConcurrent = group.some((c) =>
+    c.toLowerCase().includes("concurrent")
+  );
 
-  const hasStructuredReqs = Array.isArray(coursesReq) && coursesReq.length > 0;
-
-  const getRelationTypes = () => {
-    if (!enrollmentReqs) return Array(coursesReq.length).fill("and");
-
-    const relations = [];
-    for (let i = 0; i < coursesReq.length; i++) {
-      if (i === 0) {
-        relations.push("and");
-        continue;
-      }
-
-      const orPattern = new RegExp(
-        `(${coursesReq[i - 1].join("|")})\\s*(or|OR)\\s*(${coursesReq[i].join(
-          "|"
-        )})`,
-        "i"
-      );
-
-      if (orPattern.test(enrollmentReqs)) {
-        relations.push("or");
-      } else {
-        relations.push("and");
-      }
-    }
-    return relations;
-  };
-
-  const relationTypes = getRelationTypes();
+  const relationType =
+    index === 0
+      ? null
+      : isConcurrent
+      ? "with"
+      : getRelationType(allCourses[index - 1], group, enrollmentReqs);
 
   return (
-    <Box
-      sx={{
-        borderLeft: "3px solid",
-        borderColor: "primary.main",
-        pl: 1.5,
-        pt: 1,
-        pb: 2,
-      }}
-    >
-      {hasStructuredReqs && (
-        <Box
-          sx={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            mb: 2,
-          }}
-        >
-          <Stack
-            direction="row"
-            spacing={0}
-            sx={{ borderRadius: "8px", overflow: "hidden" }}
-          >
-            <Button
-              variant={"contained"}
-              size="small"
-              onClick={() => setViewMode("expanded")}
-              startIcon={<TextIcon />}
-              sx={{
-                backgroundColor:
-                  viewMode === "expanded"
-                    ? theme.palette.primary.light
-                    : theme.palette.grey[200],
-                color: viewMode === "expanded" ? "white" : "black",
-                ":hover": {
-                  backgroundColor:
-                    viewMode === "expanded"
-                      ? theme.palette.primary.main
-                      : theme.palette.grey[400],
-                },
-                borderRadius: "8px 0 0 8px",
-                textTransform: "none",
-                flex: 1,
-              }}
-            >
-              All
-            </Button>
-            <Button
-              variant={"contained"}
-              size="small"
-              onClick={() => setViewMode("text")}
-              startIcon={<TextIcon />}
-              sx={{
-                backgroundColor:
-                  viewMode === "text"
-                    ? theme.palette.primary.light
-                    : theme.palette.grey[200],
-                color: viewMode === "text" ? "white" : "black",
-                ":hover": {
-                  backgroundColor:
-                    viewMode === "text"
-                      ? theme.palette.primary.main
-                      : theme.palette.grey[400],
-                },
-                borderRadius: "0px",
-                textTransform: "none",
-                flex: 1,
-              }}
-            >
-              Text
-            </Button>
-            <Button
-              variant={"contained"}
-              size="small"
-              onClick={() => setViewMode("structured")}
-              startIcon={<ListIcon />}
-              sx={{
-                backgroundColor:
-                  viewMode === "structured"
-                    ? theme.palette.primary.light
-                    : theme.palette.grey[200],
-                color: viewMode === "structured" ? "white" : "black",
-                ":hover": {
-                  backgroundColor:
-                    viewMode === "structured"
-                      ? theme.palette.primary.main
-                      : theme.palette.grey[400],
-                },
-                borderRadius: "0 8px 8px 0",
-                textTransform: "none",
-                flex: 1,
-              }}
-            >
-              List
-            </Button>
-          </Stack>
-        </Box>
+    <div>
+      {index > 0 && relationType && (
+        <RelationDivider label={relationType} />
       )}
+      <div className="flex flex-wrap gap-1.5">
+        {group.map((course, i) => (
+          <PrereqChip
+            key={i}
+            course={course}
+            type={relationType === "or" && i === 0 ? "or" : undefined}
+          />
+        ))}
+      </div>
+    </div>
+  );
+};
 
-      <Collapse
-        in={viewMode === "text" || viewMode === "expanded"}
-        timeout={400}
-        easing="cubic-bezier(0.4, 0, 0.2, 1)"
-      >
-        <Fade
-          in={viewMode === "text" || viewMode === "expanded"}
-          timeout={{ enter: 500, exit: 300 }}
-        >
-          <Typography
-            variant="body1"
-            sx={{ lineHeight: 1.8, mb: viewMode === "structured" ? 2 : 0 }}
-          >
-            {enrollmentReqs}
-          </Typography>
-        </Fade>
-      </Collapse>
+const PrerequisitesSection: React.FC<PrerequisitesSectionProps> = ({
+  enrollmentReqs,
+  coursesReq,
+}) => {
+  const [showStructured, setShowStructured] = useState(false);
+  const hasStructuredReqs = Array.isArray(coursesReq) && coursesReq.length > 0;
+
+  return (
+    <div className="border-l-2 border-primary pl-3 pt-2 pb-3 space-y-4 text-sm">
+      <p className="text-sm text-primary leading-relaxed whitespace-pre-wrap font-medium">
+        {enrollmentReqs}
+      </p>
 
       {hasStructuredReqs && (
-        <Collapse
-          in={viewMode === "structured" || viewMode === "expanded"}
-          timeout={400}
-          easing="cubic-bezier(0.4, 0, 0.2, 1)"
-        >
-          <Fade
-            in={viewMode === "structured" || viewMode === "expanded"}
-            timeout={{ enter: 500, exit: 300 }}
+        <div>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="px-2 py-1 text-xs text-muted-foreground hover:text-primary"
+            onClick={() => setShowStructured((prev) => !prev)}
           >
-            <Box sx={{ mt: viewMode !== "structured" ? 2 : 0 }}>
-              <Typography
-                variant="subtitle1"
-                sx={{
-                  mb: 2,
-                  fontWeight: 600,
-                  borderBottom: "1px solid",
-                  borderColor: "divider",
-                  pb: 1,
-                }}
-              >
+            {showStructured ? "Hide Course List" : "Show Course List"}
+          </Button>
+
+          {showStructured && (
+            <div className="mt-3 space-y-3">
+              <p className="text-xs font-semibold text-muted-foreground border-b pb-1">
                 Course Requirements (BETA)
-              </Typography>
-              <Stack spacing={0}>
-                {coursesReq.map((group, index) => (
-                  <RequirementGroup
-                    key={index}
-                    group={group}
-                    index={index}
-                    relationType={relationTypes[index]}
-                  />
-                ))}
-              </Stack>
-            </Box>
-          </Fade>
-        </Collapse>
+              </p>
+              {coursesReq.map((group, index) => (
+                <RequirementGroup
+                  key={index}
+                  group={group}
+                  index={index}
+                  allCourses={coursesReq}
+                  enrollmentReqs={enrollmentReqs}
+                />
+              ))}
+            </div>
+          )}
+        </div>
       )}
-    </Box>
+    </div>
   );
 };
 

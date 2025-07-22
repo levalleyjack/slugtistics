@@ -10,7 +10,6 @@ const StyledStatusIcon = styled(Box)(({ theme }) => ({
   alignItems: "center",
   justifyContent: "center",
   transition: "opacity 0.2s ease-in-out",
-
 }));
 
 const StatusIcon = ({ status }: { status: ClassStatusEnum }) => {
@@ -73,8 +72,8 @@ const StatusIcon = ({ status }: { status: ClassStatusEnum }) => {
   const config = getStatusConfig(status);
 
   return (
-    <Tooltip title={config.label} arrow>
-      <StyledStatusIcon>{config.icon}</StyledStatusIcon>
+    <Tooltip title={config.label} arrow disableInteractive>
+      <StyledStatusIcon sx={{ zIndex: 0 }}>{config.icon}</StyledStatusIcon>
     </Tooltip>
   );
 };

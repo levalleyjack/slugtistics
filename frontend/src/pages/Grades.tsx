@@ -74,7 +74,7 @@ const GRADE_POINTS = {
 };
 
 const CLASS_COLORS = ["#7fc97f", "#beaed4", "#fdc086", "#ffff99"];
-const route = "http://127.0.0.1:8080/";
+const route = "https://api.slugtistics.com/api/";
 
 // Your existing API functions
 async function fetchClasses(): Promise<ClassOption[]> {

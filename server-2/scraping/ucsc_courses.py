@@ -252,7 +252,7 @@ def process_course_page(session, url):
                         elif label == "Career":
                             course_details["career"] = value
                         elif label == "General Education":
-                            course_details["general_education"] = value
+                            course_details["general_education"] = value if value != "" else None
                         elif label == "Grading":
                             course_details["grading"] = value
                         elif label == "Type":
@@ -282,7 +282,7 @@ def scrape_all_courses():
 
         data = {
             "action": "results",
-            "binds[:term]": 2252,
+            "binds[:term]": 2258,
             "binds[:reg_status]": "all",
             "binds[:subject]": "",
             "binds[:ge]": "",
@@ -349,7 +349,7 @@ def scrape_count():
 
         data = {
             "action": "results",
-            "binds[:term]": 2252,
+            "binds[:term]": 2258,
             "binds[:reg_status]": "all",
             "binds[:subject]": "",
             "binds[:ge]": "",

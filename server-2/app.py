@@ -258,7 +258,7 @@ def store_courses_in_db():
 
                         subject, catalog_num = course["code"].strip().split(" ", 1)
 
-                        has_enrollment_reqs = bool(course.get("enrollment_reqs"))
+                        has_enrollment_reqs = bool(course.get("enrollment_reqs", {}).get("description", "").strip())
 
                         # setting up coursemodel so that
                         # course information can be stored to db
@@ -362,7 +362,7 @@ def init_app():
         # comment out store_courses_in_db() if you didn't change any
         # of the scraping part and you alr ran once
 
-        #store_courses_in_db()
+        store_courses_in_db()
         init_prereq_dict(app)
         #update_course_statuses() #METHOD!!!
         init_scheduler()

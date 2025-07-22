@@ -45,7 +45,7 @@ export const LoadingCourseCard = forwardRef<
   { isSmallScreen?: boolean }
 >(({ isSmallScreen = false }, ref) => {
   return (
-    <StyledCard elevation={0} ref={ref} sx={{ cursor: "default" }}>
+    <StyledCard elevation={0} ref={ref} sx={{ cursor: "default", border:"none"}}>
       <CardContent sx={{ pb: 1, "&:last-child": { pb: 1 } }}>
         <HeaderContent>
           <CourseInfo>
