@@ -2,7 +2,7 @@ import "./App.css";
 import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import NavBar from "./components/NavBar";
-import HomePage from "./pages/HomePage";
+import HomePage from "./pages/slugtistics/HomePage";
 import AboutPage from "./pages/AboutPage";
 import NotFoundPage from "./pages/NotFoundPage";
 import GeSearch from "./pages/class-search/GeSearch";

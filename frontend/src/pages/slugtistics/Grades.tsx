@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Download, Sun, Moon } from "lucide-react";
+import { Download, Sun, Moon, HelpCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -10,13 +10,19 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import {
   ResponsiveContainer,
   BarChart,
   Bar,
   XAxis,
   YAxis,
   CartesianGrid,
-  Tooltip,
+  Tooltip as ChartTooltip,
   Legend,
 } from "recharts";
 import ReactSelect from "react-select";
@@ -126,6 +132,32 @@ export default function OverviewPage({
   isDarkMode,
   setIsDarkMode,
 }: OverviewPageProps) {
+  // Initialize dark mode from localStorage or props
+  const [internalDarkMode, setInternalDarkMode] = React.useState(() => {
+    // Try to get from localStorage first, fallback to props
+    if (typeof window !== "undefined") {
+      const stored = localStorage.getItem("slugtistics-dark-mode");
+      if (stored !== null) {
+        return JSON.parse(stored);
+      }
+    }
+    return isDarkMode;
+  });
+
+  // Sync internal state with parent component
+  React.useEffect(() => {
+    setIsDarkMode(internalDarkMode);
+  }, [internalDarkMode, setIsDarkMode]);
+
+  // Handle dark mode toggle with persistence
+  const handleDarkModeToggle = () => {
+    const newMode = !internalDarkMode;
+    setInternalDarkMode(newMode);
+    if (typeof window !== "undefined") {
+      localStorage.setItem("slugtistics-dark-mode", JSON.stringify(newMode));
+    }
+  };
+
   const [selectedClass, setSelectedClass] = React.useState<ClassOption | null>(
     null
   );
@@ -236,8 +268,23 @@ export default function OverviewPage({
     }));
   }, [classInfo, selectedInstructor, selectedTerm]);
 
+  // Check if the third column has a selection
+  const hasThirdColumnSelection = React.useMemo(() => {
+    if (sortBy === "instructor") {
+      return selectedTerm !== null;
+    } else {
+      return selectedInstructor !== null;
+    }
+  }, [sortBy, selectedTerm, selectedInstructor]);
+
+  // Check if button should be enabled
+  const isButtonEnabled = React.useMemo(() => {
+    return selectedClass && hasThirdColumnSelection && addedCharts.length < 3;
+  }, [selectedClass, hasThirdColumnSelection, addedCharts.length]);
+
   const handleAddClass = () => {
-    if (addedCharts.length >= 3) return;
+    if (!isButtonEnabled) return;
+
     const usedColors = addedCharts.map((c) => c.color);
     const color =
       CLASS_COLORS.find((col) => !usedColors.includes(col)) || CLASS_COLORS[0];
@@ -348,7 +395,7 @@ export default function OverviewPage({
   };
 
   return (
-    <>
+    <TooltipProvider>
       <header className="bg-card border-b border-border p-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
@@ -364,12 +411,8 @@ export default function OverviewPage({
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setIsDarkMode(!isDarkMode)}
-            >
-              {isDarkMode ? (
+            <Button variant="outline" size="sm" onClick={handleDarkModeToggle}>
+              {internalDarkMode ? (
                 <Sun className="h-4 w-4 text-foreground" />
               ) : (
                 <Moon className="h-4 w-4 text-foreground" />
@@ -414,24 +457,27 @@ export default function OverviewPage({
                 </div>
 
                 <div className="w-[300px] min-w-[150px]">
-                  <ReactSelect
-                    options={[
-                      { value: "instructor", label: "Select by Instructor" },
-                      { value: "term", label: "Select by Term" },
-                    ]}
-                    value={{
-                      value: sortBy,
-                      label: `Select by ${sortBy[0].toUpperCase()}${sortBy.slice(
-                        1
-                      )}`,
-                    }}
-                    onChange={(opt) => {
-                      setSortBy(opt?.value || "instructor");
-                      setSelectedInstructor(null);
-                      setSelectedTerm(null);
-                    }}
-                    styles={createSelectStyles(isDarkMode)}
-                  />
+                  <div className="flex items-center gap-2">
+                    <ReactSelect
+                      options={[
+                        { value: "instructor", label: "Select by Instructor" },
+                        { value: "term", label: "Select by Term" },
+                      ]}
+                      value={{
+                        value: sortBy,
+                        label: `Select by ${sortBy[0].toUpperCase()}${sortBy.slice(
+                          1
+                        )}`,
+                      }}
+                      onChange={(opt) => {
+                        setSortBy(opt?.value || "instructor");
+                        setSelectedInstructor(null);
+                        setSelectedTerm(null);
+                      }}
+                      styles={createSelectStyles(internalDarkMode)}
+                      className="flex-1"
+                    />
+                  </div>
                 </div>
 
                 {sortBy === "instructor" ? (
@@ -452,7 +498,7 @@ export default function OverviewPage({
                       }
                       placeholder="Instructor"
                       isDisabled={instructorOptions.length === 0}
-                      styles={createSelectStyles(isDarkMode)}
+                      styles={createSelectStyles(internalDarkMode)}
                       isClearable={true}
                     />
                   </div>
@@ -470,7 +516,7 @@ export default function OverviewPage({
                       }
                       placeholder="Term"
                       isDisabled={termOptions.length === 0}
-                      styles={createSelectStyles(isDarkMode)}
+                      styles={createSelectStyles(internalDarkMode)}
                       isClearable={true}
                     />
                   </div>
@@ -492,7 +538,7 @@ export default function OverviewPage({
                       isDisabled={
                         selectedInstructor === null || termOptions.length === 0
                       }
-                      styles={createSelectStyles(isDarkMode)}
+                      styles={createSelectStyles(internalDarkMode)}
                       isClearable={true}
                     />
                   </div>
@@ -516,14 +562,19 @@ export default function OverviewPage({
                       isDisabled={
                         selectedTerm === null || instructorOptions.length === 0
                       }
-                      styles={createSelectStyles(isDarkMode)}
+                      styles={createSelectStyles(internalDarkMode)}
                       isClearable={true}
                     />
                   </div>
                 )}
 
                 <div className="flex items-center">
-                  <Button onClick={handleAddClass} variant="outline">
+                  <Button
+                    onClick={handleAddClass}
+                    //disabled={!isButtonEnabled}
+                    //variant={isButtonEnabled ? "default" : "secondary"}
+                    size={"addclass"}
+                  >
                     Add Class
                   </Button>
                 </div>
@@ -556,7 +607,7 @@ export default function OverviewPage({
                         className="text-sm"
                         tick={{ fill: "var(--muted-foreground)" }}
                       />
-                      <Tooltip
+                      <ChartTooltip
                         contentStyle={{
                           backgroundColor: "var(--card)",
                           border: "1px solid var(--border)",
@@ -596,6 +647,6 @@ export default function OverviewPage({
           </div>
         </div>
       </div>
-    </>
+    </TooltipProvider>
   );
 }

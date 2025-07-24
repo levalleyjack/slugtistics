@@ -5,8 +5,8 @@ import {
   SidebarTrigger,
 } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/Slugtistics/app-sidebar";
-import GradesPage from "@/pages/Grades";
-import SchedulePage from "@/pages/Schedule";
+import GradesPage from "@/pages/slugtistics/Grades";
+import SchedulePage from "@/pages/slugtistics/Schedule";
 
 export default function Dashboard() {
   const [isDarkMode, setIsDarkMode] = useState(false);
