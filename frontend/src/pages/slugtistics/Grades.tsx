@@ -491,11 +491,13 @@ export default function OverviewPage({
                             )
                           : null
                       }
-                      onChange={(opt) =>
-                        setSelectedInstructor(
-                          (opt as ClassOption)?.value ?? null
-                        )
-                      }
+                      onChange={(opt) => {
+                        const newInstructor =
+                          (opt as ClassOption)?.value ?? null;
+                        setSelectedInstructor(newInstructor);
+                        // Auto-select "All Terms" when instructor is selected
+                        setSelectedTerm("");
+                      }}
                       placeholder="Instructor"
                       isDisabled={instructorOptions.length === 0}
                       styles={createSelectStyles(internalDarkMode)}
@@ -511,9 +513,12 @@ export default function OverviewPage({
                           ? termOptions.find((o) => o.value === selectedTerm)
                           : null
                       }
-                      onChange={(opt) =>
-                        setSelectedTerm((opt as ClassOption)?.value ?? null)
-                      }
+                      onChange={(opt) => {
+                        const newTerm = (opt as ClassOption)?.value ?? null;
+                        setSelectedTerm(newTerm);
+                        // Auto-select "All Instructors" when term is selected
+                        setSelectedInstructor("");
+                      }}
                       placeholder="Term"
                       isDisabled={termOptions.length === 0}
                       styles={createSelectStyles(internalDarkMode)}
@@ -535,9 +540,8 @@ export default function OverviewPage({
                         setSelectedTerm((opt as ClassOption)?.value ?? null)
                       }
                       placeholder="Term"
-                      isDisabled={
-                        selectedInstructor === null || termOptions.length === 0
-                      }
+                      // Removed the disabling condition - third dropdown is always enabled
+                      isDisabled={termOptions.length === 0}
                       styles={createSelectStyles(internalDarkMode)}
                       isClearable={true}
                     />
@@ -559,9 +563,8 @@ export default function OverviewPage({
                         )
                       }
                       placeholder="Instructor"
-                      isDisabled={
-                        selectedTerm === null || instructorOptions.length === 0
-                      }
+                      // Removed the disabling condition - third dropdown is always enabled
+                      isDisabled={instructorOptions.length === 0}
                       styles={createSelectStyles(internalDarkMode)}
                       isClearable={true}
                     />
@@ -571,8 +574,8 @@ export default function OverviewPage({
                 <div className="flex items-center">
                   <Button
                     onClick={handleAddClass}
-                    //disabled={!isButtonEnabled}
-                    //variant={isButtonEnabled ? "default" : "secondary"}
+                    disabled={!isButtonEnabled}
+                    variant={isButtonEnabled ? "default" : "muted"}
                     size={"addclass"}
                   >
                     Add Class
