@@ -31,7 +31,7 @@ export default function Dashboard() {
 
   return (
     <div className={` ${isDarkMode ? "dark" : ""}`}>
-      <div className="flex bg-background">
+      <div className="flex-1 bg-background">
         <div className="flex-1 flex flex-col overflow-hidden">
           <SidebarProvider>
             <AppSidebar

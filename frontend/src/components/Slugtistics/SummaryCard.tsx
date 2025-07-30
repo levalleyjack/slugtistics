@@ -7,7 +7,8 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { X } from "lucide-react";
+import { X, Loader2 } from "lucide-react";
+
 interface InstructorRatings {
   avg_rating: number;
   difficulty_level: number;
@@ -26,12 +27,20 @@ interface AddedChart {
   ratingSnapshot?: InstructorRatings;
 }
 
-interface SummaryCardsProps {
-  addedCharts: AddedChart[];
+interface SummaryCardProps {
+  chart: AddedChart;
   onRemove: (id: string) => void;
+  isLoadingRatings?: boolean;
+  hasRatingsError?: boolean;
 }
-function SummaryCard({ chart, onRemove }) {
-  const getColorHue = (value, metric) => {
+
+function SummaryCard({
+  chart,
+  onRemove,
+  isLoadingRatings = false,
+  hasRatingsError = false,
+}: SummaryCardProps) {
+  const getColorHue = (value: number, metric: string) => {
     switch (metric) {
       case "gpa":
         return Math.max(0, Math.min(120, ((value - 2) / 2) * 120));
@@ -45,6 +54,10 @@ function SummaryCard({ chart, onRemove }) {
         return 60;
     }
   };
+
+  // Check if we have instructor data but no ratings (still loading or error)
+  const hasInstructor = chart.instructor && chart.instructor !== "";
+  const showLoadingOrError = hasInstructor && !chart.ratingSnapshot;
 
   return (
     <Card className="relative">
@@ -88,45 +101,92 @@ function SummaryCard({ chart, onRemove }) {
             </p>
           </div>
 
-          {chart.ratingSnapshot && (
+          {hasInstructor && (
             <div
               className="p-3 rounded-lg border-l-4 bg-muted/50"
               style={{
-                borderLeftColor: `hsl(${getColorHue(
-                  chart.ratingSnapshot.avg_rating,
-                  "rating"
-                )}, 70%, 50%)`,
+                borderLeftColor: chart.ratingSnapshot
+                  ? `hsl(${getColorHue(
+                      chart.ratingSnapshot.avg_rating,
+                      "rating"
+                    )}, 70%, 50%)`
+                  : "hsl(200, 20%, 50%)",
               }}
             >
               <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
                 RateMyProfessor Rating
               </p>
-              <p className="text-2xl font-bold">
-                {chart.ratingSnapshot.avg_rating.toFixed(1)}
-                <span className="text-sm text-muted-foreground ml-1">/ 5</span>
-              </p>
+              {showLoadingOrError ? (
+                isLoadingRatings ? (
+                  <div className="flex items-center gap-2">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <span className="text-sm text-muted-foreground">
+                      Loading...
+                    </span>
+                  </div>
+                ) : hasRatingsError ? (
+                  <p className="text-sm text-muted-foreground">Not found</p>
+                ) : (
+                  <p className="text-sm text-muted-foreground">Not found</p>
+                )
+              ) : chart.ratingSnapshot ? (
+                <p className="text-2xl font-bold">
+                  {chart.ratingSnapshot.avg_rating.toFixed(1)}
+                  <span className="text-sm text-muted-foreground ml-1">
+                    / 5
+                  </span>
+                </p>
+              ) : null}
             </div>
           )}
         </div>
 
-        {chart.ratingSnapshot && (
+        {hasInstructor && (
           <div className="grid grid-cols-2 gap-2">
             <div className="p-2 rounded bg-muted/30">
-              <p className="text-xs font-medium text-muted-foreground uppercase ">
+              <p className="text-xs font-medium text-muted-foreground uppercase">
                 Professor Difficulty
               </p>
-              <p className="text-lg font-semibold">
-                {chart.ratingSnapshot.difficulty_level.toFixed(1)}
-                <span className="text-sm text-muted-foreground ml-1">/ 5</span>
-              </p>
+              {showLoadingOrError ? (
+                isLoadingRatings ? (
+                  <div className="flex items-center gap-1">
+                    <Loader2 className="h-3 w-3 animate-spin" />
+                    <span className="text-xs text-muted-foreground">
+                      Loading...
+                    </span>
+                  </div>
+                ) : (
+                  <p className="text-xs text-muted-foreground">Not found</p>
+                )
+              ) : chart.ratingSnapshot ? (
+                <p className="text-lg font-semibold">
+                  {chart.ratingSnapshot.difficulty_level.toFixed(1)}
+                  <span className="text-sm text-muted-foreground ml-1">
+                    / 5
+                  </span>
+                </p>
+              ) : null}
             </div>
             <div className="p-2 rounded bg-muted/30">
-              <p className="text-xs font-medium text-muted-foreground uppercase ">
+              <p className="text-xs font-medium text-muted-foreground uppercase">
                 Professor Take Again
               </p>
-              <p className="text-lg font-semibold">
-                {chart.ratingSnapshot.would_take_again_percent.toFixed(1)}%
-              </p>
+              {showLoadingOrError ? (
+                isLoadingRatings ? (
+                  <div className="flex items-center gap-1">
+                    <Loader2 className="h-3 w-3 animate-spin" />
+                    <span className="text-xs text-muted-foreground">
+                      Loading...
+                    </span>
+                  </div>
+                ) : (
+                  <p className="text-xs text-muted-foreground">Not found</p>
+                )
+              ) : chart.ratingSnapshot ? (
+                <p className="text-lg font-semibold">
+                  {chart.ratingSnapshot.would_take_again_percent.toFixed(1)}%
+                </p>
+              ) : null}
             </div>
           </div>
         )}
