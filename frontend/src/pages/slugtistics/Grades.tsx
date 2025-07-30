@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Download, Sun, Moon, HelpCircle } from "lucide-react";
+import { Download, Sun, Moon, HelpCircle, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -79,7 +79,7 @@ const GRADE_POINTS = {
   F: 0.0,
 };
 
-const CLASS_COLORS = ["#7fc97f", "#beaed4", "#fdc086", "#ffff99"];
+const CLASS_COLORS = ["#fdc086", "#7fc97f", "#beaed4", "#ffff99"];
 const route = "https://api.slugtistics.com/api/";
 
 // Your existing API functions
@@ -115,7 +115,10 @@ async function fetchInstructorRatings(
         instructor
       )}&course=`
     );
-    if (!res.ok) throw new Error("Failed to load instructor ratings");
+    if (!res.ok) {
+      // Return null for any HTTP error (including 500)
+      return null;
+    }
     return res.json();
   } catch (error) {
     console.error("Error fetching instructor ratings:", error);
@@ -144,6 +147,10 @@ export default function OverviewPage({
     return isDarkMode;
   });
 
+  // Loading state management
+  const [showDelayedLoading, setShowDelayedLoading] = React.useState(false);
+  const loadingTimeoutRef = React.useRef<NodeJS.Timeout | null>(null);
+
   // Sync internal state with parent component
   React.useEffect(() => {
     setIsDarkMode(internalDarkMode);
@@ -169,6 +176,11 @@ export default function OverviewPage({
   const [sortBy, setSortBy] = React.useState<"instructor" | "term">(
     "instructor"
   );
+
+  // Separate data structure to store instructor ratings
+  const [instructorRatingsCache, setInstructorRatingsCache] = React.useState<
+    Record<string, InstructorRatings | null>
+  >({});
 
   const { data: classOptions = [] } = useQuery({
     queryKey: ["classes"],
@@ -220,12 +232,65 @@ export default function OverviewPage({
     ];
   }, [classInfo, selectedTerm, sortBy]);
 
-  const { data: instrRatings } = useQuery({
+  // Enhanced instructor ratings query with loading state management
+  const {
+    data: instrRatings,
+    isFetching: isRatingsFetching,
+    isError: ratingsError,
+  } = useQuery({
     queryKey: ["instructorRatings", selectedInstructor],
     queryFn: () => fetchInstructorRatings(selectedInstructor!),
     enabled: Boolean(selectedInstructor && selectedInstructor !== ""),
     staleTime: 1000 * 60 * 5,
+    retry: false, // Don't retry on 500 errors
   });
+
+  // Update the ratings cache when new data comes in
+  React.useEffect(() => {
+    if (selectedInstructor && selectedInstructor !== "") {
+      if (instrRatings !== undefined) {
+        setInstructorRatingsCache((prev) => ({
+          ...prev,
+          [selectedInstructor]: instrRatings,
+        }));
+      } else if (ratingsError) {
+        setInstructorRatingsCache((prev) => ({
+          ...prev,
+          [selectedInstructor]: null,
+        }));
+      }
+    }
+  }, [selectedInstructor, instrRatings, ratingsError]);
+
+  // Effect to manage delayed loading indicator
+  React.useEffect(() => {
+    if (isRatingsFetching && selectedInstructor && selectedInstructor !== "") {
+      // Clear any existing timeout
+      if (loadingTimeoutRef.current) {
+        clearTimeout(loadingTimeoutRef.current);
+      }
+
+      // Set a timeout to show loading indicator after a delay
+      // This creates a "natural" threshold based on user interaction patterns
+      loadingTimeoutRef.current = setTimeout(() => {
+        setShowDelayedLoading(true);
+      }, 300); // Small delay to avoid flashing for quick requests
+    } else {
+      // Clear timeout and hide loading when request completes
+      if (loadingTimeoutRef.current) {
+        clearTimeout(loadingTimeoutRef.current);
+        loadingTimeoutRef.current = null;
+      }
+      setShowDelayedLoading(false);
+    }
+
+    // Cleanup timeout on unmount
+    return () => {
+      if (loadingTimeoutRef.current) {
+        clearTimeout(loadingTimeoutRef.current);
+      }
+    };
+  }, [isRatingsFetching, selectedInstructor]);
 
   const currentChartData = React.useMemo(() => {
     const buckets: Record<string, number> = {
@@ -302,7 +367,7 @@ export default function OverviewPage({
     const id = `${Date.now()}`;
     const ratingSnapshot =
       selectedInstructor && selectedInstructor !== ""
-        ? instrRatings
+        ? instructorRatingsCache[selectedInstructor]
         : undefined;
 
     setAddedCharts((prev) => [
@@ -639,13 +704,46 @@ export default function OverviewPage({
                 </h3>
                 <Badge variant="secondary">{addedCharts.length}/3</Badge>
               </div>
-              {addedCharts.map((chart) => (
-                <SummaryCard
-                  key={chart.id}
-                  chart={chart}
-                  onRemove={handleRemoveChart}
-                />
-              ))}
+              {addedCharts.map((chart) => {
+                // Get current ratings from cache for this instructor
+                const currentRatings =
+                  chart.instructor && chart.instructor !== ""
+                    ? instructorRatingsCache[chart.instructor]
+                    : undefined;
+
+                // Check if we're currently loading data for this instructor
+                const isCurrentlyLoading =
+                  chart.instructor === selectedInstructor &&
+                  selectedInstructor &&
+                  selectedInstructor !== "" &&
+                  isRatingsFetching;
+
+                // Check if we have an error for this instructor
+                const hasCurrentError =
+                  chart.instructor === selectedInstructor &&
+                  selectedInstructor &&
+                  selectedInstructor !== "" &&
+                  ratingsError;
+
+                // Create updated chart with current ratings from cache
+                const updatedChart = {
+                  ...chart,
+                  ratingSnapshot:
+                    currentRatings !== undefined
+                      ? currentRatings
+                      : chart.ratingSnapshot,
+                };
+
+                return (
+                  <SummaryCard
+                    key={chart.id}
+                    chart={updatedChart}
+                    onRemove={handleRemoveChart}
+                    isLoadingRatings={isCurrentlyLoading}
+                    hasRatingsError={hasCurrentError}
+                  />
+                );
+              })}
             </div>
           </div>
         </div>
