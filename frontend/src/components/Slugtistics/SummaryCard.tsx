@@ -62,7 +62,7 @@ function SummaryCard({
   return (
     <Card className="relative">
       <div
-        className="absolute top-0 left-0 right-0 h-1 rounded-t-lg"
+        className="absolute top-0 left-0 right-0 h-2"
         style={{ backgroundColor: chart.color }}
       />
       <CardHeader className="pb-2">
@@ -81,7 +81,7 @@ function SummaryCard({
           {chart.instructor || "All Instructors"} • {chart.term || "All Terms"}
         </CardDescription>
       </CardHeader>
-      <CardContent className="space-y-4">
+      <CardContent className="space-y-2">
         <div className="grid grid-cols-2 gap-4">
           <div
             className="p-3 rounded-lg border-l-4 bg-muted/50"
