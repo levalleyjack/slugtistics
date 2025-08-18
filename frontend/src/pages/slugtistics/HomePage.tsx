@@ -7,40 +7,30 @@ import {
 import { AppSidebar } from "@/components/Slugtistics/app-sidebar";
 import GradesPage from "@/pages/slugtistics/Grades";
 import SchedulePage from "@/pages/slugtistics/Schedule";
+import DepartmentGradeDashboard from "./Department";
+import { useTheme } from "next-themes";
 
 export default function Dashboard() {
-  const [isDarkMode, setIsDarkMode] = useState(false);
   const [currentPage, setCurrentPage] = useState("grades");
 
   const renderCurrentPage = () => {
     switch (currentPage) {
       case "grades":
-        return (
-          <GradesPage isDarkMode={isDarkMode} setIsDarkMode={setIsDarkMode} />
-        );
-      case "schedule":
-        return (
-          <SchedulePage isDarkMode={isDarkMode} setIsDarkMode={setIsDarkMode} />
-        );
+        return <GradesPage />;
+      case "department":
+        return <DepartmentGradeDashboard />;
       default:
-        return (
-          <GradesPage isDarkMode={isDarkMode} setIsDarkMode={setIsDarkMode} />
-        );
+        return <GradesPage />;
     }
   };
 
   return (
-    <div className={` ${isDarkMode ? "dark" : ""}`}>
-      <div className="flex-1 bg-background">
-        <div className="flex-1 flex flex-col overflow-hidden">
-          <SidebarProvider>
-            <AppSidebar
-              currentPage={currentPage}
-              onPageChange={setCurrentPage}
-            />
-            <SidebarInset>{renderCurrentPage()}</SidebarInset>
-          </SidebarProvider>
-        </div>
+    <div className="flex-1 bg-background">
+      <div className="flex-1 flex flex-col overflow-hidden">
+        <SidebarProvider>
+          <AppSidebar currentPage={currentPage} onPageChange={setCurrentPage} />
+          <SidebarInset>{renderCurrentPage()}</SidebarInset>
+        </SidebarProvider>
       </div>
     </div>
   );

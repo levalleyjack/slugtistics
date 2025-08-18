@@ -1,4 +1,4 @@
-export const createSelectStyles = (isDarkMode) => ({
+export const createSelectStyles = () => ({
   control: (provided, state) => ({
     ...provided,
     minHeight: 50,

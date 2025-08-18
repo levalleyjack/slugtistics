@@ -16,6 +16,7 @@ import {
 const sidebarItems = [
   { id: "grades", icon: BarChart3, label: "Grades" },
   /*
+    { id: "department", icon: BarChart3, label: "Department" },
   { id: "schedule", icon: GraduationCap, label: "Schedule" },
   { id: "instructors", icon: Users, label: "Instructors" },
   { id: "trends", icon: TrendingUp, label: "Trends" },

@@ -1,5 +1,3 @@
-"use client";
-
 import * as React from "react";
 import { Slot } from "@radix-ui/react-slot";
 //adding type to Variant Props fixed sidebar issue. NO CLUE WHY BUT DONT TOUCH

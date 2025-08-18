@@ -31,8 +31,10 @@ import { createSelectStyles } from "@/components/Slugtistics/reactSelectStyles";
 import SummaryCard from "@/components/Slugtistics/SummaryCard";
 import html2canvas from "html2canvas-pro";
 import { SidebarTrigger } from "@/components/ui/sidebar";
+import { useTheme } from "@/components/theme-provider";
+import { ModeToggle } from "@/components/ui/mode-toggle";
+import { Info, BarChart3 } from "lucide-react";
 
-// Your existing interfaces and constants
 interface ClassOption {
   label: string;
   value: string;
@@ -82,7 +84,7 @@ const GRADE_POINTS = {
 const CLASS_COLORS = ["#fdc086", "#7fc97f", "#beaed4", "#ffff99"];
 const route = "https://api.slugtistics.com/api/";
 
-// Your existing API functions
+// Gets every course for first dropdown.
 async function fetchClasses(): Promise<ClassOption[]> {
   try {
     const res = await fetch(route + "classes");
@@ -94,7 +96,7 @@ async function fetchClasses(): Promise<ClassOption[]> {
     return [];
   }
 }
-
+// Gets the grade data based on the class.
 async function fetchClassInfo(subject: string): Promise<ClassInfo[]> {
   try {
     const res = await fetch(route + `class-info/${subject}`);
@@ -105,7 +107,7 @@ async function fetchClassInfo(subject: string): Promise<ClassInfo[]> {
     return [];
   }
 }
-
+//Fetched RMP data, possibility of it returning null is hgandled
 async function fetchInstructorRatings(
   instructor: string
 ): Promise<InstructorRatings | null> {
@@ -116,7 +118,6 @@ async function fetchInstructorRatings(
       )}&course=`
     );
     if (!res.ok) {
-      // Return null for any HTTP error (including 500)
       return null;
     }
     return res.json();
@@ -126,44 +127,9 @@ async function fetchInstructorRatings(
   }
 }
 
-interface OverviewPageProps {
-  isDarkMode: boolean;
-  setIsDarkMode: (dark: boolean) => void;
-}
-
-export default function OverviewPage({
-  isDarkMode,
-  setIsDarkMode,
-}: OverviewPageProps) {
-  // Initialize dark mode from localStorage or props
-  const [internalDarkMode, setInternalDarkMode] = React.useState(() => {
-    // Try to get from localStorage first, fallback to props
-    if (typeof window !== "undefined") {
-      const stored = localStorage.getItem("slugtistics-dark-mode");
-      if (stored !== null) {
-        return JSON.parse(stored);
-      }
-    }
-    return isDarkMode;
-  });
-
-  // Loading state management
+export default function OverviewPage() {
   const [showDelayedLoading, setShowDelayedLoading] = React.useState(false);
   const loadingTimeoutRef = React.useRef<NodeJS.Timeout | null>(null);
-
-  // Sync internal state with parent component
-  React.useEffect(() => {
-    setIsDarkMode(internalDarkMode);
-  }, [internalDarkMode, setIsDarkMode]);
-
-  // Handle dark mode toggle with persistence
-  const handleDarkModeToggle = () => {
-    const newMode = !internalDarkMode;
-    setInternalDarkMode(newMode);
-    if (typeof window !== "undefined") {
-      localStorage.setItem("slugtistics-dark-mode", JSON.stringify(newMode));
-    }
-  };
 
   const [selectedClass, setSelectedClass] = React.useState<ClassOption | null>(
     null
@@ -177,7 +143,6 @@ export default function OverviewPage({
     "instructor"
   );
 
-  // Separate data structure to store instructor ratings
   const [instructorRatingsCache, setInstructorRatingsCache] = React.useState<
     Record<string, InstructorRatings | null>
   >({});
@@ -232,7 +197,6 @@ export default function OverviewPage({
     ];
   }, [classInfo, selectedTerm, sortBy]);
 
-  // Enhanced instructor ratings query with loading state management
   const {
     data: instrRatings,
     isFetching: isRatingsFetching,
@@ -245,7 +209,6 @@ export default function OverviewPage({
     retry: false, // Don't retry on 500 errors
   });
 
-  // Update the ratings cache when new data comes in
   React.useEffect(() => {
     if (selectedInstructor && selectedInstructor !== "") {
       if (instrRatings !== undefined) {
@@ -262,7 +225,6 @@ export default function OverviewPage({
     }
   }, [selectedInstructor, instrRatings, ratingsError]);
 
-  // Effect to manage delayed loading indicator
   React.useEffect(() => {
     if (isRatingsFetching && selectedInstructor && selectedInstructor !== "") {
       // Clear any existing timeout
@@ -270,21 +232,16 @@ export default function OverviewPage({
         clearTimeout(loadingTimeoutRef.current);
       }
 
-      // Set a timeout to show loading indicator after a delay
-      // This creates a "natural" threshold based on user interaction patterns
       loadingTimeoutRef.current = setTimeout(() => {
         setShowDelayedLoading(true);
       }, 300); // Small delay to avoid flashing for quick requests
     } else {
-      // Clear timeout and hide loading when request completes
       if (loadingTimeoutRef.current) {
         clearTimeout(loadingTimeoutRef.current);
         loadingTimeoutRef.current = null;
       }
       setShowDelayedLoading(false);
     }
-
-    // Cleanup timeout on unmount
     return () => {
       if (loadingTimeoutRef.current) {
         clearTimeout(loadingTimeoutRef.current);
@@ -333,7 +290,6 @@ export default function OverviewPage({
     }));
   }, [classInfo, selectedInstructor, selectedTerm]);
 
-  // Check if the third column has a selection
   const hasThirdColumnSelection = React.useMemo(() => {
     if (sortBy === "instructor") {
       return selectedTerm !== null;
@@ -342,7 +298,6 @@ export default function OverviewPage({
     }
   }, [sortBy, selectedTerm, selectedInstructor]);
 
-  // Check if button should be enabled
   const isButtonEnabled = React.useMemo(() => {
     return selectedClass && hasThirdColumnSelection && addedCharts.length < 3;
   }, [selectedClass, hasThirdColumnSelection, addedCharts.length]);
@@ -467,30 +422,15 @@ export default function OverviewPage({
             <SidebarTrigger className="text-foreground" />
             <div>
               <h2 className="text-2xl font-bold text-foreground">
-                Grade Distribution Overview
+                Grade Distribution Overviews
               </h2>
               <p className="text-muted-foreground">
-                Analyze and compare course performance across different
-                instructors and terms
+                Enter a class to get started
               </p>
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <Button variant="outline" size="sm" onClick={handleDarkModeToggle}>
-              {internalDarkMode ? (
-                <Sun className="h-4 w-4 text-foreground" />
-              ) : (
-                <Moon className="h-4 w-4 text-foreground" />
-              )}
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleScreenshot}
-              title="Download Screenshot"
-            >
-              <Download className="h-4 w-4 text-foreground" />
-            </Button>
+            {/*<ModeToggle></ModeToggle>*/}
           </div>
         </div>
       </header>
@@ -516,7 +456,7 @@ export default function OverviewPage({
                       setSelectedTerm(null);
                     }}
                     placeholder="Class"
-                    styles={createSelectStyles(isDarkMode)}
+                    styles={createSelectStyles()}
                     isClearable={true}
                   />
                 </div>
@@ -539,35 +479,51 @@ export default function OverviewPage({
                         setSelectedInstructor(null);
                         setSelectedTerm(null);
                       }}
-                      styles={createSelectStyles(internalDarkMode)}
+                      styles={createSelectStyles()}
                       className="flex-1"
+                      isDisabled={!selectedClass}
                     />
                   </div>
                 </div>
 
                 {sortBy === "instructor" ? (
                   <div className="w-[300px] min-w-[150px]">
-                    <ReactSelect
-                      options={instructorOptions}
-                      value={
-                        selectedInstructor !== null
-                          ? instructorOptions.find(
-                              (o) => o.value === selectedInstructor
-                            )
-                          : null
-                      }
-                      onChange={(opt) => {
-                        const newInstructor =
-                          (opt as ClassOption)?.value ?? null;
-                        setSelectedInstructor(newInstructor);
-                        // Auto-select "All Terms" when instructor is selected
-                        setSelectedTerm("");
-                      }}
-                      placeholder="Instructor"
-                      isDisabled={instructorOptions.length === 0}
-                      styles={createSelectStyles(internalDarkMode)}
-                      isClearable={true}
-                    />
+                    <div className="flex items-center gap-2">
+                      <ReactSelect
+                        options={instructorOptions}
+                        value={
+                          selectedInstructor !== null
+                            ? instructorOptions.find(
+                                (o) => o.value === selectedInstructor
+                              )
+                            : null
+                        }
+                        onChange={(opt) => {
+                          const newInstructor =
+                            (opt as ClassOption)?.value ?? null;
+                          setSelectedInstructor(newInstructor);
+                          setSelectedTerm("");
+                        }}
+                        placeholder="Instructor"
+                        isDisabled={
+                          !selectedClass || instructorOptions.length === 0
+                        }
+                        styles={createSelectStyles()}
+                        isClearable={true}
+                        className="flex-1"
+                      />
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Info className="h-4 w-4 text-muted-foreground cursor-help" />
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>
+                            Select a named instructor to see RateMyProfessor
+                            data
+                          </p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </div>
                   </div>
                 ) : (
                   <div className="w-[300px] min-w-[150px]">
@@ -581,12 +537,11 @@ export default function OverviewPage({
                       onChange={(opt) => {
                         const newTerm = (opt as ClassOption)?.value ?? null;
                         setSelectedTerm(newTerm);
-                        // Auto-select "All Instructors" when term is selected
                         setSelectedInstructor("");
                       }}
                       placeholder="Term"
-                      isDisabled={termOptions.length === 0}
-                      styles={createSelectStyles(internalDarkMode)}
+                      isDisabled={!selectedClass || termOptions.length === 0}
+                      styles={createSelectStyles()}
                       isClearable={true}
                     />
                   </div>
@@ -605,34 +560,48 @@ export default function OverviewPage({
                         setSelectedTerm((opt as ClassOption)?.value ?? null)
                       }
                       placeholder="Term"
-                      // Removed the disabling condition - third dropdown is always enabled
-                      isDisabled={termOptions.length === 0}
-                      styles={createSelectStyles(internalDarkMode)}
+                      isDisabled={!selectedClass || termOptions.length === 0}
+                      styles={createSelectStyles()}
                       isClearable={true}
                     />
                   </div>
                 ) : (
                   <div className="w-[300px] min-w-[150px]">
-                    <ReactSelect
-                      options={instructorOptions}
-                      value={
-                        selectedInstructor !== null
-                          ? instructorOptions.find(
-                              (o) => o.value === selectedInstructor
-                            )
-                          : null
-                      }
-                      onChange={(opt) =>
-                        setSelectedInstructor(
-                          (opt as ClassOption)?.value ?? null
-                        )
-                      }
-                      placeholder="Instructor"
-                      // Removed the disabling condition - third dropdown is always enabled
-                      isDisabled={instructorOptions.length === 0}
-                      styles={createSelectStyles(internalDarkMode)}
-                      isClearable={true}
-                    />
+                    <div className="flex items-center gap-2">
+                      <ReactSelect
+                        options={instructorOptions}
+                        value={
+                          selectedInstructor !== null
+                            ? instructorOptions.find(
+                                (o) => o.value === selectedInstructor
+                              )
+                            : null
+                        }
+                        onChange={(opt) =>
+                          setSelectedInstructor(
+                            (opt as ClassOption)?.value ?? null
+                          )
+                        }
+                        placeholder="Instructor"
+                        isDisabled={
+                          !selectedClass || instructorOptions.length === 0
+                        }
+                        styles={createSelectStyles()}
+                        isClearable={true}
+                        className="flex-1"
+                      />
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Info className="h-4 w-4 text-muted-foreground cursor-help" />
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>
+                            Select a specific instructor to see RateMyProfessor
+                            data
+                          </p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </div>
                   </div>
                 )}
 
@@ -658,41 +627,54 @@ export default function OverviewPage({
                   Percentage distribution of grades across selected courses
                 </CardDescription>
               </CardHeader>
+
               <CardContent className="flex-1 flex flex-col">
-                <div className="flex-1 min-h-[400px]">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={combinedData}>
-                      <CartesianGrid
-                        strokeDasharray="3 3"
-                        className="stroke-muted"
-                      />
-                      <XAxis
-                        dataKey="grade"
-                        className="text-sm"
-                        tick={{ fill: "var(--muted-foreground)" }}
-                      />
-                      <YAxis
-                        className="text-sm"
-                        tick={{ fill: "var(--muted-foreground)" }}
-                      />
-                      <ChartTooltip
-                        contentStyle={{
-                          backgroundColor: "var(--card)",
-                          border: "1px solid var(--border)",
-                          borderRadius: "6px",
-                        }}
-                      />
-                      <Legend content={<CustomLegend />} />
-                      {addedCharts.map((chart) => (
-                        <Bar
-                          key={chart.id}
-                          dataKey={chart.id}
-                          name={chart.label}
-                          fill={chart.color}
+                <div className="flex-1 min-h-[400px] relative">
+                  {addedCharts.length === 0 ? (
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <div className="text-center text-muted-foreground">
+                        <BarChart3 className="h-12 w-12 mx-auto mb-3 opacity-50" />
+                        <p className="text-lg font-medium mb-1">
+                          No data to display
+                        </p>
+                        <p className="text-sm">Add a class to get started</p>
+                      </div>
+                    </div>
+                  ) : (
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart data={combinedData}>
+                        <CartesianGrid
+                          strokeDasharray="3 3"
+                          className="stroke-muted"
                         />
-                      ))}
-                    </BarChart>
-                  </ResponsiveContainer>
+                        <XAxis
+                          dataKey="grade"
+                          className="text-sm"
+                          tick={{ fill: "var(--muted-foreground)" }}
+                        />
+                        <YAxis
+                          className="text-sm"
+                          tick={{ fill: "var(--muted-foreground)" }}
+                        />
+                        <ChartTooltip
+                          contentStyle={{
+                            backgroundColor: "var(--card)",
+                            border: "1px solid var(--border)",
+                            borderRadius: "6px",
+                          }}
+                        />
+                        <Legend content={<CustomLegend />} />
+                        {addedCharts.map((chart) => (
+                          <Bar
+                            key={chart.id}
+                            dataKey={chart.id}
+                            name={chart.label}
+                            fill={chart.color}
+                          />
+                        ))}
+                      </BarChart>
+                    </ResponsiveContainer>
+                  )}
                 </div>
               </CardContent>
             </Card>
@@ -704,46 +686,51 @@ export default function OverviewPage({
                 </h3>
                 <Badge variant="secondary">{addedCharts.length}/3</Badge>
               </div>
-              {addedCharts.map((chart) => {
-                // Get current ratings from cache for this instructor
-                const currentRatings =
-                  chart.instructor && chart.instructor !== ""
-                    ? instructorRatingsCache[chart.instructor]
-                    : undefined;
+              {addedCharts.length === 0 ? (
+                <div className="text-center text-muted-foreground py-8">
+                  <p className="text-sm">No courses added yet</p>
+                  <p className="text-xs mt-1">
+                    Select a class and add it to see summary
+                  </p>
+                </div>
+              ) : (
+                addedCharts.map((chart) => {
+                  const currentRatings =
+                    chart.instructor && chart.instructor !== ""
+                      ? instructorRatingsCache[chart.instructor]
+                      : undefined;
 
-                // Check if we're currently loading data for this instructor
-                const isCurrentlyLoading =
-                  chart.instructor === selectedInstructor &&
-                  selectedInstructor &&
-                  selectedInstructor !== "" &&
-                  isRatingsFetching;
+                  const isCurrentlyLoading =
+                    chart.instructor === selectedInstructor &&
+                    selectedInstructor &&
+                    selectedInstructor !== "" &&
+                    isRatingsFetching;
 
-                // Check if we have an error for this instructor
-                const hasCurrentError =
-                  chart.instructor === selectedInstructor &&
-                  selectedInstructor &&
-                  selectedInstructor !== "" &&
-                  ratingsError;
+                  const hasCurrentError =
+                    chart.instructor === selectedInstructor &&
+                    selectedInstructor &&
+                    selectedInstructor !== "" &&
+                    ratingsError;
 
-                // Create updated chart with current ratings from cache
-                const updatedChart = {
-                  ...chart,
-                  ratingSnapshot:
-                    currentRatings !== undefined
-                      ? currentRatings
-                      : chart.ratingSnapshot,
-                };
+                  const updatedChart = {
+                    ...chart,
+                    ratingSnapshot:
+                      currentRatings !== undefined
+                        ? currentRatings
+                        : chart.ratingSnapshot,
+                  };
 
-                return (
-                  <SummaryCard
-                    key={chart.id}
-                    chart={updatedChart}
-                    onRemove={handleRemoveChart}
-                    isLoadingRatings={isCurrentlyLoading}
-                    hasRatingsError={hasCurrentError}
-                  />
-                );
-              })}
+                  return (
+                    <SummaryCard
+                      key={chart.id}
+                      chart={updatedChart}
+                      onRemove={handleRemoveChart}
+                      isLoadingRatings={isCurrentlyLoading}
+                      hasRatingsError={hasCurrentError}
+                    />
+                  );
+                })
+              )}
             </div>
           </div>
         </div>

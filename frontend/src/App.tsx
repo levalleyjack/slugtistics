@@ -11,6 +11,7 @@ import { Chatbot } from "./components/ChatBot";
 import MajorSearch from "./pages/major-search/MajorSearch";
 import { alpha, createTheme, ThemeProvider } from "@mui/material/styles";
 import FeedbackButton from "./components/FeedbackButton";
+import { ThemeProvider as ShadcnThemeProvider } from "@/components/theme-provider";
 
 const queryClient = new QueryClient();
 const theme = createTheme({
@@ -116,13 +117,15 @@ const AppContent = () => {
 
 function App() {
   return (
-    <ThemeProvider theme={theme}>
-      <QueryClientProvider client={queryClient}>
-        <BrowserRouter>
-          <AppContent />
-        </BrowserRouter>
-      </QueryClientProvider>
-    </ThemeProvider>
+    <ShadcnThemeProvider defaultTheme="dark" storageKey="vite-ui-theme">
+      <ThemeProvider theme={theme}>
+        <QueryClientProvider client={queryClient}>
+          <BrowserRouter>
+            <AppContent />
+          </BrowserRouter>
+        </QueryClientProvider>
+      </ThemeProvider>
+    </ShadcnThemeProvider>
   );
 }
 
