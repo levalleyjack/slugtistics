@@ -90,12 +90,12 @@ export default function AboutPage() {
               reverse: true,
             },
 
-            {
-              src: "/major-planner_example.png",
-              title: "Major Planner",
-              desc: "Input your transcript, choose your major, and get recommended classes based on the ones you’ve completed.",
-              reverse: true,
-            },
+            // {
+            //   src: "/major-planner_example.png",
+            //   title: "Major Planner",
+            //   desc: "Input your transcript, choose your major, and get recommended classes based on the ones you’ve completed.",
+            //   reverse: true,
+            // },
           ].map(({ src, title, desc, reverse }, idx) => (
             <motion.div
               key={title}
@@ -252,7 +252,7 @@ export default function AboutPage() {
                   Ashwin Murthy
                 </a>
               </li>
-              <li>
+              {/* <li>
                 Major Search:{" "}
                 <a
                   href="https://www.linkedin.com/in/saish-pottabathula/"
@@ -262,7 +262,7 @@ export default function AboutPage() {
                 >
                   Saish Pottabathula
                 </a>
-              </li>
+              </li> */}
               <li>
                 <a
                   href="https://github.com/levalleyjack/slugtistics"

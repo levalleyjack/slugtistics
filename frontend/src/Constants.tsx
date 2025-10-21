@@ -355,6 +355,17 @@ export interface ChartData {
 export interface distributionAPIResponse {
   [key: string]: number;
 }
+
+export interface ClassInfoRecord {
+  Grades: {
+    [key: string]: string | null;
+  };
+  Instructors: string;
+  SubjectCatalogNbr: string;
+  Term: string;
+}
+
+export type ClassInfoAPIResponse = ClassInfoRecord[];
 export interface StatisticsDrawerProps {
   isOpen: boolean;
   isCategoriesVisible: boolean;

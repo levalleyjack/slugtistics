@@ -23,29 +23,71 @@ import {
   CourseDistributionProps,
   distributionAPIResponse,
   GradeDistribution,
+  ClassInfoAPIResponse,
 } from "../Constants";
 
 const API_ROUTE = "https://api.slugtistics.com/api/";
 
-async function fetchGradeDistribution(
-  courseCode: string,
+async function fetchClassInfo(
+  courseCode: string
+): Promise<ClassInfoAPIResponse> {
+  const res = await fetch(`${API_ROUTE}class-info/${courseCode}`);
+  return res.json();
+}
+
+function aggregateGradeDistribution(
+  classInfoData: ClassInfoAPIResponse,
   instructor: string,
   term: string
-): Promise<distributionAPIResponse> {
-  const res = await fetch(
-    `${API_ROUTE}grade-distribution/${courseCode}?instructor=${instructor}&term=${term}`
-  );
-  return res.json();
+): distributionAPIResponse {
+  // Filter data based on instructor and term
+  let filteredData = classInfoData;
+  
+  if (instructor !== "All") {
+    filteredData = filteredData.filter(
+      (record) => record.Instructors === instructor
+    );
+  }
+  
+  if (term !== "All") {
+    filteredData = filteredData.filter((record) => record.Term === term);
+  }
+  
+  // Aggregate grades
+  const aggregated: distributionAPIResponse = {};
+  
+  filteredData.forEach((record) => {
+    Object.entries(record.Grades).forEach(([grade, count]) => {
+      if (count !== null) {
+        const numCount = parseInt(count, 10);
+        if (!isNaN(numCount)) {
+          aggregated[grade] = (aggregated[grade] || 0) + numCount;
+        }
+      }
+    });
+  });
+  
+  return aggregated;
 }
 
-async function fetchInstructors(courseCode: string): Promise<string[]> {
-  const res = await fetch(`${API_ROUTE}instructors/${courseCode}`);
-  return res.json();
+function extractInstructors(classInfoData: ClassInfoAPIResponse): string[] {
+  const instructors = new Set<string>();
+  classInfoData.forEach((record) => {
+    if (record.Instructors) {
+      instructors.add(record.Instructors);
+    }
+  });
+  return Array.from(instructors).sort();
 }
 
-async function fetchQuarters(courseCode: string): Promise<string[]> {
-  const res = await fetch(`${API_ROUTE}quarters/${courseCode}`);
-  return res.json();
+function extractTerms(classInfoData: ClassInfoAPIResponse): string[] {
+  const terms = new Set<string>();
+  classInfoData.forEach((record) => {
+    if (record.Term) {
+      terms.add(record.Term);
+    }
+  });
+  return Array.from(terms).sort();
 }
 
 function calculateGPA(gradeDistribution: GradeDistribution): string {
@@ -85,30 +127,35 @@ export const CourseDistribution: React.FC<CourseDistributionProps> = ({
   const [showPct, setShowPct] = useState(false);
   const [selInst, setSelInst] = useState<string>(professorName);
 
-  const { data: instructors = [], isLoading: loadingInst } = useQuery({
-    queryKey: ["instructors", courseCode],
-    queryFn: () => fetchInstructors(courseCode),
+  // Fetch all class info data
+  const { data: classInfoData = [], isLoading } = useQuery({
+    queryKey: ["classInfo", courseCode],
+    queryFn: () => fetchClassInfo(courseCode),
     enabled: !!courseCode,
   });
+
+  // Extract instructors from data
+  const instructors = useMemo(
+    () => extractInstructors(classInfoData),
+    [classInfoData]
+  );
+
+  // Extract quarters from data
+  const quarters = useMemo(
+    () => extractTerms(classInfoData),
+    [classInfoData]
+  );
 
   const inst = useMemo(
     () => (instructors.includes(selInst) ? selInst : "All"),
     [instructors, selInst]
   );
 
-  const { data: distribution, isLoading: loadingDist } = useQuery({
-    queryKey: ["gradeDistribution", courseCode, inst, term],
-    queryFn: () => fetchGradeDistribution(courseCode, inst, term),
-    enabled: !!courseCode,
-  });
-
-  const { data: quarters = [], isLoading: loadingQtrs } = useQuery({
-    queryKey: ["quarters", courseCode],
-    queryFn: () => fetchQuarters(courseCode),
-    enabled: !!courseCode,
-  });
-
-  const isLoading = loadingInst || loadingDist || loadingQtrs;
+  // Aggregate grade distribution based on filters
+  const distribution = useMemo(
+    () => aggregateGradeDistribution(classInfoData, inst, term),
+    [classInfoData, inst, term]
+  );
 
   const grades = [
     "A+",
