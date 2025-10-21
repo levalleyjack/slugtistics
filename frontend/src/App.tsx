@@ -99,14 +99,14 @@ const AppContent = () => {
             }
           />
 
-          <Route
+          {/* <Route
             path="/major"
             element={
               <PageLayout title={"Major Search | Slugtistics"}>
                 <MajorSearch />
               </PageLayout>
             }
-          />
+          /> */}
           <Route path="*" element={<NotFoundPage />} />
         </Routes>
       </div>

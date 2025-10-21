@@ -252,7 +252,7 @@ export default function AboutPage() {
                   Ashwin Murthy
                 </a>
               </li>
-              <li>
+              {/* <li>
                 Major Search:{" "}
                 <a
                   href="https://www.linkedin.com/in/saish-pottabathula/"
@@ -262,7 +262,7 @@ export default function AboutPage() {
                 >
                   Saish Pottabathula
                 </a>
-              </li>
+              </li> */}
               <li>
                 <a
                   href="https://github.com/levalleyjack/slugtistics"
