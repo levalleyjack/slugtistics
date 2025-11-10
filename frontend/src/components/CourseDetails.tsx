@@ -192,7 +192,7 @@ export const CourseDetailsPanel: React.FC<CourseDetailsProps> = ({
     queryFn: async (): Promise<EnrollmentData> => {
       try {
         const response = await fetch(
-          `https://my.ucsc.edu/PSIGW/RESTListeningConnector/PSFT_CSPRD/SCX_CLASS_LIST.v1/2258?subject=${course?.subject}&catalog_nbr=${course?.catalog_num}`
+          `https://my.ucsc.edu/PSIGW/RESTListeningConnector/PSFT_CSPRD/SCX_CLASS_LIST.v1/2260?subject=${course?.subject}&catalog_nbr=${course?.catalog_num}`
         );
         const data = await response.json();
 
