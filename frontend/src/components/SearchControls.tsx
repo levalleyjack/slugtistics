@@ -17,6 +17,7 @@ import {
   Info,
   Leaf,
   PanelLeft,
+  Snowflake,
   Trash,
 } from "lucide-react";
 import { Badge, Tooltip } from "@mui/material";
@@ -144,8 +145,8 @@ export const SearchControls: React.FC<SearchControlsProps> = ({
                 {lastUpdated}
               </div>
               <div className="flex items-center text-sm text-gray-700">
-                <Leaf className="w-4 h-4 mr-1" />
-                Fall 2025
+                <Snowflake className="w-4 h-4 mr-1" />
+                Winter 2026
               </div>
             </PopoverContent>
           </Popover>
