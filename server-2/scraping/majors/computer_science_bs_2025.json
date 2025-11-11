@@ -1,0 +1,126 @@
+{
+  "major": "Computer Science B.S.",
+  "catalog_year": 2025,
+  "groups": [
+    {
+      "name": "Lower Division CSE",
+      "count": 6,
+      "classes": ["CSE_12", "CSE_16", "CSE_20", "CSE_30", "CSE_40", "CSE_13S"]
+    },
+
+    {
+      "name": "Lower Division Maths",
+      "count": 1,
+      "classes": [
+        ["MATH_19A", "MATH_19B"],
+        ["MATH_20A", "MATH_20B"]
+      ]
+    },
+
+    {
+      "name": "Lower Division Applied Maths",
+      "count": 1,
+      "classes": [
+        ["AM_10"],
+        ["MATH_21"]
+      ]
+    },
+
+    {
+      "name": "Lower Division Multivar",
+      "count": 1,
+      "classes": [
+        ["AM_30"],
+        ["MATH_23A"]
+      ]
+    },
+
+    {
+      "name": "Engineering Science",
+      "count": 1,
+      "classes": ["ECE_30"]
+    },
+
+    {
+      "name": "Upper Division Core",
+      "count": 4,
+      "classes": ["CSE_101", "CSE_101M", "CSE_120", "CSE_130"]
+    },
+
+    {
+      "name": "Upper Division Theory",
+      "count": 1,
+      "classes": ["CSE_102", "CSE_103"]
+    },
+
+    {
+      "name": "Upper Division Languages",
+      "count": 1,
+      "classes": ["CSE_112", "CSE_114A"]
+    },
+
+    {
+      "name": "Statistics",
+      "count": 1,
+      "classes": ["STAT_131", "CSE_107"]
+    },
+
+    {
+      "name": "Upper Division Electives",
+      "count": 4,
+      "classes": [
+        "ANY_CSE_100_189_5CRED_EXCEPT_115A_185E",
+        "ANY_CSE_201_279_5CRED",
+        "CSE_195",
+        "AM_114", "AM_147", "AM_148", "AM_160",
+        "CMPM_120", "CMPM_131", "CMPM_146",
+        "CMPM_163", "CMPM_164", "CMPM_164L",
+        "CMPM_171", "CMPM_172",
+        "MATH_110", "MATH_115", "MATH_116", "MATH_117",
+        "MATH_118", "MATH_134", "MATH_145", "MATH_145L",
+        "MATH_148", "MATH_160", "MATH_161", "MATH_162",
+        "STAT_132",
+        ["PHYS_6A", "PHYS_6C"],
+        ["PHYS_6A", "PHYS_6B"],
+        ["PHYS_5A", "PHYS_5C"],
+        ["PHYS_5A", "PHYS_5B"]
+      ]
+    },
+
+    {
+      "name": "DC Requirement",
+      "count": 1,
+      "classes": ["CSE_115A", "CSE_185E", "CSE_195"]
+    },
+
+    {
+      "name": "Capstone",
+      "count": 1,
+      "classes": [
+        ["CSE_110B"],
+        ["CSE_115C"],
+        ["CSE_115D"],
+        ["CSE_121"],
+        ["CSE_134"],
+        ["CSE_138"],
+        ["CSE_140"],
+        ["CSE_143"],
+        ["CSE_144"],
+        ["CSE_145"],
+        ["CSE_156", "CSE_156L"],
+        ["CSE_157"],
+        ["CSE_160"],
+        ["CSE_161", "CSE_161L"],
+        ["CSE_162", "CSE_162L"],
+        ["CSE_163"],
+        ["CSE_168"],
+        ["CSE_181"],
+        ["CSE_183"],
+        ["CSE_184"],
+        ["CSE_187"],
+        ["CMPM_172"]
+      ]
+    }
+  ]
+}
+

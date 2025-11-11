@@ -28,20 +28,15 @@ const headerVariants = {
   },
 };
 
+interface GroupData {
+  name: string;
+  count: number;
+  classes: (string | string[])[];
+}
+
 interface CourseData {
-  program: { name: string; admissionYear: string };
-  requirements: {
-    core: Array<{ class: string[] }>;
-    capstone: Array<{ class: string[] }>;
-    dc: Array<{ class: string[] }>;
-  };
-  electives: {
-    required: { math: number; upperDivision: number };
-    categories: Record<
-      string,
-      { name: string; courses: Array<{ class: string[] }> }
-    >;
-  };
+  groups: GroupData[];
+  success: boolean;
 }
 
 interface RecommendationsResponse {
@@ -107,7 +102,7 @@ export const MajorPlanner = ({ selectedMajor, onBack }: MajorPlannerProps) => {
   const { data: courseData, isLoading } = useQuery<CourseData>({
     queryKey: ["course-requirements", selectedMajor],
     queryFn: async () => {
-      const response = await fetch(`${local}/major_courses/${selectedMajor}`);
+      const response = await fetch(`${local}/major_groups/${selectedMajor}`);
       if (!response.ok) throw new Error("Failed to fetch course requirements");
       return response.json();
     },
@@ -132,25 +127,41 @@ export const MajorPlanner = ({ selectedMajor, onBack }: MajorPlannerProps) => {
     retry: false, // Don't retry on failure
   });
 
-  // All available courses across all categories (deduplicated)
-  const allAvailableCourses = courseData
-    ? Array.from(
-        new Set([
-          ...courseData.requirements.core.flatMap((g) => g.class),
-          ...courseData.requirements.capstone.flatMap((g) => g.class),
-          ...courseData.requirements.dc.flatMap((g) => g.class),
-          ...Object.values(courseData.electives.categories).flatMap((cat) =>
-            cat.courses.flatMap((g) => g.class)
-          ),
-        ])
+  // Normalize course code to use spaces instead of underscores
+  const normalizeCourseCode = (course: string) => {
+    return course.replace(/_/g, " ").toUpperCase();
+  };
+
+  // All available courses in ORDER (preserving group order, deduplicated)
+  const allAvailableCoursesOrdered = courseData?.groups
+    ? courseData.groups.flatMap((group) =>
+        group.classes.flatMap((item) =>
+          Array.isArray(item) 
+            ? item.map(normalizeCourseCode)
+            : [normalizeCourseCode(item)]
+        )
       )
     : [];
+
+  // Deduplicated version for counts (but we'll display ordered version)
+  const allAvailableCourses = Array.from(new Set(allAvailableCoursesOrdered));
+
+  // Generate section tabs from group names (now with display names!)
+  const sectionTabs = courseData?.groups
+    ? ["All", ...courseData.groups.map(g => g.name)]
+    : ["All"];
 
   // Use recommendations data when available
   useEffect(() => {
     if (recommendationsData) {
-      setCompletedCourses(new Set(recommendationsData.equiv_classes || []));
-      setRecommendedCourses(recommendationsData.recommended_classes || []);
+      setCompletedCourses(
+        new Set(
+          (recommendationsData.equiv_classes || []).map(normalizeCourseCode)
+        )
+      );
+      setRecommendedCourses(
+        (recommendationsData.recommended_classes || []).map(normalizeCourseCode)
+      );
     }
   }, [recommendationsData]);
 
@@ -184,31 +195,34 @@ export const MajorPlanner = ({ selectedMajor, onBack }: MajorPlannerProps) => {
 
   // Toggle course completion status
   const toggleCourseCompletion = (course: string) => {
+    const normalized = normalizeCourseCode(course);
     setCompletedCourses((prev) => {
       const newSet = new Set(prev);
-      newSet.has(course) ? newSet.delete(course) : newSet.add(course);
+      newSet.has(normalized) ? newSet.delete(normalized) : newSet.add(normalized);
       return newSet;
     });
   };
 
   // Add a new class to the input list
   const addNewClass = (classCode: string) => {
-    setClassesInputList((prev) => [...prev, classCode]);
+    const normalized = normalizeCourseCode(classCode);
+    setClassesInputList((prev) => [...prev, normalized]);
     setNeedsRecommendationRefresh(true);
     const matchedCourse = allAvailableCourses.find(
-      (c) => c.toLowerCase() === classCode.toLowerCase()
+      (c) => normalizeCourseCode(c) === normalized
     );
     if (matchedCourse) {
-      setCompletedCourses((prev) => new Set(prev).add(matchedCourse));
+      setCompletedCourses((prev) => new Set(prev).add(normalized));
     }
   };
 
   // Remove a class from the input list
   const removeClass = (course: string) => {
-    setClassesInputList((prev) => prev.filter((c) => c !== course));
+    const normalized = normalizeCourseCode(course);
+    setClassesInputList((prev) => prev.filter((c) => normalizeCourseCode(c) !== normalized));
     setCompletedCourses((prev) => {
       const newSet = new Set(prev);
-      newSet.delete(course.toUpperCase());
+      newSet.delete(normalized);
       return newSet;
     });
     setNeedsRecommendationRefresh(true);
@@ -228,29 +242,44 @@ export const MajorPlanner = ({ selectedMajor, onBack }: MajorPlannerProps) => {
       try {
         const formData = new FormData();
         formData.append("transcript", file, file.name);
+        formData.append("major_filename", selectedMajor);
 
-        // Try POST first (Flask handles file uploads better with POST)
-        // If backend only supports PUT, we can change this back
+        // Use the new upload_transcript endpoint
         const response = await axios.post(
-          `${local}/major_recommendations/parse_transcript`,
-          formData,
-          {
-            params: {
-              major: selectedMajor,
-            },
-            // Don't set Content-Type - axios will set it automatically with boundary for FormData
-          }
+          `${local}/upload_transcript`,
+          formData
         );
 
         const data = response.data;
-        const extractedCourses = data.courses || [];
+        
+        // Extract courses from the groups structure (now a list)
+        const extractedCourses: string[] = [];
+        if (data.groups && Array.isArray(data.groups)) {
+          data.groups.forEach((group: any) => {
+            if (group.courses) {
+              group.courses.forEach((course: any) => {
+                if (course.status === "taken") {
+                  // Handle single courses and OR conditions
+                  if (course.is_choice && course.options) {
+                    extractedCourses.push(...course.options);
+                  } else {
+                    extractedCourses.push(course.code.replace(/_/g, " "));
+                  }
+                }
+              });
+            }
+          });
+        }
 
-        if (extractedCourses.length > 0) {
-          setClassesInputList(extractedCourses);
-          setClassesToRecommend(extractedCourses);
+        // Normalize all extracted courses
+        const normalizedCourses = extractedCourses.map(c => c.replace(/_/g, " ").toUpperCase());
+
+        if (normalizedCourses.length > 0) {
+          setClassesInputList(normalizedCourses);
+          setClassesToRecommend(normalizedCourses);
           setNeedsRecommendationRefresh(false);
           refetchRecommendations();
-          triggerNotification("success", `Successfully parsed ${extractedCourses.length} courses from transcript`);
+          triggerNotification("success", `Successfully parsed ${normalizedCourses.length} courses from transcript`);
         } else {
           triggerNotification("error", "No course data found in transcript");
         }
@@ -365,11 +394,11 @@ export const MajorPlanner = ({ selectedMajor, onBack }: MajorPlannerProps) => {
       <div className="max-w-7xl mx-auto px-3 sm:px-6 py-3 flex items-center justify-between">
         <div className="flex items-center gap-2 sm:gap-4">
           <h3 className="font-semibold text-sm sm:text-base truncate max-w-[140px] sm:max-w-full">
-            {courseData?.program.name}
+            {selectedMajor.replace(/_/g, " ").replace(/\b\w/g, l => l.toUpperCase())}
           </h3>
           <div className="flex items-center space-x-1 text-xs sm:text-sm">
             <div className="flex border border-gray-200 rounded-md">
-              {["All", "Core", "Capstone", "DC", "Electives"].map((section) => (
+              {sectionTabs.slice(0, 5).map((section) => (
                 <button
                   key={section}
                   className={`cursor-pointer px-2 sm:px-3 py-1.5 text-xs sm:text-sm ${
@@ -459,7 +488,7 @@ export const MajorPlanner = ({ selectedMajor, onBack }: MajorPlannerProps) => {
           </div>
           <div className="flex flex-wrap items-center justify-between gap-2">
             <h1 className="text-xl sm:text-3xl font-bold line-clamp-2">
-              {courseData?.program.name} Requirements
+              {selectedMajor.replace(/_/g, " ").replace(/\b\w/g, l => l.toUpperCase())} Requirements
             </h1>
             <div className="flex space-x-1 text-xs">
               <Badge variant="outline" className="bg-emerald-50">
@@ -582,7 +611,7 @@ export const MajorPlanner = ({ selectedMajor, onBack }: MajorPlannerProps) => {
         {/* Section Tabs */}
         <div ref={coursesSectionRef}>
           <SectionTabs
-            sections={["All", "Core", "Capstone", "DC", "Electives"]}
+            sections={sectionTabs}
             selectedSection={selectedSection}
             onSelectSection={setSelectedSection}
             isMobileView={isMobileView}
@@ -590,70 +619,70 @@ export const MajorPlanner = ({ selectedMajor, onBack }: MajorPlannerProps) => {
         </div>
 
         {/* Courses Grid */}
-        {courseData && (
+        {courseData?.groups && (
           <div className="space-y-4 sm:space-y-6">
-            {selectedSection === "All" && (
-              <CourseList
-                courses={allAvailableCourses}
-                completedCourses={completedCourses}
-                recommendedCourses={recommendedCourses}
-                onToggleCourse={toggleCourseCompletion}
-              />
+            {selectedSection === "All" ? (
+              // Display ALL courses in ORDER by groups
+              <div className="space-y-8">
+                {courseData.groups.map((group, idx) => (
+                  <div key={idx} className="space-y-3">
+                    <div className="flex items-center gap-2 mb-3">
+                      <h3 className="text-base sm:text-lg font-semibold text-primary">
+                        {group.name}
+                      </h3>
+                      <Badge variant="outline" className="bg-primary/10">
+                        {group.count} required
+                      </Badge>
+                    </div>
+                    <CourseList
+                      courses={Array.from(
+                        new Set(
+                          group.classes.flatMap((item) =>
+                            Array.isArray(item) 
+                              ? item.map(normalizeCourseCode)
+                              : [normalizeCourseCode(item)]
+                          )
+                        )
+                      )}
+                      completedCourses={completedCourses}
+                      recommendedCourses={recommendedCourses}
+                      onToggleCourse={toggleCourseCompletion}
+                    />
+                  </div>
+                ))}
+              </div>
+            ) : (
+              // Display specific group
+              (() => {
+                const group = courseData.groups.find(g => g.name === selectedSection);
+                return group ? (
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2 mb-4">
+                      <h3 className="text-base sm:text-lg font-semibold">
+                        {group.name}
+                      </h3>
+                      <Badge variant="outline">
+                        {group.count} required
+                      </Badge>
+                    </div>
+                    <CourseList
+                      courses={Array.from(
+                        new Set(
+                          group.classes.flatMap((item) =>
+                            Array.isArray(item) 
+                              ? item.map(normalizeCourseCode)
+                              : [normalizeCourseCode(item)]
+                          )
+                        )
+                      )}
+                      completedCourses={completedCourses}
+                      recommendedCourses={recommendedCourses}
+                      onToggleCourse={toggleCourseCompletion}
+                    />
+                  </div>
+                ) : null;
+              })()
             )}
-
-            {selectedSection === "Core" && (
-              <CourseList
-                courses={Array.from(
-                  new Set(
-                    courseData.requirements.core.flatMap((g) => g.class)
-                  )
-                )}
-                completedCourses={completedCourses}
-                recommendedCourses={recommendedCourses}
-                onToggleCourse={toggleCourseCompletion}
-              />
-            )}
-
-            {selectedSection === "Capstone" && (
-              <CourseList
-                courses={Array.from(
-                  new Set(
-                    courseData.requirements.capstone.flatMap((g) => g.class)
-                  )
-                )}
-                completedCourses={completedCourses}
-                recommendedCourses={recommendedCourses}
-                onToggleCourse={toggleCourseCompletion}
-              />
-            )}
-
-            {selectedSection === "DC" && (
-              <CourseList
-                courses={Array.from(
-                  new Set(courseData.requirements.dc.flatMap((g) => g.class))
-                )}
-                completedCourses={completedCourses}
-                recommendedCourses={recommendedCourses}
-                onToggleCourse={toggleCourseCompletion}
-              />
-            )}
-
-            {selectedSection === "Electives" &&
-              Object.values(courseData.electives.categories).map((cat, idx) => (
-                <div key={idx} className="space-y-2">
-                  <h3 className="text-base sm:text-lg font-semibold">
-                    {cat.name}
-                  </h3>
-                  <CourseList
-                    courses={Array.from(
-                      new Set(cat.courses.flatMap((g) => g.class))
-                    )}
-                    completedCourses={completedCourses}
-                    recommendedCourses={recommendedCourses}
-                    onToggleCourse={toggleCourseCompletion}
-                  />
-                </div>
-              ))}
           </div>
         )}
       </div>

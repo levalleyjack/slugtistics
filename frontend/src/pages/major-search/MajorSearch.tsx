@@ -11,6 +11,10 @@ import { local } from "@/components/GetGEData";
 
 interface Major {
   name: string;
+  degree: string;
+  year: string;
+  full_name: string;
+  filename: string;
 }
 
 const MajorSearch: React.FC = () => {
@@ -23,18 +27,17 @@ const MajorSearch: React.FC = () => {
     queryFn: async () => {
       const response = await fetch(`${local}/all_majors`);
       if (!response.ok) throw new Error("Failed to fetch majors");
-      return response.json();
+      const data = await response.json();
+      return data.majors || [];
     },
   });
 
-  const getDegreeType = (majorName: string) => {
-    if (majorName.includes("B.S.")) return "B.S.";
-    if (majorName.includes("B.A.")) return "B.A.";
-    if (majorName.includes("B.M.")) return "B.M.";
-    return "Degree";
+  const getDegreeType = (major: Major) => {
+    return major.degree || "Degree";
   };
 
-  const getMajorCategory = (majorName: string) => {
+  const getMajorCategory = (major: Major) => {
+    const majorName = major.name;
     if (
       majorName.match(
         /Biology|Chemistry|Physics|Science|Engineering|Mathematics|Computer|Technology/i
@@ -62,14 +65,14 @@ const MajorSearch: React.FC = () => {
       .toLowerCase()
       .includes(searchTerm.toLowerCase());
     const matchesCategory = categoryFilter
-      ? getMajorCategory(major.name) === categoryFilter
+      ? getMajorCategory(major) === categoryFilter
       : true;
     return matchesSearch && matchesCategory;
   });
 
   const categoryCounts =
     majors?.reduce((acc, major) => {
-      const category = getMajorCategory(major.name);
+      const category = getMajorCategory(major);
       acc[category] = (acc[category] || 0) + 1;
       return acc;
     }, {} as Record<string, number>) || {};
@@ -77,7 +80,7 @@ const MajorSearch: React.FC = () => {
   if (selectedMajor) {
     return (
       <MajorPlanner
-        selectedMajor={selectedMajor.name}
+        selectedMajor={selectedMajor.filename}
         onBack={() => setSelectedMajor(null)}
       />
     );
@@ -148,13 +151,12 @@ const MajorSearch: React.FC = () => {
             </div>
           ) : (
             filteredMajors?.map((major) => {
-              const category = getMajorCategory(major.name);
-              const degreeType = getDegreeType(major.name);
-              const majorName = major.name.replace(` ${degreeType}`, "");
+              const category = getMajorCategory(major);
+              const degreeType = getDegreeType(major);
 
               return (
                 <Card
-                  key={major.name}
+                  key={major.filename}
                   className="group cursor-pointer transition-all duration-200 border border-muted hover:border-primary bg-card hover:bg-accent/30"
                   onClick={() => setSelectedMajor(major)}
                 >
@@ -169,8 +171,11 @@ const MajorSearch: React.FC = () => {
                       </Badge>
                     </div>
                     <h3 className="text-sm font-semibold leading-tight group-hover:text-primary">
-                      {majorName}
+                      {major.name}
                     </h3>
+                    <p className="text-xs text-muted-foreground">
+                      Catalog Year: {major.year}
+                    </p>
                   </CardContent>
                 </Card>
               );

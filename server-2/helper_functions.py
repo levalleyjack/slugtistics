@@ -1,12 +1,11 @@
 import base64
-import json
 import re
 import requests
 import logging
 
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
-from typing import Any, Optional, Sequence
+from typing import Optional
 
 logger = logging.getLogger(__name__)
 
@@ -267,70 +266,6 @@ def fetch_course_from_api(subject: str, catalog_nbr: Optional[str] = None) -> di
         return None
 
 
-def get_majors() -> dict[str, Any]:
-    # Use absolute path relative to this file's location
-    current_dir = Path(__file__).parent
-    majors_path = current_dir / "scraping" / "majors"
-    majors_data = dict()
-
-    if not majors_path.exists():
-        logger.error(f"Majors directory not found: {majors_path}")
-        return majors_data
-
-    for majorfp in majors_path.iterdir():
-        if majorfp.is_dir():
-            continue
-        
-        try:
-            with open(majorfp, "r") as fp:
-                major_data = json.load(fp)
-                
-            if not json_path_exists(json_obj=major_data, json_path=["program", "name"]):
-                continue
-
-            majors_data[major_data["program"]["name"]] = major_data
-        except Exception as e:
-            logger.error(f"Error loading major file {majorfp}: {str(e)}")
-            continue
-
-    return majors_data
-
-
-def json_path_exists(json_obj: dict | list, json_path: Sequence[str | int]) -> bool:
-    """ Validate multi-layer deep indexing operations on JSON objects ahead of time """
-
-    json_obj_trace = "json_obj"
-
-    for field in json_path:
-        # handle when json_obj is an invalid type & when nesting list exceeds json_obj
-        if not isinstance(json_obj, (dict, list)):
-            logger.error(f"Typing: expected {json_obj_trace} to be dict or list, got {type(json_obj).__name__}")
-            return False
-        
-        # handle when json_obj is a list
-        if isinstance(json_obj, list):
-            if not isinstance(field, int):
-                logger.error(f"Typing: expected {json_obj_trace} (dtype=list) to be indexed with int, instead got {field}")
-                return False
-            if field >= len(json_obj):
-                logger.error(f"Indexing: index {field} out of bounds for {json_obj_trace} (dtype=list) of len={len(json_obj)}")
-                return False
-
-        # handle when json_obj is a dict
-        if isinstance(json_obj, dict):
-            if not isinstance(field, str):
-                logger.error(f"Typing: expected {json_obj_trace} (dtype=dict) to be indexed with str, instead got {field}")
-                return False
-            if field not in json_obj.keys():
-                logger.error(f"Indexing: key {field} not in {json_obj_trace} (dtype=dict) keys")
-                return False
-
-        json_obj_trace += f'[{repr(field)}]'
-        json_obj = json_obj[field]
-
-    return True
-
-
 def parse_prerequisites(prereq_text: str) -> list:
     if "Prerequisite(s):" not in prereq_text:
         return []
@@ -413,37 +348,3 @@ def parse_prerequisites(prereq_text: str) -> list:
     return prereq_list
 
 
-def get_major_courses(major: str) -> list[str]:
-    major_files = get_majors()
-    return major_files[major]
-
-
-def compute_recommendations(classes_taken: list[str], major: str, prereq_dict: dict):
-    data = get_major_courses(major)
-    needed_classes = data.get("needed_classes", {})
-
-    # All classes that unlock others or are part of the needed structure
-    major_classes = set(needed_classes.keys())
-
-    equiv_classes = set()
-    for c in classes_taken:
-        if c in major_classes:
-            equiv_classes.add(c)
-            for next_class in needed_classes.get(c, []):
-                equiv_classes.add(next_class)
-        else:
-            equiv_classes.add(c)  # still track all classes taken
-
-    recommended_classes = set()
-    for course, prereq_groups in prereq_dict.items():
-        # Recommend only if it's part of the major
-        if course not in major_classes or course in equiv_classes:
-            continue
-
-        # Check if any group of prereqs is satisfied
-        for group in prereq_groups:
-            if set(group).issubset(equiv_classes):
-                recommended_classes.add(course)
-                break
-
-    return list(equiv_classes), list(recommended_classes)

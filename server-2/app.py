@@ -17,6 +17,7 @@ from helper_functions import (
 from config import app, db, slugtistics_db_path
 from models.data_models import CourseModel, LastUpdateModel
 from routes import courses_bp, init_prereq_dict
+from routes.majors import majors_bp
 
 # Initialize Flask extensions
 Compress(app)
@@ -367,6 +368,7 @@ def init_app():
             return response
 
         app.register_blueprint(courses_bp)
+        app.register_blueprint(majors_bp)
         
         init_db()
         # comment out store_courses_in_db() if you didn't change any
