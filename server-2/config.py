@@ -9,7 +9,10 @@ import pytz
 
 
 app = Flask(__name__)
-CORS(app)
+# Allow CORS from all origins (especially for local development)
+# Simple CORS configuration that allows all origins
+CORS(app, resources={r"/*": {"origins": "*"}})
+
 
 current_dir = Path(__file__).parent
 slugtistics_db_path = current_dir / "slugtistics.db"

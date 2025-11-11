@@ -12,6 +12,7 @@ import { FileUploader } from "@/components/FileUploader";
 import { ClassInput } from "@/components/ClassInput";
 import { SectionTabs } from "@/components/SectionTabs";
 import { CourseList } from "@/components/CourseList";
+import axios from "axios";
 
 interface MajorPlannerProps {
   selectedMajor: string;
@@ -23,7 +24,7 @@ const headerVariants = {
   visible: {
     y: 0,
     opacity: 1,
-    transition: { type: "spring", stiffness: 300, damping: 30 },
+    transition: { type: "spring" as const, stiffness: 300, damping: 30 },
   },
 };
 
@@ -119,26 +120,30 @@ export const MajorPlanner = ({ selectedMajor, onBack }: MajorPlannerProps) => {
   } = useQuery<RecommendationsResponse>({
     queryKey: ["recommendations", classesToRecommend],
     queryFn: async () => {
-      const response = await fetch(`
-        ${local}/major_recommendations?classes=${encodeURIComponent(
-        classesToRecommend.join(",")
-      )}&major=${encodeURIComponent(selectedMajor)}`);
+      const response = await fetch(
+        `${local}/major_recommendations?classes=${encodeURIComponent(
+          classesToRecommend.join(",")
+        )}&major=${encodeURIComponent(selectedMajor)}`
+      );
       if (!response.ok) throw new Error("Failed to fetch recommendations");
       return response.json();
     },
     enabled: classesToRecommend.length > 0,
+    retry: false, // Don't retry on failure
   });
 
-  // All available courses across all categories
+  // All available courses across all categories (deduplicated)
   const allAvailableCourses = courseData
-    ? [
-        ...courseData.requirements.core.flatMap((g) => g.class),
-        ...courseData.requirements.capstone.flatMap((g) => g.class),
-        ...courseData.requirements.dc.flatMap((g) => g.class),
-        ...Object.values(courseData.electives.categories).flatMap((cat) =>
-          cat.courses.flatMap((g) => g.class)
-        ),
-      ]
+    ? Array.from(
+        new Set([
+          ...courseData.requirements.core.flatMap((g) => g.class),
+          ...courseData.requirements.capstone.flatMap((g) => g.class),
+          ...courseData.requirements.dc.flatMap((g) => g.class),
+          ...Object.values(courseData.electives.categories).flatMap((cat) =>
+            cat.courses.flatMap((g) => g.class)
+          ),
+        ])
+      )
     : [];
 
   // Use recommendations data when available
@@ -216,44 +221,131 @@ export const MajorPlanner = ({ selectedMajor, onBack }: MajorPlannerProps) => {
       return;
     }
 
+    setUploading(true);
+
+    // Check if file is PDF - use backend for PDF parsing
+    if (file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf")) {
+      try {
+        const formData = new FormData();
+        formData.append("transcript", file, file.name);
+
+        // Try POST first (Flask handles file uploads better with POST)
+        // If backend only supports PUT, we can change this back
+        const response = await axios.post(
+          `${local}/major_recommendations/parse_transcript`,
+          formData,
+          {
+            params: {
+              major: selectedMajor,
+            },
+            // Don't set Content-Type - axios will set it automatically with boundary for FormData
+          }
+        );
+
+        const data = response.data;
+        const extractedCourses = data.courses || [];
+
+        if (extractedCourses.length > 0) {
+          setClassesInputList(extractedCourses);
+          setClassesToRecommend(extractedCourses);
+          setNeedsRecommendationRefresh(false);
+          refetchRecommendations();
+          triggerNotification("success", `Successfully parsed ${extractedCourses.length} courses from transcript`);
+        } else {
+          triggerNotification("error", "No course data found in transcript");
+        }
+      } catch (error) {
+        console.error("Transcript upload error:", error);
+        console.error("Error response:", axios.isAxiosError(error) ? error.response : "Not an axios error");
+        console.error("Error response data:", axios.isAxiosError(error) ? error.response?.data : "N/A");
+        let errorMessage = "Failed to parse PDF transcript";
+        if (axios.isAxiosError(error)) {
+          const responseData = error.response?.data;
+          if (typeof responseData === "string") {
+            errorMessage = responseData;
+          } else if (responseData?.error) {
+            errorMessage = responseData.error;
+          } else if (responseData?.message) {
+            errorMessage = responseData.message;
+          } else {
+            errorMessage = error.message || `Server returned ${error.response?.status}: ${error.response?.statusText}`;
+          }
+        } else if (error instanceof Error) {
+          errorMessage = error.message;
+        }
+        triggerNotification("error", errorMessage);
+      } finally {
+        setUploading(false);
+      }
+      return;
+    }
+
+    // For HTML/text files, parse on frontend
     const reader = new FileReader();
 
     reader.onload = () => {
-      const parser = new DOMParser();
-      const htmlDoc = parser.parseFromString(
-        reader.result as string,
-        "text/html"
-      );
+      try {
+        const content = reader.result as string;
+        let extractedCourses: string[] = [];
 
-      const rows = htmlDoc.querySelectorAll("table tr");
-      const extractedCourses: string[] = [];
+        // Try parsing as HTML first
+        const parser = new DOMParser();
+        const htmlDoc = parser.parseFromString(content, "text/html");
 
-      rows.forEach((row) => {
-        const cells = row.querySelectorAll("td");
-        if (cells.length >= 2) {
-          const dept = cells[0].textContent?.trim();
-          const number = cells[1].textContent?.trim();
+        // Check if it's valid HTML with tables
+        const rows = htmlDoc.querySelectorAll("table tr");
+        if (rows.length > 0) {
+          rows.forEach((row) => {
+            const cells = row.querySelectorAll("td");
+            if (cells.length >= 2) {
+              const dept = cells[0].textContent?.trim();
+              const number = cells[1].textContent?.trim();
 
-          // Match patterns like "CSE" and "130"
-          if (dept?.match(/^[A-Z]{2,4}$/) && number?.match(/^\d{1,3}[A-Z]?$/)) {
-            extractedCourses.push(`${dept} ${number}`);
-          }
+              // Match patterns like "CSE" and "130"
+              if (dept?.match(/^[A-Z]{2,4}$/) && number?.match(/^\d{1,3}[A-Z]?$/)) {
+                extractedCourses.push(`${dept} ${number}`);
+              }
+            }
+          });
         }
-      });
 
-      if (extractedCourses.length > 0) {
-        setClassesInputList(extractedCourses);
-        setClassesToRecommend(extractedCourses);
-        setNeedsRecommendationRefresh(false);
-        refetchRecommendations();
-        triggerNotification("success", "Transcript parsed successfully");
-      } else {
-        triggerNotification("error", "No course data found in transcript");
+        // If no courses found in HTML tables, try regex pattern matching on plain text
+        if (extractedCourses.length === 0) {
+          // Match course codes like "CSE 130", "MATH 19A", "CMPM 172A"
+          const coursePattern = /([A-Z]{2,4})\s+(\d{2,3}[A-Z]?)/g;
+          const matches = content.matchAll(coursePattern);
+          const courseSet = new Set<string>();
+
+          for (const match of matches) {
+            const courseCode = `${match[1]} ${match[2]}`;
+            courseSet.add(courseCode);
+          }
+
+          extractedCourses = Array.from(courseSet);
+        }
+
+        // Deduplicate courses
+        extractedCourses = Array.from(new Set(extractedCourses));
+
+        if (extractedCourses.length > 0) {
+          setClassesInputList(extractedCourses);
+          setClassesToRecommend(extractedCourses);
+          setNeedsRecommendationRefresh(false);
+          refetchRecommendations();
+          triggerNotification("success", `Successfully parsed ${extractedCourses.length} courses from transcript`);
+        } else {
+          triggerNotification("error", "No course data found in transcript. Please ensure the file contains course codes like 'CSE 130' or 'MATH 19A'");
+        }
+      } catch (error) {
+        triggerNotification("error", "Failed to parse transcript file");
+      } finally {
+        setUploading(false);
       }
     };
 
     reader.onerror = () => {
-      triggerNotification("error", "Failed to read HTML transcript");
+      triggerNotification("error", "Failed to read transcript file");
+      setUploading(false);
     };
 
     reader.readAsText(file);
@@ -511,7 +603,11 @@ export const MajorPlanner = ({ selectedMajor, onBack }: MajorPlannerProps) => {
 
             {selectedSection === "Core" && (
               <CourseList
-                courses={courseData.requirements.core.flatMap((g) => g.class)}
+                courses={Array.from(
+                  new Set(
+                    courseData.requirements.core.flatMap((g) => g.class)
+                  )
+                )}
                 completedCourses={completedCourses}
                 recommendedCourses={recommendedCourses}
                 onToggleCourse={toggleCourseCompletion}
@@ -520,8 +616,10 @@ export const MajorPlanner = ({ selectedMajor, onBack }: MajorPlannerProps) => {
 
             {selectedSection === "Capstone" && (
               <CourseList
-                courses={courseData.requirements.capstone.flatMap(
-                  (g) => g.class
+                courses={Array.from(
+                  new Set(
+                    courseData.requirements.capstone.flatMap((g) => g.class)
+                  )
                 )}
                 completedCourses={completedCourses}
                 recommendedCourses={recommendedCourses}
@@ -531,7 +629,9 @@ export const MajorPlanner = ({ selectedMajor, onBack }: MajorPlannerProps) => {
 
             {selectedSection === "DC" && (
               <CourseList
-                courses={courseData.requirements.dc.flatMap((g) => g.class)}
+                courses={Array.from(
+                  new Set(courseData.requirements.dc.flatMap((g) => g.class))
+                )}
                 completedCourses={completedCourses}
                 recommendedCourses={recommendedCourses}
                 onToggleCourse={toggleCourseCompletion}
@@ -545,7 +645,9 @@ export const MajorPlanner = ({ selectedMajor, onBack }: MajorPlannerProps) => {
                     {cat.name}
                   </h3>
                   <CourseList
-                    courses={cat.courses.flatMap((g) => g.class)}
+                    courses={Array.from(
+                      new Set(cat.courses.flatMap((g) => g.class))
+                    )}
                     completedCourses={completedCourses}
                     recommendedCourses={recommendedCourses}
                     onToggleCourse={toggleCourseCompletion}

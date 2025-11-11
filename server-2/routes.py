@@ -90,16 +90,22 @@ def get_instructor_ratings():
     return instructor_ratings.to_dict() if instructor_ratings else None
 
 
-@courses_bp.route("/all_majors", methods=["GET"])
+@courses_bp.route("/all_majors", methods=["GET", "OPTIONS"])
 def get_all_majors():
-    majors_data = get_majors()
-    all_majors = [
-        {
-            "name": major_name,
-        }
-        for major_name in majors_data.keys()
-    ]
-    return jsonify(all_majors)
+    try:
+        logger.info("Received request for /all_majors")
+        majors_data = get_majors()
+        logger.info(f"Found {len(majors_data)} majors")
+        all_majors = [
+            {
+                "name": major_name,
+            }
+            for major_name in majors_data.keys()
+        ]
+        return jsonify(all_majors)
+    except Exception as e:
+        logger.error(f"Error in get_all_majors: {str(e)}", exc_info=True)
+        return jsonify({"error": str(e), "success": False}), 500
 
 
 @courses_bp.route("/major_courses/<major>", methods=["GET"])
@@ -358,21 +364,39 @@ def major_recommendations():
         request.args.get("major", "") or "Computer Science B.S."
     )  # default if you like
 
-    if not classes_str:
-        return (
-            jsonify({"error": "No classes provided in request", "success": False}),
-            400,
-        )
+    if not classes_str or not classes_str.strip():
+        # Return empty recommendations instead of error for better UX
+        return jsonify({
+            "equiv_classes": [],
+            "recommended_classes": [],
+            "success": True
+        })
 
-    classes_taken = [c.strip() for c in classes_str.split(",")]
+    classes_taken = [c.strip() for c in classes_str.split(",") if c.strip()]
+    
+    # If after filtering we have no classes, return empty
+    if not classes_taken:
+        return jsonify({
+            "equiv_classes": [],
+            "recommended_classes": [],
+            "success": True
+        })
+    
+    logger.info(f"Computing recommendations for major: {major}")
+    logger.info(f"Classes taken: {classes_taken}")
+    logger.info(f"Prereq dict has {len(prereq_dict)} courses")
+    
     equiv, recs = compute_recommendations(classes_taken, major, prereq_dict)
+    
+    logger.info(f"Equivalent classes: {equiv}")
+    logger.info(f"Recommended classes: {recs}")
 
     return jsonify(
         {"equiv_classes": equiv, "recommended_classes": recs, "success": True}
     )
 
 
-@courses_bp.route("/major_recommendations/parse_transcript", methods=["PUT"])
+@courses_bp.route("/major_recommendations/parse_transcript", methods=["POST", "PUT"])
 def parse_transcript():
     if "transcript" not in request.files:
         return {"error": "No transcript file provided"}, 400

@@ -51,7 +51,7 @@ export const FileUploader = ({
             </span>
             <input
               type="file"
-              accept=".html,text/html"
+              accept=".pdf,application/pdf,.html,text/html,.txt,text/plain"
               className="hidden"
               onChange={(e) => {
                 if (e.target.files && e.target.files[0]) {
@@ -100,7 +100,7 @@ export const FileUploader = ({
         </span>
         <input
           type="file"
-          accept=".html,text/html"
+          accept=".pdf,application/pdf,.html,text/html,.txt,text/plain"
           className="hidden"
           onChange={(e) => {
             if (e.target.files && e.target.files[0]) {
@@ -113,7 +113,7 @@ export const FileUploader = ({
         or drag and drop your file here
       </p>
       <p className="text-xs sm:text-sm text-muted-foreground mt-2">
-        Use the HTML version of your transcript instead of the PDF Version!
+        Upload your PDF transcript to automatically extract courses!
       </p>
     </div>
   );

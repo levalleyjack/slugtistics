@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { MajorPlanner } from "./MajorPlanner";
-import { local } from "../../components/GetGEData";
+import { local } from "@/components/GetGEData";
 
 interface Major {
   name: string;

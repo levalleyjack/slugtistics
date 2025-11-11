@@ -2,11 +2,13 @@ import base64
 import json
 import re
 import requests
+import logging
 
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 from typing import Any, Optional, Sequence
-from venv import logger
+
+logger = logging.getLogger(__name__)
 
 ### unused imports
 # import os
@@ -266,20 +268,30 @@ def fetch_course_from_api(subject: str, catalog_nbr: Optional[str] = None) -> di
 
 
 def get_majors() -> dict[str, Any]:
-    majors_path = Path("scraping", "majors")
+    # Use absolute path relative to this file's location
+    current_dir = Path(__file__).parent
+    majors_path = current_dir / "scraping" / "majors"
     majors_data = dict()
+
+    if not majors_path.exists():
+        logger.error(f"Majors directory not found: {majors_path}")
+        return majors_data
 
     for majorfp in majors_path.iterdir():
         if majorfp.is_dir():
             continue
         
-        with open(majorfp, "r") as fp:
-            major_data = json.load(fp)
-            
-        if not json_path_exists(json_obj=major_data, json_path=["program", "name"]):
-            continue
+        try:
+            with open(majorfp, "r") as fp:
+                major_data = json.load(fp)
+                
+            if not json_path_exists(json_obj=major_data, json_path=["program", "name"]):
+                continue
 
-        majors_data[major_data["program"]["name"]] = major_data
+            majors_data[major_data["program"]["name"]] = major_data
+        except Exception as e:
+            logger.error(f"Error loading major file {majorfp}: {str(e)}")
+            continue
 
     return majors_data
 

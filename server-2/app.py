@@ -1,4 +1,5 @@
 from flask import g
+from flask import request as flask_request
 from apscheduler.schedulers.background import BackgroundScheduler
 import pytz
 import logging
@@ -357,16 +358,33 @@ def init_app():
         # chatbot, doesn't work as intended
         # init_course_recommender(app) METHOD!!!
 
+        # Add a test route for CORS debugging
+        @app.route("/test", methods=["GET", "OPTIONS"])
+        def test_cors():
+            from flask import jsonify
+            response = jsonify({"message": "CORS is working!", "success": True})
+            response.headers.add('Access-Control-Allow-Origin', '*')
+            return response
+
         app.register_blueprint(courses_bp)
+        
         init_db()
         # comment out store_courses_in_db() if you didn't change any
         # of the scraping part and you alr ran once
-
-        store_courses_in_db()
-        init_prereq_dict(app)
+        # COMMENTED OUT: This blocks server startup for several minutes
+        # store_courses_in_db()
+        
+        # Skip prereq dict initialization if no courses in database
+        try:
+            init_prereq_dict(app)
+        except Exception as e:
+            logger.warning(f"Could not initialize prereq_dict (courses may not be loaded yet): {str(e)}")
+        
         #update_course_statuses() #METHOD!!!
-        init_scheduler()
+        # COMMENTED OUT: This blocks server startup
+        # init_scheduler()
         logger.info("Application initialized successfully")
+        logger.info(f"Registered routes: {[rule.rule for rule in app.url_map.iter_rules()]}")
     except Exception as e:
         logger.error(f"Error initializing application: {str(e)}")
         raise
