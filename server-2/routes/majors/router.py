@@ -185,6 +185,33 @@ def parse_transcript():
     })
 
 
+@majors_bp.route("/recommend_courses", methods=["POST"])
+def recommend_courses():
+    """
+    Recommend courses based on prerequisites and completed courses.
+    
+    Form/JSON Data:
+        major_filename: Major filename (e.g., "computer_science_bs_2025")
+        classes_taken: List of completed course codes
+        
+    Returns:
+        JSON response with taken and recommended courses
+    """
+    try:
+        data = request.get_json()
+        major_filename = data.get("major_filename")
+        classes_taken = data.get("classes_taken", [])
+        
+        if not major_filename:
+            return jsonify({"error": "major_filename is required", "success": False}), 400
+        
+        result = MajorsService.recommend_courses(major_filename, classes_taken)
+        return jsonify(result)
+    except Exception as e:
+        logger.error(f"Error in recommend_courses: {str(e)}", exc_info=True)
+        return jsonify({"error": str(e), "success": False}), 500
+
+
 @majors_bp.route("/upload_transcript", methods=["POST"])
 def upload_transcript():
     """

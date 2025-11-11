@@ -1,7 +1,8 @@
 import json
 import logging
+import re
 from pathlib import Path
-from typing import Any, Dict, List, Sequence
+from typing import Any, Dict, List, Sequence, Set
 
 logger = logging.getLogger(__name__)
 
@@ -306,4 +307,123 @@ class MajorsService:
                     break
 
         return list(equiv_classes), list(recommended_classes)
+    
+    @staticmethod
+    def load_prerequisites() -> Dict[str, str]:
+        """
+        Load prerequisites from the prerequisites.json file.
+        
+        Returns:
+            Dictionary mapping course codes to prerequisite expressions
+        """
+        current_dir = Path(__file__).parent.parent.parent
+        prereq_path = current_dir / "scraping" / "prerequisites.json"
+        
+        if not prereq_path.exists():
+            logger.error(f"Prerequisites file not found: {prereq_path}")
+            return {}
+        
+        try:
+            with open(prereq_path, "r") as fp:
+                return json.load(fp)
+        except Exception as e:
+            logger.error(f"Error loading prerequisites: {str(e)}")
+            return {}
+    
+    @staticmethod
+    def evaluate_prerequisite(prereq_expr: str, taken_courses: Set[str]) -> bool:
+        """
+        Evaluate a prerequisite boolean expression.
+        
+        Args:
+            prereq_expr: Boolean expression like "CSE_12 and (CSE_101 or CSE_102)"
+            taken_courses: Set of course codes the student has taken (normalized)
+            
+        Returns:
+            True if prerequisites are satisfied, False otherwise
+        """
+        if prereq_expr == "True":
+            return True
+        
+        # Normalize the expression
+        expr = prereq_expr
+        
+        # Find all course codes in the expression (e.g., CSE_12, MATH_19A)
+        course_pattern = r'[A-Z]+_\d+[A-Z]*'
+        courses_in_expr = re.findall(course_pattern, expr)
+        
+        # Sort courses by length (longest first) to avoid partial replacements
+        # E.g., replace CSE_101P before CSE_101
+        sorted_courses = sorted(set(courses_in_expr), key=len, reverse=True)
+        
+        # Replace each course code with True/False based on whether it's been taken
+        for course in sorted_courses:
+            # Normalize for comparison
+            normalized_course = course.replace("_", " ").upper()
+            has_taken = normalized_course in taken_courses or course in taken_courses
+            # Use word boundaries to avoid partial replacements
+            expr = re.sub(r'\b' + re.escape(course) + r'\b', str(has_taken), expr)
+        
+        # Now evaluate the boolean expression
+        try:
+            # Clean up the expression for Python eval
+            expr = expr.replace("and", " and ").replace("or", " or ")
+            result = eval(expr)
+            return bool(result)
+        except Exception as e:
+            logger.warning(f"Error evaluating prerequisite '{prereq_expr}': {str(e)}")
+            return False
+    
+    @staticmethod
+    def recommend_courses(major_name: str, classes_taken: List[str]) -> Dict[str, Any]:
+        """
+        Recommend courses based on completed courses and prerequisites.
+        
+        Args:
+            major_name: The major filename
+            classes_taken: List of course codes the student has completed
+            
+        Returns:
+            Dictionary with taken courses (green) and recommended courses (yellow)
+        """
+        # Load prerequisites
+        prerequisites = MajorsService.load_prerequisites()
+        
+        # Get all courses in the major
+        all_major_courses = MajorsService.get_major_courses(major_name)
+        
+        # Normalize taken courses
+        def normalize_course(course: str) -> str:
+            return course.replace(" ", "_").upper().replace("_", " ")
+        
+        taken_normalized = set(normalize_course(c) for c in classes_taken)
+        
+        # Determine which courses can be taken
+        recommended = []
+        
+        for course in all_major_courses:
+            course_normalized = normalize_course(course)
+            
+            # Skip if already taken
+            if course_normalized in taken_normalized:
+                continue
+            
+            # Check if course has prerequisites
+            course_key = course.replace(" ", "_")
+            if course_key not in prerequisites:
+                # No prerequisites, can be taken
+                recommended.append(course)
+                continue
+            
+            # Evaluate prerequisites
+            prereq_expr = prerequisites[course_key]
+            if MajorsService.evaluate_prerequisite(prereq_expr, taken_normalized):
+                recommended.append(course)
+        
+        return {
+            "taken": classes_taken,
+            "recommended": recommended,
+            "total_available": len(all_major_courses),
+            "success": True
+        }
 

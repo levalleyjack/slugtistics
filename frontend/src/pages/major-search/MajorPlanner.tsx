@@ -151,6 +151,53 @@ export const MajorPlanner = ({ selectedMajor, onBack }: MajorPlannerProps) => {
     ? ["All", ...courseData.groups.map(g => g.name)]
     : ["All"];
 
+  // Calculate completion status for each group
+  const getGroupProgress = (group: GroupData) => {
+    const groupCourses = group.classes.flatMap((item) =>
+      Array.isArray(item) ? item.map(normalizeCourseCode) : [normalizeCourseCode(item)]
+    );
+    
+    // Count how many courses in this group have been completed
+    const completedInGroup = groupCourses.filter(course => 
+      completedCourses.has(course)
+    ).length;
+    
+    // Total courses in group (deduplicated)
+    const totalInGroup = new Set(groupCourses).size;
+    
+    // Required count is the minimum of group.count and total available courses
+    const requiredCount = Math.min(group.count, totalInGroup);
+    
+    // Display count should be min of completed and required (can't show more than required)
+    const displayCompleted = Math.min(completedInGroup, requiredCount);
+    
+    return {
+      completed: displayCompleted,
+      required: requiredCount,
+      isComplete: completedInGroup >= requiredCount,
+      hasProgress: completedInGroup > 0 && completedInGroup < requiredCount,
+      isEmpty: completedInGroup === 0
+    };
+  };
+
+  // Get color class based on progress
+  const getProgressColor = (progress: ReturnType<typeof getGroupProgress>) => {
+    if (progress.isComplete) return "bg-green-500/20 border-green-500 text-green-700";
+    if (progress.hasProgress) return "bg-yellow-500/20 border-yellow-500 text-yellow-700";
+    return "bg-red-500/20 border-red-500 text-red-700";
+  };
+
+  // Calculate overall groups completion
+  const groupsCompletion = courseData?.groups
+    ? (() => {
+        const completed = courseData.groups.filter(group => {
+          const progress = getGroupProgress(group);
+          return progress.isComplete;
+        }).length;
+        return { completed, total: courseData.groups.length };
+      })()
+    : { completed: 0, total: 0 };
+
   // Use recommendations data when available
   useEffect(() => {
     if (recommendationsData) {
@@ -164,6 +211,15 @@ export const MajorPlanner = ({ selectedMajor, onBack }: MajorPlannerProps) => {
       );
     }
   }, [recommendationsData]);
+
+  // Fetch prerequisite-based recommendations when completed courses change
+  useEffect(() => {
+    if (completedCourses.size > 0) {
+      fetchPrerequisiteRecommendations();
+    } else {
+      setRecommendedCourses([]);
+    }
+  }, [completedCourses]);
 
   // Handle fixed header visibility
   useEffect(() => {
@@ -184,6 +240,38 @@ export const MajorPlanner = ({ selectedMajor, onBack }: MajorPlannerProps) => {
     window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
   }, [isMobileView, courseData]);
+
+  // Fetch prerequisite-based recommendations
+  const fetchPrerequisiteRecommendations = async () => {
+    if (completedCourses.size === 0) {
+      setRecommendedCourses([]);
+      return;
+    }
+
+    try {
+      const response = await fetch(`${local}/recommend_courses`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          major_filename: selectedMajor,
+          classes_taken: Array.from(completedCourses),
+        }),
+      });
+
+      if (!response.ok) throw new Error('Failed to fetch recommendations');
+      
+      const data = await response.json();
+      if (data.success && data.recommended) {
+        // Normalize recommended courses
+        const normalizedRecommended = data.recommended.map(normalizeCourseCode);
+        setRecommendedCourses(normalizedRecommended);
+      }
+    } catch (error) {
+      console.error('Error fetching recommendations:', error);
+    }
+  };
 
   // Handle requests for recommendations
   const processClassesInput = () => {
@@ -490,15 +578,22 @@ export const MajorPlanner = ({ selectedMajor, onBack }: MajorPlannerProps) => {
             <h1 className="text-xl sm:text-3xl font-bold line-clamp-2">
               {selectedMajor.replace(/_/g, " ").replace(/\b\w/g, l => l.toUpperCase())} Requirements
             </h1>
-            <div className="flex space-x-1 text-xs">
+            <div className="flex flex-wrap gap-1 text-xs">
               <Badge variant="outline" className="bg-emerald-50">
-                {completedCourses.size} / {allAvailableCourses.length} completed
+                {completedCourses.size} / {allAvailableCourses.length} courses
               </Badge>
-              {recommendedCourses.length > 0 && (
-                <Badge variant="outline" className="bg-yellow-50">
-                  {recommendedCourses.length} recommended
-                </Badge>
-              )}
+              <Badge 
+                variant="outline" 
+                className={`font-bold ${
+                  groupsCompletion.completed === groupsCompletion.total 
+                    ? "bg-green-500/20 border-green-500 text-green-700"
+                    : groupsCompletion.completed > 0
+                    ? "bg-yellow-500/20 border-yellow-500 text-yellow-700"
+                    : "bg-red-500/20 border-red-500 text-red-700"
+                }`}
+              >
+                {groupsCompletion.completed} / {groupsCompletion.total} groups
+              </Badge>
             </div>
           </div>
         </div>
@@ -624,46 +719,70 @@ export const MajorPlanner = ({ selectedMajor, onBack }: MajorPlannerProps) => {
             {selectedSection === "All" ? (
               // Display ALL courses in ORDER by groups
               <div className="space-y-8">
-                {courseData.groups.map((group, idx) => (
-                  <div key={idx} className="space-y-3">
-                    <div className="flex items-center gap-2 mb-3">
-                      <h3 className="text-base sm:text-lg font-semibold text-primary">
-                        {group.name}
-                      </h3>
-                      <Badge variant="outline" className="bg-primary/10">
-                        {group.count} required
-                      </Badge>
-                    </div>
-                    <CourseList
-                      courses={Array.from(
-                        new Set(
-                          group.classes.flatMap((item) =>
-                            Array.isArray(item) 
-                              ? item.map(normalizeCourseCode)
-                              : [normalizeCourseCode(item)]
+                {courseData.groups.map((group, idx) => {
+                  const progress = getGroupProgress(group);
+                  // If group is complete, don't show recommendations for this group
+                  const groupRecommendations = progress.isComplete ? [] : recommendedCourses;
+                  
+                  return (
+                    <div key={idx} className="space-y-3">
+                      <div className="flex items-center gap-2 mb-3 flex-wrap">
+                        <h3 className="text-base sm:text-lg font-semibold text-primary">
+                          {group.name}
+                        </h3>
+                        <Badge variant="outline" className="bg-primary/10">
+                          {group.count} required
+                        </Badge>
+                        <Badge 
+                          variant="outline" 
+                          className={`font-mono font-bold border-2 ${getProgressColor(progress)}`}
+                        >
+                          {progress.completed} / {progress.required}
+                        </Badge>
+                      </div>
+                      <CourseList
+                        courses={Array.from(
+                          new Set(
+                            group.classes.flatMap((item) =>
+                              Array.isArray(item) 
+                                ? item.map(normalizeCourseCode)
+                                : [normalizeCourseCode(item)]
+                            )
                           )
-                        )
-                      )}
-                      completedCourses={completedCourses}
-                      recommendedCourses={recommendedCourses}
-                      onToggleCourse={toggleCourseCompletion}
-                    />
-                  </div>
-                ))}
+                        )}
+                        completedCourses={completedCourses}
+                        recommendedCourses={groupRecommendations}
+                        onToggleCourse={toggleCourseCompletion}
+                      />
+                    </div>
+                  );
+                })}
               </div>
             ) : (
               // Display specific group
               (() => {
                 const group = courseData.groups.find(g => g.name === selectedSection);
-                return group ? (
+                if (!group) return null;
+                
+                const progress = getGroupProgress(group);
+                // If group is complete, don't show recommendations for this group
+                const groupRecommendations = progress.isComplete ? [] : recommendedCourses;
+                
+                return (
                   <div className="space-y-2">
-                    <div className="flex items-center gap-2 mb-4">
+                    <div className="flex items-center gap-2 mb-4 flex-wrap">
                       <h3 className="text-base sm:text-lg font-semibold">
                         {group.name}
                       </h3>
                       <Badge variant="outline">
                         {group.count} required
                       </Badge>
+                      <Badge 
+                        variant="outline" 
+                        className={`font-mono font-bold border-2 ${getProgressColor(progress)}`}
+                      >
+                        {progress.completed} / {progress.required}
+                      </Badge>
                     </div>
                     <CourseList
                       courses={Array.from(
@@ -676,11 +795,11 @@ export const MajorPlanner = ({ selectedMajor, onBack }: MajorPlannerProps) => {
                         )
                       )}
                       completedCourses={completedCourses}
-                      recommendedCourses={recommendedCourses}
+                      recommendedCourses={groupRecommendations}
                       onToggleCourse={toggleCourseCompletion}
                     />
                   </div>
-                ) : null;
+                );
               })()
             )}
           </div>
