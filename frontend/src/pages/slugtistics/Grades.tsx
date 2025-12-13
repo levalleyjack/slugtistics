@@ -30,7 +30,6 @@ import { useQuery } from "@tanstack/react-query";
 import { createSelectStyles } from "@/components/Slugtistics/reactSelectStyles";
 import SummaryCard from "@/components/Slugtistics/SummaryCard";
 import html2canvas from "html2canvas-pro";
-import { SidebarTrigger } from "@/components/ui/sidebar";
 import { useTheme } from "@/components/theme-provider";
 import { ModeToggle } from "@/components/ui/mode-toggle";
 import { Info, BarChart3 } from "lucide-react";
@@ -419,7 +418,6 @@ export default function OverviewPage() {
       <header className="bg-card border-b border-border p-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <SidebarTrigger className="text-foreground" />
             <div>
               <h2 className="text-2xl font-bold text-foreground">
                 Grade Distribution Overviews
