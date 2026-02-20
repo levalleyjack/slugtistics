@@ -82,8 +82,8 @@ export const SearchControls: React.FC<SearchControlsProps> = ({
           {compareMode
             ? "Favorites"
             : selectedGE !== "AnyGE"
-            ? `GE: ${selectedGE}`
-            : "All Courses"}
+              ? `GE: ${selectedGE}`
+              : "All Courses"}
         </div>
       </div>
 
@@ -145,8 +145,8 @@ export const SearchControls: React.FC<SearchControlsProps> = ({
                 {lastUpdated}
               </div>
               <div className="flex items-center text-sm text-gray-700">
-                <Snowflake className="w-4 h-4 mr-1" />
-                Winter 2026
+                <Flower className="w-4 h-4 mr-1" />
+                Spring 2026
               </div>
             </PopoverContent>
           </Popover>
@@ -169,11 +169,10 @@ export const SearchControls: React.FC<SearchControlsProps> = ({
             }}
             className={`
     p-2 rounded transition-colors
-    ${
-      favoriteCoursesLength > 0
-        ? "hover:bg-slate-100 cursor-pointer"
-        : "opacity-50 pointer-events-none cursor-default"
-    }
+    ${favoriteCoursesLength > 0
+                ? "hover:bg-slate-100 cursor-pointer"
+                : "opacity-50 pointer-events-none cursor-default"
+              }
   `}
           >
             <Heart

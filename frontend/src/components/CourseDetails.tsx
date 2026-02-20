@@ -136,19 +136,19 @@ const CopyButton: React.FC<{ copyString: string; tooltip?: string }> = ({
 
   return (
     <Tooltip title={copied ? "Copied!" : tooltip} disableInteractive>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-6 w-6 rounded-md hover:bg-primary/10"
-            onClick={handleCopy}
-          >
-            {copied ? (
-              <Check size={14} className="text-green-500" />
-            ) : (
-              <Copy size={14} />
-            )}
-          </Button>
-      </Tooltip>
+      <Button
+        variant="ghost"
+        size="icon"
+        className="h-6 w-6 rounded-md hover:bg-primary/10"
+        onClick={handleCopy}
+      >
+        {copied ? (
+          <Check size={14} className="text-green-500" />
+        ) : (
+          <Copy size={14} />
+        )}
+      </Button>
+    </Tooltip>
   );
 };
 
@@ -192,7 +192,7 @@ export const CourseDetailsPanel: React.FC<CourseDetailsProps> = ({
     queryFn: async (): Promise<EnrollmentData> => {
       try {
         const response = await fetch(
-          `https://my.ucsc.edu/PSIGW/RESTListeningConnector/PSFT_CSPRD/SCX_CLASS_LIST.v1/2260?subject=${course?.subject}&catalog_nbr=${course?.catalog_num}`
+          `https://my.ucsc.edu/PSIGW/RESTListeningConnector/PSFT_CSPRD/SCX_CLASS_LIST.v1/2262?subject=${course?.subject}&catalog_nbr=${course?.catalog_num}`
         );
         const data = await response.json();
 
@@ -517,9 +517,8 @@ export const CourseDetailsPanel: React.FC<CourseDetailsProps> = ({
                             <p className="text-sm text-muted-foreground">
                               {enrollmentQuery.isLoading
                                 ? "Loading..."
-                                : `${
-                                    enrollmentQuery.data?.enrollment || "0/0"
-                                  } students enrolled`}
+                                : `${enrollmentQuery.data?.enrollment || "0/0"
+                                } students enrolled`}
                             </p>
 
                             {!enrollmentQuery.isLoading &&
@@ -554,26 +553,26 @@ export const CourseDetailsPanel: React.FC<CourseDetailsProps> = ({
                   {/* Prerequisites & Requirements */}
                   {courseDetailsQuery.data?.data?.enrollment_reqs
                     .description && (
-                    <Card className="overflow-hidden border-none shadow-lg">
-                      <CardContent className="p-6">
-                        <div className="flex items-center gap-2 mb-4">
-                          <GraduationCap size={18} className="text-primary" />
-                          <h3 className="text-base font-semibold">
-                            Prerequisites & Requirements
-                          </h3>
-                        </div>
-                        <PrerequisitesSection
-                          enrollmentReqs={
-                            courseDetailsQuery.data.data.enrollment_reqs
-                              .description
-                          }
-                          coursesReq={
-                            courseDetailsQuery.data.data.enrollment_reqs.courses
-                          }
-                        />
-                      </CardContent>
-                    </Card>
-                  )}
+                      <Card className="overflow-hidden border-none shadow-lg">
+                        <CardContent className="p-6">
+                          <div className="flex items-center gap-2 mb-4">
+                            <GraduationCap size={18} className="text-primary" />
+                            <h3 className="text-base font-semibold">
+                              Prerequisites & Requirements
+                            </h3>
+                          </div>
+                          <PrerequisitesSection
+                            enrollmentReqs={
+                              courseDetailsQuery.data.data.enrollment_reqs
+                                .description
+                            }
+                            coursesReq={
+                              courseDetailsQuery.data.data.enrollment_reqs.courses
+                            }
+                          />
+                        </CardContent>
+                      </Card>
+                    )}
 
                   {/* Class Notes */}
                   {courseDetailsQuery.data?.data?.class_notes && (
@@ -675,14 +674,14 @@ export const CourseDetailsPanel: React.FC<CourseDetailsProps> = ({
                                 {isValidLocation(
                                   course.location.split(":")[1]?.trim()
                                 ) && (
-                                  <div className="mt-4">
-                                    <LocationMap
-                                      location={course.location
-                                        .split(":")[1]
-                                        ?.trim()}
-                                    />
-                                  </div>
-                                )}
+                                    <div className="mt-4">
+                                      <LocationMap
+                                        location={course.location
+                                          .split(":")[1]
+                                          ?.trim()}
+                                      />
+                                    </div>
+                                  )}
                               </>
                             }
                             icon={<Building size={16} />}
@@ -710,7 +709,7 @@ export const CourseDetailsPanel: React.FC<CourseDetailsProps> = ({
                   className="space-y-6"
                 >
                   {courseDetailsQuery.data?.data?.discussion_sections &&
-                  courseDetailsQuery.data.data.discussion_sections.length >
+                    courseDetailsQuery.data.data.discussion_sections.length >
                     0 ? (
                     <>
                       <div className="flex items-center justify-between">
@@ -737,17 +736,16 @@ export const CourseDetailsPanel: React.FC<CourseDetailsProps> = ({
                               className="overflow-hidden border-none shadow-md hover:shadow-lg transition-shadow duration-200"
                             >
                               <div
-                                className={`h-2 w-full ${
-                                  section.class_status
+                                className={`h-2 w-full ${section.class_status
                                     .toLowerCase()
                                     .includes("open")
                                     ? "bg-green-500"
                                     : section.class_status
-                                        .toLowerCase()
-                                        .includes("wait list")
-                                    ? "bg-amber-500"
-                                    : "bg-red-500"
-                                }`}
+                                      .toLowerCase()
+                                      .includes("wait list")
+                                      ? "bg-amber-500"
+                                      : "bg-red-500"
+                                  }`}
                               />
 
                               <CardContent className="p-6">
